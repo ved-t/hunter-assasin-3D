@@ -129,8 +129,8 @@ function soundDist(grid: Grid, from: SpotSubject, toX: number, toZ: number): num
 describe('spotGuard: hearing', () => {
   // Facing away from the doorway so sight never counts; flashlight off so light never counts.
   const view = eye(2, 2, -1, 0);
-  const walking = PLAYER_HEARING.runSpeed - 1;
-  const running = PLAYER_HEARING.runSpeed + 1;
+  const walking = GUARD.gaitRunSpeed - 1;
+  const running = GUARD.gaitRunSpeed + 1;
 
   it('hears a walking guard through a doorway within walk range', () => {
     const g = guard(5, 2, 0, 1, { speed: walking, intensity: 0 });

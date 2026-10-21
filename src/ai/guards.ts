@@ -10,7 +10,7 @@ import type { GuardDef } from '../level/types';
 import { Pathfinder } from '../nav/astar';
 import { createSoundField, createWalkField, type DistanceField } from '../nav/sound';
 import type { PlayerGait } from '../player/controller';
-import { Guard, type GuardContext } from './guard';
+import { Guard, type GuardContext, type GuardGait } from './guard';
 import { nextState, type GuardState } from './guard-fsm';
 import { createVisionResult, hearingGain, visionFill, type Viewer } from './perception';
 
@@ -26,6 +26,8 @@ export interface GuardEvents {
   stateChange: { guard: Guard; from: GuardState; to: GuardState };
   /** A guard went Alert on its own and shouted to `alerted`. */
   alert: { guard: Guard; alerted: Guard[] };
+  /** One of a guard's feet landed (audio only; the player's perception reads guard speed). */
+  footstep: { guard: Guard; gait: GuardGait };
 }
 
 interface Noise {
@@ -106,7 +108,10 @@ export class GuardSystem {
       if (to === 'alert' && !g.alertedByOther) this.shout(g);
     }
 
-    for (const g of this.guards) g.step(dt, this.ctx, player.pos);
+    for (const g of this.guards) {
+      g.step(dt, this.ctx, player.pos);
+      if (g.footstep) this.events.emit('footstep', { guard: g, gait: g.footstep });
+    }
   }
 
   /** Alert every other guard within ALERT.propagateM path distance, sharing the LKP. */

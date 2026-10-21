@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AWARENESS, SEARCH } from '../config/tunables';
+import { AWARENESS, GUARD, SEARCH } from '../config/tunables';
 import { Rng } from '../core/rng';
 import { Grid } from '../level/grid';
 import type { GuardDef } from '../level/types';
@@ -117,6 +117,39 @@ describe('GuardSystem', () => {
     expect(sys.guards[2]!.state).toBe('patrol');
     // The shouted-to guard heads for the shared LKP without shouting on.
     expect(shouts).toHaveLength(1);
+  });
+
+  it('steps at the walk cadence on patrol, runs when alerted, and is silent standing still', () => {
+    const walker: GuardDef = {
+      spawn: { x: 1.5, y: 1.5 },
+      yawDeg: 90,
+      waypoints: [
+        { x: 1.5, y: 1.5 },
+        { x: 5.5, y: 1.5 },
+      ],
+    };
+    const sys = new GuardSystem(grid, [walker, posted(11, 1, 180)], new Rng(1));
+    const steps: { id: number; gait: string; t: number }[] = [];
+    let t = 0;
+    sys.events.on('footstep', (e) => steps.push({ id: e.guard.id, gait: e.gait, t }));
+    for (; t < 4; t += DT) sys.step(DT, player(-50, -50), 1);
+    const walks = steps.filter((s) => s.id === 0);
+    expect(walks.length).toBeGreaterThan(3);
+    expect(walks.every((s) => s.gait === 'walk')).toBe(true);
+    const gaps = walks.slice(1).map((s, i) => s.t - walks[i]!.t);
+    expect(Math.min(...gaps)).toBeGreaterThanOrEqual(GUARD.footstepIntervalS.walk - DT - 1e-9);
+    expect(steps.some((s) => s.id === 1)).toBe(false); // posted, never moves
+
+    // Alerted by a player in plain view, then the player vanishes: he runs to the last known position.
+    const chaser = new GuardSystem(grid, [posted(1, 2, 90)], new Rng(1));
+    const gaits: string[] = [];
+    chaser.events.on('footstep', (e) => gaits.push(e.gait));
+    const p = player(c(5), c(2));
+    run(chaser, p, 4);
+    expect(chaser.guards[0]!.state).toBe('alert');
+    p.pos.x = -50;
+    run(chaser, p, 2);
+    expect(gaits).toContain('run');
   });
 
   it('patrols between waypoints with A* and limited turning', () => {

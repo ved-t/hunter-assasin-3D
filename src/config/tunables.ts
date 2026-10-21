@@ -158,6 +158,11 @@ export const GUARD = {
   repathS: 0.4,
   /** Alert guards stop this far from a player they can see (Phase 4 shoots from here). */
   standoffM: 3,
+  /** Gait from ground speed (m/s): below movingSpeed is still, at or above runSpeed is running. */
+  gaitMovingSpeed: 0.2,
+  gaitRunSpeed: 2.5,
+  /** Seconds between footsteps per gait. */
+  footstepIntervalS: { walk: 0.55, run: 0.34 },
 } as const;
 
 /** Guard flashlights: the fake beam + light pools every guard has, and the real SpotLight pool. */
@@ -328,10 +333,6 @@ export const PLAYER_SIGHT = {
 export const PLAYER_HEARING = {
   walkRangeM: 8,
   runRangeM: 14,
-  /** Guards slower than this (m/s) make no footsteps. */
-  movingSpeed: 0.2,
-  /** Guards at least this fast (m/s) count as running (walk 1.5, run 4.2). */
-  runSpeed: 2.5,
 } as const;
 
 /** HUD minimap (DOM canvas, top-right). Shows the layout, the player and only perceived guards. */

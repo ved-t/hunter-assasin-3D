@@ -44,6 +44,7 @@ export interface GuardContext {
 }
 
 type SearchPhase = 'toLkp' | 'cells' | 'done';
+export type GuardGait = 'walk' | 'run';
 
 export class Guard {
   readonly pos: Vec2;
@@ -60,6 +61,8 @@ export class Guard {
   alertedByOther = false;
   /** Actual ground speed this step (m/s). */
   speed = 0;
+  /** Gait of the footstep that landed this step, or null if none did. */
+  footstep: GuardGait | null = null;
   /** Current path (world points after the guard's position); exposed for the debug overlay. */
   readonly path: Vec2[] = [];
   /** Search cells for the current search (debug overlay). */
@@ -80,6 +83,7 @@ export class Guard {
   private searchPhase: SearchPhase = 'done';
   private searchIndex = 0;
   private readonly searchOrigin: Vec2 = { x: 0, z: 0 };
+  private stepTimer = 0;
 
   constructor(
     readonly id: number,
@@ -173,6 +177,27 @@ export class Guard {
         break;
     }
     this.speed = Math.hypot(this.pos.x - this.prevPos.x, this.pos.z - this.prevPos.z) / dt;
+    this.stepFootsteps(dt);
+  }
+
+  /** Walking or running by ground speed; null while standing. */
+  get gait(): GuardGait | null {
+    if (this.speed < GUARD.gaitMovingSpeed) return null;
+    return this.speed >= GUARD.gaitRunSpeed ? 'run' : 'walk';
+  }
+
+  private stepFootsteps(dt: number): void {
+    const gait = this.gait;
+    this.footstep = null;
+    if (!gait) {
+      this.stepTimer = 0; // the first step lands as soon as he moves again
+      return;
+    }
+    this.stepTimer -= dt;
+    if (this.stepTimer <= 0) {
+      this.footstep = gait;
+      this.stepTimer += GUARD.footstepIntervalS[gait];
+    }
   }
 
   // --- States ---------------------------------------------------------------------------------

@@ -4,7 +4,7 @@
 //   3. sound:  his footsteps are within hearing range by path distance (BFS), not straight line.
 // Pure: works on the grid and plain poses, never on meshes.
 
-import { PLAYER_HEARING, PLAYER_SIGHT } from '../config/tunables';
+import { GUARD, PLAYER_HEARING, PLAYER_SIGHT } from '../config/tunables';
 import type { Grid } from '../level/grid';
 import { BeamRays, castBeamFan } from '../lighting/beam-rays';
 import { beamMidpoint, forEachPoolPoint, type Lens } from '../lighting/pool-points';
@@ -92,9 +92,9 @@ export function spotGuard(
     }
   }
 
-  if (g.speed >= PLAYER_HEARING.movingSpeed) {
+  if (g.speed >= GUARD.gaitMovingSpeed) {
     const range =
-      g.speed >= PLAYER_HEARING.runSpeed ? PLAYER_HEARING.runRangeM : PLAYER_HEARING.walkRangeM;
+      g.speed >= GUARD.gaitRunSpeed ? PLAYER_HEARING.runRangeM : PLAYER_HEARING.walkRangeM;
     if (soundDist <= range) return set(out, 'sound', g.x, 0, g.z);
   }
   return out;
