@@ -11,4 +11,5 @@ Every third-party asset and library shipped in the game, with its licence.
 
 ## Art and audio
 
-None yet. Phase 1 uses procedural greybox geometry only.
+None yet. Phase 1 uses procedural greybox geometry only, and Phase 3 audio (footsteps, radio barks) is
+synthesised at runtime with WebAudio, with no audio files shipped.

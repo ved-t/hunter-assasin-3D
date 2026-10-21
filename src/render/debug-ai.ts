@@ -1,6 +1,6 @@
 // ?debug=1 AI view (dynamically imported): vision cones (70° / 14 m plus the near zone), current
-// paths, LKP and search-cell markers, per-guard state/awareness labels, and a floor heatmap of
-// player light exposure over the nav grid, toggled with N.
+// paths, LKP and search-cell markers, per-guard state/awareness labels, the point each guard was
+// last perceived through (cyan), and a floor heatmap of player light exposure, toggled with N.
 
 import * as THREE from 'three';
 import type { Guard } from '../ai/guard';
@@ -10,6 +10,7 @@ import type { Vec2 } from '../level/collision';
 import type { Grid } from '../level/grid';
 import { Tile } from '../level/types';
 import { lightExposure, type BeamLight } from '../lighting/light-sampling';
+import type { SpotResult } from '../perception/spotted';
 
 const ARC_SEGMENTS = 10;
 const NEAR_ARC_SEGMENTS = 4;
@@ -21,6 +22,9 @@ const LABEL_Y = 2.7;
 const HEATMAP_REFRESH_S = 0.25;
 const HEATMAP_Y = 0.04;
 const MARKER_SIZE = 0.25;
+/** Perceived-point markers use the player-relevant cyan. */
+const PERCEPT_COLOR = 0xbff4ff;
+const PERCEPT_SIZE = 0.12;
 
 const STATE_COLOR: Record<GuardState, number> = {
   patrol: 0x6fdc8c,
@@ -36,6 +40,7 @@ export class DebugAi {
   private readonly lineCol: Float32Array;
   private readonly lkps: THREE.InstancedMesh;
   private readonly cells: THREE.InstancedMesh;
+  private readonly percepts: THREE.InstancedMesh;
   private readonly heatmap: THREE.InstancedMesh;
   private readonly heatCells: { cx: number; cy: number }[] = [];
   private readonly labels: HTMLDivElement[] = [];
@@ -90,7 +95,13 @@ export class DebugAi {
       markerMat(STATE_COLOR.search),
       Math.max(1, guards.length * SEARCH.maxCells),
     );
-    for (const mesh of [this.lkps, this.cells]) {
+    this.percepts = new THREE.InstancedMesh(
+      new THREE.OctahedronGeometry(PERCEPT_SIZE),
+      new THREE.MeshBasicMaterial({ color: PERCEPT_COLOR, fog: false, depthTest: false }),
+      Math.max(1, guards.length),
+    );
+    this.percepts.renderOrder = 11;
+    for (const mesh of [this.lkps, this.cells, this.percepts]) {
       mesh.frustumCulled = false;
       mesh.count = 0;
     }
@@ -121,7 +132,7 @@ export class DebugAi {
     });
     this.heatmap.visible = false;
 
-    this.group.add(this.lines, this.lkps, this.cells, this.heatmap);
+    this.group.add(this.lines, this.lkps, this.cells, this.percepts, this.heatmap);
     scene.add(this.group);
 
     this.labelRoot = document.createElement('div');
@@ -155,10 +166,11 @@ export class DebugAi {
     frameDt: number,
     camera: THREE.PerspectiveCamera,
     beams: readonly BeamLight[],
+    percepts: readonly SpotResult[],
   ): void {
     this.updateLines(alpha);
-    this.updateMarkers();
-    this.updateLabels(alpha, camera);
+    this.updateMarkers(percepts);
+    this.updateLabels(alpha, camera, percepts);
     if (this.heatmap.visible) {
       this.heatTimer += frameDt;
       if (this.heatTimer >= HEATMAP_REFRESH_S) {
@@ -216,9 +228,17 @@ export class DebugAi {
     (geo.getAttribute('color') as THREE.BufferAttribute).needsUpdate = true;
   }
 
-  private updateMarkers(): void {
+  private updateMarkers(percepts: readonly SpotResult[]): void {
     let nl = 0;
     let nc = 0;
+    let np = 0;
+    for (const p of percepts) {
+      if (p.kind === 'direct' || p.kind === 'light') {
+        this.percepts.setMatrixAt(np++, this.m.makeTranslation(p.x, p.y, p.z));
+      }
+    }
+    this.percepts.count = np;
+    this.percepts.instanceMatrix.needsUpdate = true;
     for (const g of this.guards) {
       const lkp = g.awareness.lkp;
       if (lkp && g.state !== 'patrol') {
@@ -234,7 +254,11 @@ export class DebugAi {
     this.lkps.instanceMatrix.needsUpdate = this.cells.instanceMatrix.needsUpdate = true;
   }
 
-  private updateLabels(alpha: number, camera: THREE.PerspectiveCamera): void {
+  private updateLabels(
+    alpha: number,
+    camera: THREE.PerspectiveCamera,
+    percepts: readonly SpotResult[],
+  ): void {
     const w = this.labelRoot.clientWidth;
     const h = this.labelRoot.clientHeight;
     this.guards.forEach((g, i) => {
@@ -247,7 +271,8 @@ export class DebugAi {
       if (!visible) return;
       el.style.transform = `translate(${((this.v.x + 1) / 2) * w}px, ${((1 - this.v.y) / 2) * h}px) translate(-50%, -100%)`;
       el.style.color = `#${STATE_COLOR[g.state].toString(16).padStart(6, '0')}`;
-      el.textContent = `g${g.id} ${g.state} ${g.awareness.value.toFixed(0)}${g.seesPlayer ? ' 👁' : ''}`;
+      const percept = percepts[i]?.kind;
+      el.textContent = `g${g.id} ${g.state} ${g.awareness.value.toFixed(0)}${g.seesPlayer ? ' 👁' : ''}${percept ? ` [${percept}]` : ''}`;
     });
   }
 

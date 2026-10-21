@@ -169,12 +169,20 @@ async function boot(): Promise<void> {
   platform.onPause(() => {
     hostPaused = true;
     game?.input.releaseAll();
+    game?.audio.manager.suspend();
     loop.stop();
   });
   platform.onResume(() => {
     hostPaused = false;
+    game?.audio.manager.resume();
     resumeIfAllowed();
   });
+  // Browsers keep audio locked until a user gesture; every tap, click or key retries the unlock.
+  if (game) {
+    const unlockAudio = () => game?.audio.manager.unlock();
+    window.addEventListener('pointerdown', unlockAudio, { capture: true });
+    window.addEventListener('keydown', unlockAudio, { capture: true });
+  }
 
   // Settings / pause panel, touch buttons and the desktop click-to-play hint.
   const kbm = game?.input.keyboardMouse ?? null;
