@@ -339,6 +339,37 @@ export const PLAYER_HEARING = {
 export const MINIMAP = {
   /** A lost guard's marker freezes, then fades out over this long (s). */
   fadeS: 4,
+  /** Diameter as a fraction of the screen's short side. */
+  sizeFraction: 0.22,
+  /** World radius shown around the player (m). */
+  viewRadiusM: 14,
+  /** Resolution of the pre-drawn level layout (px per m). */
+  layoutPxPerM: 8,
+  maxDpr: 2,
+  backgroundColor: 0x05070a,
+  backgroundAlpha: 0.7,
+  floorColor: 0x1c222a,
+  wallColor: 0x56606c,
+  coverColor: 0x5e5040,
+  doorColor: 0x2c333c,
+  rimColor: 0x8a96a4,
+  playerColor: 0xbff4ff,
+  /** Marker colour per guard state (Patrol pale amber, then the in-world icon colours). */
+  stateColors: {
+    patrol: 0xe8cf9a,
+    suspicious: GUARD_VISUALS.suspiciousColor,
+    search: GUARD_VISUALS.searchColor,
+    alert: GUARD_VISUALS.alertColor,
+  },
+  /** Marker and player-arrow radius as a fraction of the minimap diameter. */
+  markerSizeFraction: 0.035,
+  /** Sound markers ripple outward at this rate (Hz) to this multiple of the marker size. */
+  rippleHz: 1.4,
+  rippleScale: 2.4,
+  /** Player footsteps at least this loud (m of noise radius) draw an expanding ring. */
+  noiseRingMinRadiusM: PLAYER.noiseRadius.run,
+  noiseRingS: 0.7,
+  noiseRings: 4,
 } as const;
 
 export const INPUT = {

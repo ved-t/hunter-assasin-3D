@@ -292,3 +292,17 @@ body {
   white-space: nowrap;
   will-change: transform;
 }
+
+/* HUD minimap: top-right, clear of the settings button (top centre) and the debug overlay (top left). */
+.minimap {
+  position: absolute;
+  top: calc(12px + var(--ui-top-safe));
+  right: calc(12px + var(--ui-right-safe));
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.minimap[hidden] {
+  display: none;
+}
