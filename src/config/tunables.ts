@@ -158,6 +158,67 @@ export const GUARD = {
   standoffM: 3,
 } as const;
 
+/** Guard flashlights: the fake beam + light pools every guard has, and the real SpotLight pool. */
+export const FLASHLIGHT = {
+  rangeM: 12,
+  halfAngleDeg: 22,
+  /** Rays cast across the cone each frame to clip the beam and place light pools. */
+  rays: 7,
+  color: 0xffb347,
+  /** Additive beam brightness. */
+  beamOpacity: 0.12,
+  /** The beam fades in over this distance from the lens (m), so the apex doesn't read as a spike. */
+  beamNearFadeM: 0.5,
+  /** Light-pool quad size per metre of ray distance, and its minimum (m). */
+  poolSizePerM: 0.4,
+  poolMinSizeM: 0.7,
+  /** Additive pool brightness at the lens end; falls off with distance to 0 at range. */
+  poolOpacity: 0.55,
+  /** Floor pools are stretched along the ray by this factor. */
+  floorPoolStretch: 1.8,
+  /** Floor pools sit no further along a ray than this (m). */
+  floorMaxM: 9,
+  /** Wall pools stand this far off the wall (m) to avoid z-fighting. */
+  poolLift: 0.03,
+  /** Real SpotLight: candela-like intensity, decay and penumbra (0..1). */
+  spotIntensity: 60,
+  spotDecay: 1.5,
+  spotPenumbra: 0.45,
+  spotShadowBias: -0.0005,
+  spotShadowNear: 0.3,
+  /** A real light only switches to another guard if it is this much closer to the camera (m). */
+  spotSwitchMarginM: 2,
+  /** Fade-out/in time when a real light moves to another guard (s). */
+  spotFadeS: 0.15,
+  /** High tier: dust particles drifting in each real-lit beam. */
+  dustPerBeam: 140,
+  dustSizePx: 2.5,
+  dustOpacity: 0.5,
+  dustDriftMPerS: 0.25,
+  /** Flicker: battery dip slots per second, chance a slot dips, max dip depth, faint wobble. */
+  batteryDipRate: 0.8,
+  batteryDipChance: 0.5,
+  batteryDipDepth: 0.75,
+  batteryWobbleHz: 6,
+  batteryWobbleDepth: 0.08,
+  /** Alert jitter frequency (Hz) and depth. */
+  alertJitterHz: 14,
+  alertJitterDepth: 0.2,
+} as const;
+
+/** Player light exposure, which scales how fast guards see them. */
+export const LIGHT_EXPOSURE = {
+  dark: 0.25,
+  lit: 1,
+  /** Full exposure within this distance of a lamp (m); falls to dark at LEVEL.lampPoolRadius. */
+  lampFullM: 1.2,
+  /** LOS from a light is tested to this height on the player (m). */
+  sampleHeight: 1,
+  /** Beam exposure fades over the outer fraction of the cone angle, and of its range. */
+  beamEdgeFraction: 0.25,
+  beamRangeFraction: 0.2,
+} as const;
+
 export const ALERT = {
   /** An Alert guard alerts every guard within this path distance (m). */
   propagateM: 12,
