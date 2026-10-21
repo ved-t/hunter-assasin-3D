@@ -2,6 +2,10 @@ import { Ajv } from 'ajv';
 import { describe, expect, it } from 'vitest';
 import medium from '../../public/levels/medium.json';
 import small from '../../public/levels/small.json';
+import { GUARD } from '../config/tunables';
+import { Pathfinder } from '../nav/astar';
+import type { Vec2 } from './collision';
+import { Grid } from './grid';
 import schema from './level.schema.json';
 import { validateLevel } from './validate';
 import type { LevelData } from './types';
@@ -38,6 +42,28 @@ describe('shipped levels', () => {
       expectBoth(level, true, true);
     });
   }
+});
+
+describe('shipped level patrols', () => {
+  for (const [id, level] of Object.entries({ small, medium }) as [string, LevelData][]) {
+    it(`${id}.json: every guard can walk its patrol loop with A*`, () => {
+      const grid = Grid.fromRows(level.tiles, level.tileSize);
+      const paths = new Pathfinder(grid, GUARD.radius);
+      const out: Vec2[] = [];
+      for (const g of level.guards) {
+        const loop = [g.spawn, ...g.waypoints, g.waypoints[0] ?? g.spawn];
+        for (let i = 0; i < loop.length - 1; i++) {
+          const a = grid.gridToWorld(loop[i]!.x, loop[i]!.y);
+          const b = grid.gridToWorld(loop[i + 1]!.x, loop[i + 1]!.y);
+          expect(paths.findPath(a.x, a.z, b.x, b.z, out)).toBe(true);
+        }
+      }
+    });
+  }
+
+  it('medium has the eight guards the Phase 2 perf check needs', () => {
+    expect(medium.guards).toHaveLength(8);
+  });
 });
 
 describe('validateLevel', () => {
