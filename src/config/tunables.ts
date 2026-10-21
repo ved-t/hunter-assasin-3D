@@ -123,6 +123,46 @@ export const PLAYER = {
   collisionIterations: 2,
 } as const;
 
+export const GUARD = {
+  /** Collision circle radius (m). */
+  radius: 0.35,
+  height: 1.8,
+  eyeHeight: 1.65,
+  /** Flashlight lens: height (m), distance ahead of the body centre (m), tilt below level (deg). */
+  flashlightHeight: 1.35,
+  flashlightForward: 0.4,
+  flashlightPitchDeg: 10,
+  walkSpeed: 1.5,
+  runSpeed: 4.2,
+  /** Suspicious guards walk to the stimulus at this fraction of walk speed. */
+  suspiciousSpeedFactor: 0.6,
+  /** Turn-rate limits (deg/s), so beams sweep visibly instead of snapping. */
+  turnRateDegPerS: { patrol: 110, suspicious: 150, alert: 300, search: 160 },
+  /** Facing further than this from the travel direction (deg), turn on the spot before walking. */
+  walkTurnGateDeg: 50,
+  /** A path point counts as reached within this distance (m). */
+  arriveDistM: 0.3,
+  /** Suspicious: turn toward the stimulus and pause this long before walking to it (s). */
+  suspiciousReactS: 0.6,
+  /** Idle look-around: sweep ±arc (deg) over one period (s). */
+  lookAroundArcDeg: 55,
+  lookAroundPeriodS: 3.2,
+  /** Suspicious: look around at the stimulus point for this long (s). */
+  investigateLookS: 3,
+  /** Search: look around at each search cell for this long (s). */
+  searchCellLookS: 1.2,
+  /** Re-plan toward a moving goal once it has moved this far (m), at most every repathS. */
+  repathMoveM: 1,
+  repathS: 0.4,
+  /** Alert guards stop this far from a player they can see (Phase 4 shoots from here). */
+  standoffM: 3,
+} as const;
+
+export const ALERT = {
+  /** An Alert guard alerts every guard within this path distance (m). */
+  propagateM: 12,
+} as const;
+
 /** Guard sight. Fill rates are awareness/s before the exposure × stance × movement multipliers. */
 export const VISION = {
   rangeM: 14,
@@ -160,6 +200,8 @@ export const AWARENESS = {
   decayPerS: 15,
   /** Seconds after the last stimulus before decay starts. */
   holdS: 1.5,
+  /** Entering Search caps awareness here, so only a fresh sighting (or a shout) re-alerts. */
+  searchStart: 70,
   /** After giving up a search, awareness can't drain below this for searchFloorS. */
   searchFloor: 20,
   searchFloorS: 30,
