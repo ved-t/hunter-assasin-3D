@@ -12,7 +12,7 @@ export interface LevelMesh {
 }
 
 /** Radial gradient for lamp pools and glows: white centre fading to transparent. */
-function radialTexture(size = 64): THREE.Texture {
+export function radialTexture(size = 64): THREE.Texture {
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;
   const g = canvas.getContext('2d') as CanvasRenderingContext2D;

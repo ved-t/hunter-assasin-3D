@@ -156,9 +156,13 @@ export class SpotPool {
     return 0;
   }
 
-  /** Slot holders, for the debug overlay. */
-  holders(): readonly number[] {
-    return Array.from(this.current);
+  /** Id lit by slot i (−1 = none) and its current weight. */
+  holderAt(i: number): number {
+    return this.current[i] ?? -1;
+  }
+
+  weightAt(i: number): number {
+    return this.weight[i] ?? 0;
   }
 
   dispose(): void {
