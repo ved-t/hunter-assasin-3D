@@ -334,6 +334,12 @@ export const PLAYER_HEARING = {
   runSpeed: 2.5,
 } as const;
 
+/** HUD minimap (DOM canvas, top-right). Shows the layout, the player and only perceived guards. */
+export const MINIMAP = {
+  /** A lost guard's marker freezes, then fades out over this long (s). */
+  fadeS: 4,
+} as const;
+
 export const INPUT = {
   /** Radians per mouse pixel at sensitivity 1. */
   mouseRadPerPx: 0.0022,

@@ -49,7 +49,14 @@ function guard(
 
 // Corridor A runs east along row 1; corridor B runs south from (6,1). Walls hide B from A.
 const ell = Grid.fromRows(
-  ['##########', '#........#', '######.###', '######.###', '######.###', '##########'],
+  [
+    '##########', // 0
+    '#........#', // 1
+    '######.###', // 2
+    '######.###', // 3
+    '######.###', // 4
+    '##########', // 5
+  ],
   T,
 );
 
@@ -94,8 +101,26 @@ describe('spotGuard: sight and light', () => {
 });
 
 // Two rooms joined by a doorway at (4,2); `sealed` is the same with the doorway walled up.
-const rooms = Grid.fromRows(['#########', '#...#...#', '#...D...#', '#...#...#', '#########'], T);
-const sealed = Grid.fromRows(['#########', '#...#...#', '#...#...#', '#...#...#', '#########'], T);
+const rooms = Grid.fromRows(
+  [
+    '#########', // 0
+    '#...#...#', // 1
+    '#...D...#', // 2
+    '#...#...#', // 3
+    '#########', // 4
+  ],
+  T,
+);
+const sealed = Grid.fromRows(
+  [
+    '#########', // 0
+    '#...#...#', // 1
+    '#...#...#', // 2
+    '#...#...#', // 3
+    '#########', // 4
+  ],
+  T,
+);
 
 function soundDist(grid: Grid, from: SpotSubject, toX: number, toZ: number): number {
   return createSoundField(grid).pathDistance(toX, toZ, from.x, from.z, PLAYER_HEARING.runRangeM);
