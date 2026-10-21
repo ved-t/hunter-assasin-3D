@@ -306,3 +306,36 @@ body {
 .minimap[hidden] {
   display: none;
 }
+
+/* Crosshair dot and the light gem below it. --lit (0..1) is how lit the player is. */
+.crosshair {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 50%;
+  background: rgba(201, 210, 220, 0.7);
+  pointer-events: none;
+}
+
+.light-gem {
+  --lit: 0;
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 26px);
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  transform: rotate(45deg);
+  border: 1px solid rgba(201, 210, 220, 0.45);
+  background: rgba(255, 179, 71, calc(0.08 + var(--lit) * 0.92));
+  box-shadow: 0 0 calc(var(--lit) * 14px) rgba(255, 179, 71, calc(var(--lit) * 0.8));
+  pointer-events: none;
+}
+
+.crosshair[hidden],
+.light-gem[hidden] {
+  display: none;
+}

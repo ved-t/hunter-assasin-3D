@@ -372,6 +372,23 @@ export const MINIMAP = {
   noiseRings: 4,
 } as const;
 
+/** HUD overlays near the crosshair and on the screen edges (DOM, not WebGL). */
+export const HUD = {
+  /** Light gem: eases toward the player's exposure with this time constant (s). */
+  meterSmoothingS: 0.12,
+  /** Detection arcs: an arc stays up this long after the guard's awareness last rose (s). */
+  arcRiseHoldS: 0.6,
+  /** ...then fades out over this long (s). */
+  arcFadeS: 0.5,
+  /** Arcs sit on an ellipse this far in from the screen edges (fraction of each half-size). */
+  arcInset: 0.82,
+  /** Angular length of an arc (deg) and its stroke width (px). */
+  arcSpanDeg: 26,
+  arcWidthPx: 5,
+  /** Awareness from this up to Alert tints the arc from amber to red (0..100). */
+  arcRedFrom: 60,
+} as const;
+
 export const INPUT = {
   /** Radians per mouse pixel at sensitivity 1. */
   mouseRadPerPx: 0.0022,
