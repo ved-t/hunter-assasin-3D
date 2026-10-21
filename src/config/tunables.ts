@@ -302,6 +302,38 @@ export const SEARCH = {
   giveUpS: 15,
 } as const;
 
+/** Player-side perception: which guards the player could have noticed, which feeds the minimap. */
+export const PERCEPTION = {
+  /** Each guard is re-tested this often (Hz); guards are staggered across sim steps. */
+  hz: 10,
+} as const;
+
+/** What the player can see. Tests use the camera frustum and grid LOS, never the rendered image. */
+export const PLAYER_SIGHT = {
+  /** Points must lie inside this fraction of the frustum's half-angles to count as on screen. */
+  frustumScale: 0.95,
+  /** A guard's dark body reads up to this far (m); fog hides it beyond. */
+  directMaxM: 20,
+  /** Bright additive light (beams, pools) reads this far (m). */
+  lightMaxM: 30,
+  /** Points on the guard's body tested for LOS (m above the floor). */
+  bodySampleHeights: [0.9, 1.6],
+  /** A flashlight dimmer than this (0..1) doesn't count as visible light. */
+  minLightIntensity: 0.15,
+  /** Wall pool points are pulled this far off the wall before the LOS test (m). */
+  pointInsetM: 0.1,
+} as const;
+
+/** What the player can hear of guards: their footsteps, by path distance through the grid. */
+export const PLAYER_HEARING = {
+  walkRangeM: 8,
+  runRangeM: 14,
+  /** Guards slower than this (m/s) make no footsteps. */
+  movingSpeed: 0.2,
+  /** Guards at least this fast (m/s) count as running (walk 1.5, run 4.2). */
+  runSpeed: 2.5,
+} as const;
+
 export const INPUT = {
   /** Radians per mouse pixel at sensitivity 1. */
   mouseRadPerPx: 0.0022,
