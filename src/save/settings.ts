@@ -1,27 +1,54 @@
-// Player settings, persisted through Platform storage. More fields arrive in Phase 1 (sensitivity, invert Y, gyro).
+// Player settings, persisted through Platform storage. Each field is validated on load and falls back
+// to its default, so a bad or older save never breaks the game.
 
 import { isQualitySetting, type QualitySetting } from '../config/quality';
+import { SETTINGS_LIMITS } from '../config/tunables';
 import type { PlatformStorage } from '../platform/platform';
 
 const SETTINGS_KEY = 'settings.v1';
 
 export interface Settings {
   quality: QualitySetting;
+  /** Look sensitivity multiplier for mouse, touch and gyro. */
+  lookSensitivity: number;
+  invertY: boolean;
+  /** Gyro look. Off by default; turning it on asks iOS for motion permission. */
+  gyro: boolean;
 }
 
-export const DEFAULT_SETTINGS: Settings = { quality: 'auto' };
+export const DEFAULT_SETTINGS: Settings = {
+  quality: 'auto',
+  lookSensitivity: SETTINGS_LIMITS.sensitivityDefault,
+  invertY: false,
+  gyro: false,
+};
+
+export function clampSensitivity(v: number): number {
+  return Math.min(SETTINGS_LIMITS.sensitivityMax, Math.max(SETTINGS_LIMITS.sensitivityMin, v));
+}
+
+/** Validate an untrusted parsed object field by field. */
+export function parseSettings(raw: unknown): Settings {
+  const p = (typeof raw === 'object' && raw !== null ? raw : {}) as Partial<
+    Record<keyof Settings, unknown>
+  >;
+  const d = DEFAULT_SETTINGS;
+  return {
+    quality: typeof p.quality === 'string' && isQualitySetting(p.quality) ? p.quality : d.quality,
+    lookSensitivity:
+      typeof p.lookSensitivity === 'number' && Number.isFinite(p.lookSensitivity)
+        ? clampSensitivity(p.lookSensitivity)
+        : d.lookSensitivity,
+    invertY: typeof p.invertY === 'boolean' ? p.invertY : d.invertY,
+    gyro: typeof p.gyro === 'boolean' ? p.gyro : d.gyro,
+  };
+}
 
 export async function loadSettings(storage: PlatformStorage): Promise<Settings> {
   const raw = await storage.get(SETTINGS_KEY);
   if (!raw) return { ...DEFAULT_SETTINGS };
   try {
-    const parsed = JSON.parse(raw) as Partial<Record<keyof Settings, unknown>>;
-    return {
-      quality:
-        typeof parsed.quality === 'string' && isQualitySetting(parsed.quality)
-          ? parsed.quality
-          : DEFAULT_SETTINGS.quality,
-    };
+    return parseSettings(JSON.parse(raw));
   } catch {
     return { ...DEFAULT_SETTINGS };
   }
