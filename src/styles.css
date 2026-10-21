@@ -268,3 +268,27 @@ body {
 .debug-overlay {
   z-index: 5;
 }
+
+/* ?debug=1 AI labels above guards, positioned by projecting each guard's head. */
+.debug-ai-labels {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.debug-ai-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 1px 4px;
+  background: rgba(0, 0, 0, 0.55);
+  font:
+    11px/1.3 ui-monospace,
+    Menlo,
+    Consolas,
+    monospace;
+  white-space: nowrap;
+  will-change: transform;
+}
