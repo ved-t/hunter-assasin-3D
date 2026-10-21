@@ -389,6 +389,30 @@ export const HUD = {
   arcRedFrom: 60,
 } as const;
 
+/** Procedural placeholder audio (Phase 5 swaps in recorded SFX). Gains are linear, 0..1. */
+export const AUDIO = {
+  masterGain: 0.8,
+  /** Simultaneous one-shot voices; a louder new sound steals the quietest. */
+  maxVoices: 12,
+  /** Fade when a voice is stolen or the context suspends (s). */
+  stealFadeS: 0.03,
+  /** Guard footsteps at the source; heard by path distance within PLAYER_HEARING ranges. */
+  guardStepGain: { walk: 0.35, run: 0.6 },
+  /** The player's own footsteps (not positional). */
+  playerStepGain: { crouch: 0.04, sneak: 0.08, walk: 0.16, run: 0.28 },
+  /** Radio barks: gain at the source and how far they carry by path distance (m). */
+  barkGain: 0.45,
+  barkRangeM: 20,
+  /** Idle radio chatter on patrol: seconds between barks per guard, min..max. */
+  chatterIntervalS: [10, 24],
+  /** Lowpass cutoff (Hz) with a clear line of sight to the source, and through walls. */
+  openCutoffHz: 9000,
+  occludedCutoffHz: 900,
+  /** Ear and source heights for the occlusion LOS test (m). */
+  earHeight: 1.6,
+  sourceHeight: 1.2,
+} as const;
+
 export const INPUT = {
   /** Radians per mouse pixel at sensitivity 1. */
   mouseRadPerPx: 0.0022,
