@@ -1,0 +1,116 @@
+:root {
+  --bg: #05070a;
+  --fg: #c9d2dc;
+  --accent-danger: #ffb347;
+  --accent-player: #bff4ff;
+  /* iPhone Safari home indicator area: keep interactive UI above this. */
+  --ui-bottom-safe: max(24px, env(safe-area-inset-bottom));
+  --ui-left-safe: env(safe-area-inset-left);
+  --ui-right-safe: env(safe-area-inset-right);
+  --ui-top-safe: env(safe-area-inset-top);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#app {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  touch-action: none;
+}
+
+#game-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+#ui-root {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  padding-bottom: var(--ui-bottom-safe);
+  background: rgba(5, 7, 10, 0.94);
+  text-align: center;
+  font-size: 18px;
+  pointer-events: auto;
+}
+
+.overlay[hidden] {
+  display: none;
+}
+
+.rotate-icon {
+  width: 56px;
+  height: 88px;
+  border: 3px solid var(--accent-player);
+  border-radius: 10px;
+  animation: rotate-hint 2s ease-in-out infinite;
+}
+
+@keyframes rotate-hint {
+  0%,
+  30% {
+    transform: rotate(0deg);
+  }
+  60%,
+  100% {
+    transform: rotate(-90deg);
+  }
+}
+
+.debug-overlay {
+  position: absolute;
+  top: calc(8px + var(--ui-top-safe));
+  left: calc(8px + var(--ui-left-safe));
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #9fffb0;
+  font:
+    12px/1.35 ui-monospace,
+    Menlo,
+    Consolas,
+    monospace;
+  white-space: pre;
+  pointer-events: none;
+  border-radius: 4px;
+}
