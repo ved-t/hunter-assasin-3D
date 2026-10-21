@@ -123,6 +123,21 @@ export const PLAYER = {
   collisionIterations: 2,
 } as const;
 
+/** Guard awareness gauge (0..max). Rises fast on stimuli, holds, then drains slowly. */
+export const AWARENESS = {
+  max: 100,
+  /** At or above this a Patrol guard becomes Suspicious. */
+  suspicious: 30,
+  /** Reaching this puts a guard in Alert. */
+  alert: 100,
+  decayPerS: 15,
+  /** Seconds after the last stimulus before decay starts. */
+  holdS: 1.5,
+  /** After giving up a search, awareness can't drain below this for searchFloorS. */
+  searchFloor: 20,
+  searchFloorS: 30,
+} as const;
+
 export const INPUT = {
   /** Radians per mouse pixel at sensitivity 1. */
   mouseRadPerPx: 0.0022,
