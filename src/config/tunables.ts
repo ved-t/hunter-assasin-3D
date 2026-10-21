@@ -115,8 +115,10 @@ export const PLAYER = {
   /** How fast velocity approaches the target while moving / stopping (m/s²). */
   acceleration: 30,
   deceleration: 40,
-  /** Footstep noise radius per gait (m), used by AI hearing from Phase 2. */
+  /** Footstep noise radius per gait (m), heard by guards by path distance. */
   noiseRadius: { still: 0, crouch: 1, sneak: 2, walk: 6, run: 12 },
+  /** Seconds between footsteps per moving gait; each footstep is one noise event. */
+  footstepIntervalS: { crouch: 0.75, sneak: 0.65, walk: 0.5, run: 0.34 },
   /** Longest collision sub-step (m); must stay below radius so walls can't be tunnelled. */
   collisionSubstep: 0.15,
   /** Push-out passes per sub-step; two resolves corner cases between adjacent cells. */

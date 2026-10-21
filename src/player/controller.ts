@@ -38,8 +38,11 @@ export class PlayerController {
   gait: PlayerGait = 'still';
   eyeHeight: number = PLAYER.eyeHeight;
   prevEyeHeight: number = PLAYER.eyeHeight;
-  /** Footstep noise radius this step (m); read by AI hearing from Phase 2. */
+  /** Footstep noise radius for the current gait (m). */
   noiseRadius = 0;
+  /** Radius of the footstep taken this step (m), or 0 if no foot landed. */
+  footstep = 0;
+  private stepTimer = 0;
   invertY = false;
 
   constructor(spawn: PlayerSpawnWorld) {
@@ -97,6 +100,16 @@ export class PlayerController {
     const actual = Math.hypot(this.vel.x, this.vel.z);
     this.gait = actual < STILL_SPEED ? 'still' : moveGait;
     this.noiseRadius = PLAYER.noiseRadius[this.gait];
+    this.footstep = 0;
+    if (this.gait === 'still') {
+      this.stepTimer = 0; // the first step lands as soon as the player moves again
+    } else {
+      this.stepTimer -= dt;
+      if (this.stepTimer <= 0) {
+        this.footstep = this.noiseRadius;
+        this.stepTimer += PLAYER.footstepIntervalS[this.gait];
+      }
+    }
 
     const targetEye = this.crouched ? PLAYER.crouchEyeHeight : PLAYER.eyeHeight;
     this.eyeHeight += (targetEye - this.eyeHeight) * (1 - Math.exp(-PLAYER.eyeLerpRate * dt));

@@ -131,3 +131,29 @@ describe('PlayerController look', () => {
     expect(Math.abs(p.yaw)).toBeLessThanOrEqual(Math.PI);
   });
 });
+
+describe('PlayerController footsteps', () => {
+  it('lands one footstep per interval with the gait’s noise radius', () => {
+    const p = spawn();
+    const s = input(0, 1, 'run');
+    settle(p, s, 10); // up to speed
+    const radii: number[] = [];
+    for (let i = 0; i < 120; i++) {
+      p.step(DT, s, open);
+      if (p.footstep > 0) radii.push(p.footstep);
+    }
+    const expected = 2 / PLAYER.footstepIntervalS.run;
+    expect(radii.length).toBeGreaterThanOrEqual(Math.floor(expected));
+    expect(radii.length).toBeLessThanOrEqual(Math.ceil(expected));
+    expect(radii.every((r) => r === PLAYER.noiseRadius.run)).toBe(true);
+  });
+
+  it('is silent when still', () => {
+    const p = spawn();
+    const s = input(0, 0);
+    for (let i = 0; i < 120; i++) {
+      p.step(DT, s, open);
+      expect(p.footstep).toBe(0);
+    }
+  });
+});
