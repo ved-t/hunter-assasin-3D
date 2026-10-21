@@ -3,7 +3,7 @@
 
 import * as THREE from 'three';
 import { TIER_SETTINGS, type QualityTier } from '../config/quality';
-import { DISPLAY, TEST_SCENE as T } from '../config/tunables';
+import { DISPLAY, PERF_SCENE as T } from '../config/tunables';
 import type { Rng } from '../core/rng';
 
 /** Keep boxes out of this radius so the spotlight sits in open space. */

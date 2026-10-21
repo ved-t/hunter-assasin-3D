@@ -1,0 +1,98 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://shadow-hunter.local/level.schema.json",
+  "title": "Shadow Hunter level",
+  "description": "Hand-authored level. Positions are in grid cell units; {x: 3.5, y: 2.5} is the centre of column 3, row 2.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "name",
+    "version",
+    "tileSize",
+    "width",
+    "height",
+    "tiles",
+    "playerSpawn",
+    "guards",
+    "lamps",
+    "objective"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "name": { "type": "string", "minLength": 1 },
+    "version": { "type": "integer", "minimum": 1 },
+    "tileSize": { "const": 2 },
+    "width": { "type": "integer", "minimum": 3, "maximum": 128 },
+    "height": { "type": "integer", "minimum": 3, "maximum": 128 },
+    "tiles": {
+      "description": "Rows of tiles: # wall, . floor, c low cover, D door, E exit.",
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 128,
+      "items": { "type": "string", "pattern": "^[#.cDE]+$" }
+    },
+    "playerSpawn": {
+      "type": "object",
+      "allOf": [{ "$ref": "#/definitions/point" }],
+      "required": ["yawDeg"],
+      "properties": { "x": true, "y": true, "yawDeg": { "type": "number" } },
+      "additionalProperties": false
+    },
+    "guards": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["spawn", "yawDeg", "waypoints"],
+        "properties": {
+          "spawn": { "$ref": "#/definitions/point" },
+          "yawDeg": { "type": "number" },
+          "waypoints": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "allOf": [{ "$ref": "#/definitions/point" }],
+              "properties": { "x": true, "y": true, "waitS": { "type": "number", "minimum": 0 } },
+              "additionalProperties": false
+            }
+          }
+        }
+      }
+    },
+    "lamps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "allOf": [{ "$ref": "#/definitions/point" }],
+        "properties": {
+          "x": true,
+          "y": true,
+          "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+          "intensity": { "type": "number", "minimum": 0 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "objective": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": { "enum": ["eliminateAll", "reachExit"] },
+        "item": { "$ref": "#/definitions/point" }
+      }
+    }
+  },
+  "definitions": {
+    "point": {
+      "type": "object",
+      "required": ["x", "y"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" }
+      }
+    }
+  }
+}
