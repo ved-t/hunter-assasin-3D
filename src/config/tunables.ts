@@ -165,6 +165,22 @@ export const AWARENESS = {
   searchFloorS: 30,
 } as const;
 
+/** Search around the LKP after losing the player. */
+export const SEARCH = {
+  minCells: 4,
+  maxCells: 6,
+  /** Candidate cells lie within this walking distance of the LKP (m). */
+  radiusM: 10,
+  /** Cells closer than this to the LKP aren't worth a visit (m). */
+  minDistM: 3,
+  /** Chosen cells keep at least this far apart (m), so the search spreads out. */
+  minSpacingM: 3.5,
+  /** Score = headingWeight·cos(angle to the player's last heading) + jitter·random. */
+  headingWeight: 1,
+  jitter: 0.6,
+  giveUpS: 15,
+} as const;
+
 export const INPUT = {
   /** Radians per mouse pixel at sensitivity 1. */
   mouseRadPerPx: 0.0022,
