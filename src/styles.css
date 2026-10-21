@@ -339,3 +339,18 @@ body {
 .light-gem[hidden] {
   display: none;
 }
+
+/* Screen-edge detection arcs (one SVG covering the screen). */
+.detection-arcs {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.detection-arcs path {
+  fill: none;
+  stroke-linecap: round;
+}
