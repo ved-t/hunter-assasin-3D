@@ -123,6 +123,33 @@ export const PLAYER = {
   collisionIterations: 2,
 } as const;
 
+/** Guard sight. Fill rates are awareness/s before the exposure × stance × movement multipliers. */
+export const VISION = {
+  rangeM: 14,
+  /** Full cone angle (deg), i.e. ±35° either side of the facing. */
+  fovDeg: 70,
+  /** Near zone: inside this distance and full angle the gauge fills faster. */
+  nearRangeM: 4,
+  nearFovDeg: 30,
+  /** Base fill at the guard / at the edge of range, interpolated by distance. */
+  fillNearPerS: 60,
+  fillFarPerS: 20,
+  /** Worst case (near zone, lit, standing, running): 60 × 1.43 × 1.4 ≈ 120/s. */
+  nearZoneMult: 1.43,
+  /** Points on the player tested for LOS (m above the floor). */
+  sampleHeightsStand: [0.3, 1.0, 1.6],
+  sampleHeightsCrouch: [0.25, 0.55, 0.85],
+  crouchMult: 0.6,
+  /** Per player gait; `crouch` is moving while crouched. */
+  movementMult: { still: 0.5, crouch: 0.75, sneak: 0.75, walk: 1, run: 1.4 },
+} as const;
+
+/** Guard hearing of discrete noise events (footsteps now, impacts and bottles later). */
+export const HEARING = {
+  /** Awareness from one noise heard at its source, falling linearly to 0 at its radius. */
+  awarenessPerNoise: 12,
+} as const;
+
 /** Guard awareness gauge (0..max). Rises fast on stimuli, holds, then drains slowly. */
 export const AWARENESS = {
   max: 100,
