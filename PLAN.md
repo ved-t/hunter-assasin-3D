@@ -23,7 +23,7 @@ All numbers below are **starting values** for `config/tunables.ts`, not final ba
   Include a JSON Schema file and a validator that runs in tests.
 - Level mesh builder: InstancedMesh per tile type, merged floor. Two greybox levels (small and medium).
 - Player controller: walk 3.2 m/s, sneak 1.6 m/s, run 5.0 m/s, crouch (lower camera, slower, quieter). Grid collision with sliding along walls.
-- Desktop input: Pointer Lock with `unadjustedMovement` (fall back to a plain lock), WASD, Shift run, C/Ctrl crouch.
+- Desktop input: Pointer Lock with `unadjustedMovement` (fall back to a plain lock), WASD, Shift run, Q sneak (hold), C crouch (toggle). Ctrl is not bound: Ctrl+W closes the browser tab.
 - Touch input: nipplejs dynamic joystick on the left half (push < 60% = sneak, ≥ 90% = run), custom drag-to-look on the right half with smoothing, crouch and context buttons.
 - Optional gyro look (off by default; the toggle requests iOS permission).
 - Settings: look sensitivity, invert Y, gyro on/off, quality tier.
