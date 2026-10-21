@@ -219,6 +219,22 @@ export const LIGHT_EXPOSURE = {
   beamRangeFraction: 0.2,
 } as const;
 
+/** Placeholder guard look: capsule body, lens glow, and the in-world state icons. */
+export const GUARD_VISUALS = {
+  bodyColor: 0x2b323c,
+  bodyRadius: 0.28,
+  /** Lens glow sprite size (m); seen only when the guard faces the camera. */
+  lensGlowSize: 0.35,
+  /** Sharpness of the lens glow's falloff as the guard turns away (power of the facing cosine). */
+  lensGlowFalloff: 4,
+  iconHeight: 2.25,
+  iconSize: 0.45,
+  /** Amber "?" (Suspicious, Search) and red "!" (Alert). */
+  suspiciousColor: 0xffb347,
+  searchColor: 0xc98a3a,
+  alertColor: 0xff3b30,
+} as const;
+
 export const ALERT = {
   /** An Alert guard alerts every guard within this path distance (m). */
   propagateM: 12,
