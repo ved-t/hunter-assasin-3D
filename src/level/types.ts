@@ -39,6 +39,7 @@ export interface GridPoint {
   y: number;
 }
 
+/** Headings (`yawDeg`) are compass degrees: 0 = north (−Z, up the rows), 90 = east (+X). */
 export interface PlayerSpawn extends GridPoint {
   yawDeg: number;
 }

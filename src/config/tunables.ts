@@ -130,10 +130,10 @@ export const INPUT = {
   touchRadPerPx: 0.006,
   /** Touch look smoothing time constant (s); larger = smoother, laggier. */
   touchSmoothingS: 0.04,
-  /** Gyro look gain at sensitivity 1 (rad of view per rad of device). */
+  /** Gyro look gain at sensitivity 1 (rad of view per rad of device rotation). */
   gyroGain: 1.2,
-  /** Device-angle jumps larger than this between samples are wrap-arounds and ignored (deg). */
-  gyroMaxStepDeg: 30,
+  /** Gaps between motion samples longer than this are ignored (s), e.g. after the tab resumes. */
+  gyroMaxDtS: 0.1,
   pitchLimitDeg: 85,
   /** Joystick: below deadzone = no move, < sneakMax = sneak, >= runMin = run, between = walk. */
   stickDeadzone: 0.12,
