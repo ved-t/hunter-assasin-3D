@@ -18,7 +18,13 @@ describe('settings', () => {
 
   it('round-trips through storage', async () => {
     const s = memoryStorage();
-    const value = { quality: 'low', lookSensitivity: 1.7, invertY: true, gyro: true } as const;
+    const value = {
+      quality: 'low',
+      lookSensitivity: 1.7,
+      invertY: true,
+      gyro: true,
+      minimapMode: 'fixed',
+    } as const;
     await saveSettings(s, value);
     expect(await loadSettings(s)).toEqual(value);
   });
@@ -35,7 +41,13 @@ describe('settings', () => {
       SETTINGS_LIMITS.sensitivityMin,
     );
     expect(
-      parseSettings({ lookSensitivity: NaN, invertY: 'yes', gyro: 1, quality: 'ultra' }),
+      parseSettings({
+        lookSensitivity: NaN,
+        invertY: 'yes',
+        gyro: 1,
+        quality: 'ultra',
+        minimapMode: 'spinning',
+      }),
     ).toEqual(DEFAULT_SETTINGS);
   });
 

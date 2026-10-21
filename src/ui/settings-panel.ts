@@ -4,6 +4,7 @@
 import { QUALITY_TIERS, isQualitySetting } from '../config/quality';
 import { SETTINGS_LIMITS } from '../config/tunables';
 import { clampSensitivity, type Settings } from '../save/settings';
+import { isMinimapMode } from './minimap-math';
 import { createOverlay, type Overlay } from './overlay';
 
 export interface SettingsPanelOptions {
@@ -40,6 +41,7 @@ export class SettingsPanel {
         <label class="row"><input name="invertY" type="checkbox" /> Invert look Y</label>
         <label class="row gyro-row"><input name="gyro" type="checkbox" /> Gyro look</label>
         <div class="note gyro-note" hidden>Motion access was denied. Allow it in your browser settings, then try again.</div>
+        <label class="row">Minimap <select name="minimap"><option value="rotating">Rotating</option><option value="fixed">Fixed (north up)</option></select></label>
         <label class="row">Quality <select name="quality">${tierOptions}</select></label>
         <button type="button" class="resume">Resume</button>
         <div class="note keys">WASD move · Shift run · Q sneak · C crouch · Esc pause</div>
@@ -53,6 +55,7 @@ export class SettingsPanel {
     const gyro = q<HTMLInputElement>('[name=gyro]');
     const gyroNote = q<HTMLDivElement>('.gyro-note');
     const quality = q<HTMLSelectElement>('[name=quality]');
+    const minimap = q<HTMLSelectElement>('[name=minimap]');
     q<HTMLElement>('.gyro-row').hidden = !opts.gyroAvailable;
 
     const commit = (patch: Partial<Settings>) => {
@@ -66,6 +69,7 @@ export class SettingsPanel {
     invertY.checked = this.settings.invertY;
     gyro.checked = this.settings.gyro;
     quality.value = this.settings.quality;
+    minimap.value = this.settings.minimapMode;
 
     sens.addEventListener('input', () => {
       showSens();
@@ -84,6 +88,9 @@ export class SettingsPanel {
         gyroNote.hidden = granted;
         commit({ gyro: granted });
       });
+    });
+    minimap.addEventListener('change', () => {
+      if (isMinimapMode(minimap.value)) commit({ minimapMode: minimap.value });
     });
     quality.addEventListener('change', () => {
       if (isQualitySetting(quality.value)) commit({ quality: quality.value });

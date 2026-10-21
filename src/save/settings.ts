@@ -4,6 +4,7 @@
 import { isQualitySetting, type QualitySetting } from '../config/quality';
 import { SETTINGS_LIMITS } from '../config/tunables';
 import type { PlatformStorage } from '../platform/platform';
+import { isMinimapMode, type MinimapMode } from '../ui/minimap-math';
 
 const SETTINGS_KEY = 'settings.v1';
 
@@ -14,6 +15,8 @@ export interface Settings {
   invertY: boolean;
   /** Gyro look. Off by default; turning it on asks iOS for motion permission. */
   gyro: boolean;
+  /** Rotating keeps the view direction up; fixed keeps north up. */
+  minimapMode: MinimapMode;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -21,6 +24,7 @@ export const DEFAULT_SETTINGS: Settings = {
   lookSensitivity: SETTINGS_LIMITS.sensitivityDefault,
   invertY: false,
   gyro: false,
+  minimapMode: 'rotating',
 };
 
 export function clampSensitivity(v: number): number {
@@ -41,6 +45,7 @@ export function parseSettings(raw: unknown): Settings {
         : d.lookSensitivity,
     invertY: typeof p.invertY === 'boolean' ? p.invertY : d.invertY,
     gyro: typeof p.gyro === 'boolean' ? p.gyro : d.gyro,
+    minimapMode: isMinimapMode(p.minimapMode) ? p.minimapMode : d.minimapMode,
   };
 }
 
