@@ -13,8 +13,12 @@ export interface TierSettings {
   /** Shadow maps. Never on the low tier. */
   shadows: boolean;
   shadowMapSize: number;
-  /** Size of the fixed real-SpotLight pool (used from Phase 2). */
+  /** Size of the fixed real-SpotLight pool. */
   realSpotLights: number;
+  /** How many of those (the nearest) cast shadows; fixed per slot so it never forces a recompile. */
+  shadowSpotLights: number;
+  /** Dust particles inside real-lit beams. */
+  beamDust: boolean;
   /** Vignette / grain / bloom (high tier only, later phases). */
   postFx: boolean;
 }
@@ -26,6 +30,8 @@ export const TIER_SETTINGS: Record<QualityTier, TierSettings> = {
     shadows: false,
     shadowMapSize: 0,
     realSpotLights: 2,
+    shadowSpotLights: 0,
+    beamDust: false,
     postFx: false,
   },
   medium: {
@@ -34,6 +40,8 @@ export const TIER_SETTINGS: Record<QualityTier, TierSettings> = {
     shadows: true,
     shadowMapSize: 512,
     realSpotLights: 3,
+    shadowSpotLights: 1,
+    beamDust: false,
     postFx: false,
   },
   high: {
@@ -42,6 +50,8 @@ export const TIER_SETTINGS: Record<QualityTier, TierSettings> = {
     shadows: true,
     shadowMapSize: 1024,
     realSpotLights: 4,
+    shadowSpotLights: 2,
+    beamDust: true,
     postFx: true,
   },
 };
