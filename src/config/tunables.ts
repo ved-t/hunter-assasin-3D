@@ -80,10 +80,10 @@ export const LEVEL = {
   /** Exit marker floats this far above the floor to avoid z-fighting (m). */
   decalLift: 0.02,
   fogColor: 0x0b0f16,
-  fogDensity: 0.06,
+  fogDensity: 0.05,
   ambientSkyColor: 0x5a6a80,
   ambientGroundColor: 0x0a0c10,
-  ambientIntensity: 0.55,
+  ambientIntensity: 6,
   /** Fake lamp: glow sprite at this height plus an additive floor pool. */
   lampHeight: 2.6,
   lampGlowSize: 0.7,

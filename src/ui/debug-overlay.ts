@@ -17,6 +17,8 @@ export interface DebugSnapshot {
   gpu: string | null;
   platform: string;
   simPaused: boolean;
+  /** Scene-specific lines (player position, gait, level). */
+  extra: readonly string[];
 }
 
 export class DebugOverlay {
@@ -50,6 +52,7 @@ export class DebugOverlay {
       `sim     ${s.time.simSeconds.toFixed(1)} s${s.simPaused ? ' (paused)' : ''}`,
       `gpu     ${s.gpu ?? 'unknown'}`,
       `plat    ${s.platform}`,
+      ...s.extra,
       `[L] simulate context loss`,
     ].join('\n');
   }
