@@ -34,7 +34,7 @@ export function guardFlashlight(
   out.z = z - Math.cos(yaw) * GUARD.flashlightForward;
   out.yaw = yaw;
   out.pitch = PITCH;
-  out.intensity = flickerIntensity(g.state === 'alert' ? 'alertJitter' : 'steady', time, g.id);
+  out.intensity = flickerIntensity(g.flicker, time, g.id);
   return out;
 }
 

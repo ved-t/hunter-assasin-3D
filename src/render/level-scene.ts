@@ -1,5 +1,5 @@
 // Scene for a loaded level: fog, moonlight ambient, camera and the greybox meshes.
-// Phase 1 has no real SpotLights; the fixed pool arrives with guards in Phase 2.
+// Guards and flashlights (including the fixed real-SpotLight pool) are added by the world.
 
 import * as THREE from 'three';
 import { DISPLAY, LEVEL } from '../config/tunables';

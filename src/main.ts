@@ -98,6 +98,9 @@ async function boot(): Promise<void> {
       uiRoot,
       debug: flags.debug,
       startInTouchMode: platform.isMobile,
+      tier: ctx.tier,
+      seed: flags.seed,
+      pixelRatio: () => ctx.renderer.getPixelRatio(),
     });
     game.applySettings(settings);
     world = game;

@@ -7,6 +7,7 @@ import type { Rng } from '../core/rng';
 import { moveCircle, type Vec2 } from '../level/collision';
 import type { Grid } from '../level/grid';
 import type { GuardDef } from '../level/types';
+import type { FlickerMode } from '../lighting/flicker';
 import type { Pathfinder } from '../nav/astar';
 import type { DistanceField } from '../nav/sound';
 import { Awareness } from './awareness';
@@ -97,6 +98,11 @@ export class Guard {
       yaw: yawFromCompassDeg(def.yawDeg),
       waypoints: def.waypoints.map((w) => ({ ...grid.gridToWorld(w.x, w.y), waitS: w.waitS ?? 0 })),
     });
+  }
+
+  /** How this guard's flashlight flickers right now. */
+  get flicker(): FlickerMode {
+    return this.state === 'alert' ? 'alertJitter' : 'steady';
   }
 
   fsmInput(): FsmInput {
