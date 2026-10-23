@@ -59,13 +59,13 @@ export const PERF_SCENE = {
   cameraOrbitRadPerSec: 0.08,
 } as const;
 
-/** Level geometry and greybox look. Grid column x → world +X, row y → world +Z. */
+/** Level geometry, fog and moonlight. Grid column x → world +X, row y → world +Z. */
 export const LEVEL = {
   /** Edge length of one grid cell (m). */
   tileSize: 2,
   wallHeight: 3,
   coverHeight: 1,
-  /** Cover crates are inset from the cell edge so they read as objects, not walls (m per side). */
+  /** Cover props stay this far inside their cell's edges, so they read as objects, not walls (m). */
   coverInset: 0.1,
   /** Underside of a door lintel (m). */
   doorHeight: 2.2,
@@ -86,19 +86,86 @@ export const LEVEL = {
   ambientSkyColor: 0x5a6a80,
   ambientGroundColor: 0x0a0c10,
   ambientIntensity: 6,
-  /** Fake lamp: glow sprite at this height plus an additive floor pool. */
+  /** Lamp bulb height and glow size; the light itself is baked (KIT.lampBake*). */
   lampHeight: 2.6,
   lampGlowSize: 0.7,
+  /** Radius of the lit zone around a lamp that raises the player's exposure (m). */
   lampPoolRadius: 2.6,
   lampDefaultColor: 0xffc27a,
   lampDefaultIntensity: 0.5,
   debugMarkerSize: 0.3,
 } as const;
 
+/**
+ * Environment kit (render only): mesh density, the vertex-colour AO and the lamp bake computed at load.
+ * AO terms are darkening amounts (0..1) that fade out over a distance (m).
+ */
+export const KIT = {
+  /** Floor and ceiling quads per cell edge; finer grids carry smoother AO and lamp light. */
+  floorSubdiv: 4,
+  ceilingSubdiv: 2,
+  /**
+   * Wall faces are split into this many columns, and rows no taller than wallRowM (m), plus a thin row
+   * of wallEdgeRowM at the floor and at the ceiling where the AO changes fastest.
+   */
+  wallColumns: 4,
+  wallRowM: 1,
+  wallEdgeRowM: 0.35,
+  /** Floor and ceiling darken toward walls and cover. */
+  floorAoRadiusM: 0.8,
+  ceilingAo: 0.35,
+  /** Walls darken at their base, under the ceiling and into inside corners. */
+  wallBaseAo: 0.4,
+  wallBaseAoM: 0.6,
+  wallTopAo: 0.3,
+  wallTopAoM: 0.5,
+  cornerAo: 0.35,
+  cornerAoM: 0.7,
+  /** Props darken toward the floor. */
+  propBaseAo: 0.45,
+  propBaseAoM: 0.35,
+  /**
+   * Lamp bake: warm light added to surfaces in a lamp's line of sight, by horizontal distance like
+   * LIGHT_EXPOSURE: full within fullM (= lampFullM) and fading out a little past LEVEL.lampPoolRadius,
+   * so what looks lit is what lights the player.
+   */
+  lampBakeRadiusM: 3,
+  lampBakeFullM: 1.2,
+  lampBakeGain: 7,
+  /** Wrap lighting: how much light reaches surfaces facing away from the lamp (0 = Lambert). */
+  lampBakeWrap: 0.35,
+  /** Shaded fixtures throw little light upward: down-facing surfaces (ceilings) get this fraction. */
+  lampBakeCeiling: 0.35,
+  /** Shade inside lamp fixtures glows with this fraction of the lamp's light. */
+  fixtureGlow: 0.6,
+  /** Surface points are pushed this far off the surface before the lamp's LOS test (m). */
+  bakeNormalOffsetM: 0.05,
+} as const;
+
+/** High-tier post: half-resolution bloom, then a vignette and film grain pass. */
+export const POST = {
+  bloomStrength: 0.55,
+  bloomRadius: 0.5,
+  /** Linear HDR luminance above which pixels bloom (lens glows, lamps, the exit). */
+  bloomThreshold: 0.8,
+  vignette: 0.45,
+  /** Vignette starts this far from the centre (0 = centre, 1 = corner). */
+  vignetteStart: 0.35,
+  grain: 0.045,
+  /** MSAA samples for the post render target when the tier has antialiasing. */
+  msaaSamples: 4,
+} as const;
+
 /** Where level JSON files are fetched from. */
 export const LEVEL_FILES = {
   /** Path relative to the page, so builds served from portal subpaths still resolve. */
   dir: 'levels/',
+} as const;
+
+/** Where lazily-loaded art is fetched from (relative to the page, like LEVEL_FILES). */
+export const ASSET_FILES = {
+  /** One folder per theme: albedo/normal/orm.ktx2 trim sheets and sheet.json. */
+  themesDir: 'assets/themes/',
 } as const;
 
 /** Limits every level must respect, so one long-lived scene can host any of them. */
