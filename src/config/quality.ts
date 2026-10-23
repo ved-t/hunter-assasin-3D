@@ -19,8 +19,10 @@ export interface TierSettings {
   shadowSpotLights: number;
   /** Dust particles inside real-lit beams. */
   beamDust: boolean;
-  /** Vignette / grain / bloom (high tier only, later phases). */
+  /** Vignette / grain / bloom (high tier only). */
   postFx: boolean;
+  /** Texture anisotropy for the environment trim sheets. */
+  anisotropy: number;
 }
 
 export const TIER_SETTINGS: Record<QualityTier, TierSettings> = {
@@ -33,6 +35,7 @@ export const TIER_SETTINGS: Record<QualityTier, TierSettings> = {
     shadowSpotLights: 0,
     beamDust: false,
     postFx: false,
+    anisotropy: 2,
   },
   medium: {
     maxDpr: 1.5,
@@ -43,6 +46,7 @@ export const TIER_SETTINGS: Record<QualityTier, TierSettings> = {
     shadowSpotLights: 1,
     beamDust: false,
     postFx: false,
+    anisotropy: 4,
   },
   high: {
     maxDpr: 2,
@@ -53,6 +57,7 @@ export const TIER_SETTINGS: Record<QualityTier, TierSettings> = {
     shadowSpotLights: 2,
     beamDust: true,
     postFx: true,
+    anisotropy: 8,
   },
 };
 

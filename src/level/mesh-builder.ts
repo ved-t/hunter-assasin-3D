@@ -1,10 +1,26 @@
-// Builds the greybox level visuals: a merged floor plus one InstancedMesh per tile type (~7 draw calls).
-// No THREE.Light objects are created here; lamps are faked with additive meshes (CLAUDE.md lighting rule).
+// Builds a level's visuals from its grid and its theme's kit. Static surfaces are merged into three
+// meshes (floor, walls with their trim, ceiling) and lit at load by a vertex bake: AO from the grid and
+// each lamp's light masked by grid LOS. Repeated pieces (cover props, door frames, ceiling detail, lamp
+// fixtures) are one InstancedMesh per variant, each instance carrying its baked lamp light.
+// About 10–14 draw calls. No THREE.Light objects are created here (CLAUDE.md lighting rule): lamps are
+// the bake plus additive glow meshes.
 
 import * as THREE from 'three';
-import { LEVEL } from '../config/tunables';
+import { KIT, LEVEL } from '../config/tunables';
+import { bakeLamps, lampLight, staticAo, type BakeLamp } from './bake';
 import type { Grid } from './grid';
+import { DEFAULT_THEME, THEME_KITS } from './kit';
+import {
+  buildPiece,
+  kitDims,
+  PartList,
+  type KitDims,
+  type PieceBuilder,
+  type ThemeKit,
+} from './kit/kit-common';
+import { levelSeed, placeProps } from './props';
 import { Tile, type LevelData } from './types';
+import { doorAxis, outerCorners, wallFaces, type CornerKind } from './wall-faces';
 
 export interface LevelMesh {
   group: THREE.Group;
@@ -13,7 +29,7 @@ export interface LevelMesh {
   dispose(): void;
 }
 
-/** Radial gradient for lamp pools and glows: white centre fading to transparent. */
+/** Radial gradient for glows and light pools: white centre fading to transparent. */
 export function radialTexture(size = 64): THREE.Texture {
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;
@@ -29,75 +45,176 @@ export function radialTexture(size = 64): THREE.Texture {
   return tex;
 }
 
-/** One quad per non-wall cell, with vertex-colour AO darkening corners that touch walls or cover. */
-function buildFloorGeometry(grid: Grid): THREE.BufferGeometry {
-  const t = grid.tileSize;
-  const positions: number[] = [];
-  const colors: number[] = [];
-  const indices: number[] = [];
-  const solidAt = (cx: number, cy: number) => (grid.isSolid(cx, cy) ? 1 : 0);
-  // Corner (vx, vy) in vertex space touches cells (vx-1..vx, vy-1..vy).
-  const cornerShade = (vx: number, vy: number) => {
-    const solid =
-      solidAt(vx - 1, vy - 1) + solidAt(vx, vy - 1) + solidAt(vx - 1, vy) + solidAt(vx, vy);
-    return 1 - LEVEL.floorAo * Math.min(1, solid / 2);
-  };
+const isOpen = (grid: Grid, cx: number, cy: number) => {
+  const t = grid.get(cx, cy);
+  return t !== Tile.Wall && t !== Tile.Door;
+};
+
+function forCells(grid: Grid, fn: (cx: number, cy: number, tile: Tile) => void): void {
   for (let cy = 0; cy < grid.height; cy++) {
-    for (let cx = 0; cx < grid.width; cx++) {
-      if (grid.get(cx, cy) === Tile.Wall) continue;
-      const base = positions.length / 3;
-      for (const [ox, oy] of [
-        [0, 0],
-        [1, 0],
-        [1, 1],
-        [0, 1],
-      ] as const) {
-        positions.push((cx + ox) * t, 0, (cy + oy) * t);
-        const s = cornerShade(cx + ox, cy + oy);
-        colors.push(s, s, s);
+    for (let cx = 0; cx < grid.width; cx++) fn(cx, cy, grid.get(cx, cy));
+  }
+}
+
+/** One subdivided quad per walkable cell (everything but walls). */
+function floorParts(grid: Grid, kit: ThemeKit, d: KitDims): PartList {
+  const p = new PartList();
+  const n = KIT.floorSubdiv;
+  forCells(grid, (cx, cy, tile) => {
+    if (tile === Tile.Wall) return;
+    const c = grid.cellCenter(cx, cy);
+    const quad = new THREE.PlaneGeometry(d.t, d.t, n, n)
+      .rotateX(-Math.PI / 2)
+      .translate(c.x, 0, c.z);
+    p.add(quad, 'floor', { tint: kit.floorTint, uv: 'xz' });
+  });
+  return p;
+}
+
+/** Over every open cell; door cells are covered by their lintel. */
+function ceilingParts(grid: Grid, kit: ThemeKit, d: KitDims): PartList {
+  const p = new PartList();
+  const n = KIT.ceilingSubdiv;
+  forCells(grid, (cx, cy) => {
+    if (!isOpen(grid, cx, cy)) return;
+    const c = grid.cellCenter(cx, cy);
+    const quad = new THREE.PlaneGeometry(d.t, d.t, n, n)
+      .rotateX(Math.PI / 2)
+      .translate(c.x, d.wallHeight, c.z);
+    p.add(quad, 'ceiling', { tint: kit.ceilingTint, uv: 'xz' });
+  });
+  return p;
+}
+
+/** Horizontal bands from y0 to y1, cut at `cuts` and no taller than KIT.wallRowM. */
+function bands(y0: number, y1: number, cuts: readonly number[]): [number, number][] {
+  const edges = [y0, y1, ...cuts.filter((y) => y > y0 && y < y1)].sort((a, b) => a - b);
+  const out: [number, number][] = [];
+  for (let i = 0; i + 1 < edges.length; i++) {
+    const a = edges[i] as number;
+    const b = edges[i + 1] as number;
+    const rows = Math.max(1, Math.ceil((b - a) / KIT.wallRowM - 1e-6));
+    for (let r = 0; r < rows; r++)
+      out.push([a + ((b - a) * r) / rows, a + ((b - a) * (r + 1)) / rows]);
+  }
+  return out;
+}
+
+/** How far a strip reaches past the face end: round outer corners, short of inner ones. */
+function stripEnd(kind: CornerKind, depth: number): number {
+  return kind === 'outer' ? depth : kind === 'inner' ? -depth : 0;
+}
+
+/** Rotation about +Y that turns a corner piece's open quadrant (+x, +z) toward (ox, oz). */
+const cornerAngle = (ox: number, oz: number) => Math.atan2(ox - oz, ox + oz);
+
+/**
+ * Wall faces with their strips, lintel faces and undersides, and corner pieces. A face's local frame
+ * has +Z along its outward normal and +X along −tangent (see wall-faces.ts). At a corner only the
+ * faces whose normal is ±Z change length, so two strips meeting there never overlap.
+ */
+function wallParts(grid: Grid, kit: ThemeKit, d: KitDims): PartList {
+  const p = new PartList();
+  const half = d.t / 2;
+  const lower = kit.wall.lower;
+  for (const f of wallFaces(grid)) {
+    const toDoor = f.facing === Tile.Door;
+    const y0 = f.lintel ? d.doorHeight : 0;
+    const y1 = toDoor ? d.doorHeight : d.wallHeight;
+    const angle = Math.atan2(f.nx, f.nz);
+    const c = grid.cellCenter(f.cx, f.cy);
+    const ex = c.x + f.nx * half;
+    const ez = c.z + f.nz * half;
+    const uv = f.nz !== 0 ? 'xy' : 'zy';
+    const cuts = [KIT.wallEdgeRowM, d.wallHeight - KIT.wallEdgeRowM];
+    if (lower) cuts.push(lower.height);
+    for (const [a, b] of bands(y0, y1, cuts)) {
+      const panel = lower && (a + b) / 2 < lower.height;
+      const quad = new THREE.PlaneGeometry(d.t, b - a, KIT.wallColumns, 1)
+        .rotateY(angle)
+        .translate(ex, (a + b) / 2, ez);
+      p.add(quad, panel ? lower.slot : 'wall', { tint: panel ? lower.tint : kit.wall.tint, uv });
+    }
+    if (toDoor) continue;
+    for (const s of kit.strips) {
+      if (s.y < y0 - 1e-6 || s.y + s.height > y1 + 1e-6) continue;
+      const high = s.y >= d.doorHeight;
+      let a = -half;
+      let b = half;
+      if (f.nz !== 0) {
+        a -= stripEnd(high ? f.startHigh : f.start, s.depth);
+        b += stripEnd(high ? f.endHigh : f.end, s.depth);
       }
-      // Counter-clockwise seen from above (+Y) so the face points up.
-      indices.push(base, base + 2, base + 1, base, base + 3, base + 2);
+      const strip = new THREE.BoxGeometry(b - a, s.height, s.depth)
+        .translate(-(a + b) / 2, s.y + s.height / 2, s.depth / 2)
+        .rotateY(angle)
+        .translate(ex, 0, ez);
+      p.add(strip, s.slot, { tint: s.tint });
     }
   }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-  geo.setIndex(indices);
-  geo.computeVertexNormals();
-  return geo;
-}
-
-/** InstancedMesh with one instance per cell matching `want`, placed by `place`. */
-function instancedForCells(
-  grid: Grid,
-  geometry: THREE.BufferGeometry,
-  material: THREE.Material,
-  want: (cx: number, cy: number) => boolean,
-): THREE.InstancedMesh {
-  const cells: [number, number][] = [];
-  for (let cy = 0; cy < grid.height; cy++) {
-    for (let cx = 0; cx < grid.width; cx++) if (want(cx, cy)) cells.push([cx, cy]);
-  }
-  const mesh = new THREE.InstancedMesh(geometry, material, Math.max(1, cells.length));
-  mesh.count = cells.length;
-  const m = new THREE.Matrix4();
-  cells.forEach(([cx, cy], i) => {
+  forCells(grid, (cx, cy, tile) => {
+    if (tile !== Tile.Door) return;
     const c = grid.cellCenter(cx, cy);
-    mesh.setMatrixAt(i, m.makeTranslation(c.x, 0, c.z));
+    const under = new THREE.PlaneGeometry(d.t, d.t)
+      .rotateX(Math.PI / 2)
+      .translate(c.x, d.doorHeight, c.z);
+    p.add(under, kit.lintelSlot, { uv: 'xz' });
   });
-  mesh.instanceMatrix.needsUpdate = true;
-  mesh.computeBoundingSphere();
-  return mesh;
+  const corner = kit.corner && buildPiece(kit.corner, d);
+  if (corner) {
+    for (const k of outerCorners(grid)) {
+      p.addBuilt(
+        corner
+          .clone()
+          .rotateY(cornerAngle(k.ox, k.oz))
+          .translate(k.vx * d.t, 0, k.vy * d.t),
+      );
+    }
+    corner.dispose();
+  }
+  return p;
 }
 
-/** Box geometry with its base at y = bottom. */
-function boxFrom(w: number, h: number, d: number, bottom = 0): THREE.BufferGeometry {
-  return new THREE.BoxGeometry(w, h, d).translate(0, bottom + h / 2, 0);
+/** Multiplies AO into vertex colour and writes the lamp bake, from each vertex's world position. */
+function bakeStatic(geo: THREE.BufferGeometry, grid: Grid, lamps: readonly BakeLamp[]): void {
+  const pos = geo.getAttribute('position');
+  const nrm = geo.getAttribute('normal');
+  const col = geo.getAttribute('color') as THREE.BufferAttribute;
+  const bake = geo.getAttribute('kitBake') as THREE.BufferAttribute;
+  const light: [number, number, number] = [0, 0, 0];
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    const z = pos.getZ(i);
+    const nx = nrm.getX(i);
+    const ny = nrm.getY(i);
+    const nz = nrm.getZ(i);
+    const ao = staticAo(grid, x, y, z, nx, ny, nz);
+    col.setXYZ(i, col.getX(i) * ao, col.getY(i) * ao, col.getZ(i) * ao);
+    light[0] = light[1] = light[2] = 0;
+    lampLight(grid, lamps, x, y, z, nx, ny, nz, light);
+    bake.setXYZ(i, light[0], light[1], light[2]);
+  }
 }
 
-export function buildLevelMesh(level: LevelData, grid: Grid, debug: boolean): LevelMesh {
-  const t = grid.tileSize;
+interface Placement {
+  x: number;
+  y: number;
+  z: number;
+  rotY: number;
+  /** Baked lamp light for the whole instance (linear RGB). */
+  bake: readonly [number, number, number];
+}
+
+export function buildLevelMesh(
+  level: LevelData,
+  grid: Grid,
+  material: THREE.Material,
+  debug: boolean,
+): LevelMesh {
+  const kit = THEME_KITS[level.theme ?? DEFAULT_THEME];
+  const d = kitDims(grid.tileSize);
+  const lamps = bakeLamps(level, grid);
   const group = new THREE.Group();
   group.name = `level:${level.id}`;
   const disposables: { dispose(): void }[] = [];
@@ -106,102 +223,145 @@ export function buildLevelMesh(level: LevelData, grid: Grid, debug: boolean): Le
     return x;
   };
 
-  // Floor (merged, one draw call).
-  const floor = new THREE.Mesh(
-    own(buildFloorGeometry(grid)),
-    own(
-      new THREE.MeshStandardMaterial({
-        color: LEVEL.floorColor,
-        roughness: 0.95,
-        vertexColors: true,
-      }),
-    ),
-  );
-  floor.receiveShadow = true;
-  group.add(floor);
+  const addStatic = (parts: PartList, name: string, cast: boolean, receive: boolean) => {
+    const geo = parts.merge();
+    if (!geo) return;
+    bakeStatic(geo, grid, lamps);
+    const mesh = new THREE.Mesh(own(geo), material);
+    mesh.name = name;
+    mesh.castShadow = cast;
+    mesh.receiveShadow = receive;
+    group.add(mesh);
+  };
+  addStatic(floorParts(grid, kit, d), 'floor', false, true);
+  addStatic(wallParts(grid, kit, d), 'walls', true, true);
+  addStatic(ceilingParts(grid, kit, d), 'ceiling', false, false);
 
-  // Walls: skip fully enclosed wall cells, the player can never see them.
-  const isWall = (cx: number, cy: number) => grid.get(cx, cy) === Tile.Wall;
-  const visibleWall = (cx: number, cy: number) =>
-    isWall(cx, cy) &&
-    !(isWall(cx - 1, cy) && isWall(cx + 1, cy) && isWall(cx, cy - 1) && isWall(cx, cy + 1));
-  const walls = instancedForCells(
-    grid,
-    own(boxFrom(t, LEVEL.wallHeight, t)),
-    own(new THREE.MeshStandardMaterial({ color: LEVEL.wallColor, roughness: 0.85 })),
-    visibleWall,
-  );
-  walls.castShadow = walls.receiveShadow = true;
-  group.add(walls);
+  const pointLight = (x: number, y: number, z: number, ny: number) => {
+    const out: [number, number, number] = [0, 0, 0];
+    lampLight(grid, lamps, x, y, z, 0, ny, 0, out);
+    return out;
+  };
+  const color = new THREE.Color();
+  const m = new THREE.Matrix4();
+  const addInstanced = (
+    builder: PieceBuilder,
+    placements: readonly Placement[],
+    name: string,
+    shadows: boolean,
+  ) => {
+    if (placements.length === 0) return;
+    const geo = buildPiece(builder, d);
+    if (!geo) return;
+    const mesh = new THREE.InstancedMesh(own(geo), material, placements.length);
+    mesh.name = name;
+    placements.forEach((pl, i) => {
+      mesh.setMatrixAt(i, m.makeRotationY(pl.rotY).setPosition(pl.x, pl.y, pl.z));
+      mesh.setColorAt(i, color.setRGB(pl.bake[0], pl.bake[1], pl.bake[2]));
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere();
+    mesh.castShadow = mesh.receiveShadow = shadows;
+    group.add(mesh);
+  };
 
-  const coverSize = t - 2 * LEVEL.coverInset;
-  const cover = instancedForCells(
-    grid,
-    own(boxFrom(coverSize, LEVEL.coverHeight, coverSize)),
-    own(new THREE.MeshStandardMaterial({ color: LEVEL.coverColor, roughness: 0.8 })),
-    (cx, cy) => grid.get(cx, cy) === Tile.Cover,
-  );
-  cover.castShadow = cover.receiveShadow = true;
-  group.add(cover);
+  // Cover props, one mesh per variant.
+  const props = placeProps(grid, levelSeed(level.id), kit.props.length);
+  kit.props.forEach((builder, v) => {
+    const placements = props
+      .filter((pr) => pr.variant === v)
+      .map((pr) => {
+        const c = grid.cellCenter(pr.cx, pr.cy);
+        return {
+          x: c.x,
+          y: 0,
+          z: c.z,
+          rotY: (pr.quarterTurns * Math.PI) / 2,
+          bake: pointLight(c.x, d.coverHeight, c.z, 1),
+        };
+      });
+    addInstanced(builder, placements, `props:${v}`, true);
+  });
 
-  const lintels = instancedForCells(
-    grid,
-    own(boxFrom(t, LEVEL.wallHeight - LEVEL.doorHeight, t, LEVEL.doorHeight)),
-    own(new THREE.MeshStandardMaterial({ color: LEVEL.lintelColor, roughness: 0.85 })),
-    (cx, cy) => grid.get(cx, cy) === Tile.Door,
+  const doors: Placement[] = [];
+  const detail: Placement[] = [];
+  forCells(grid, (cx, cy, tile) => {
+    const c = grid.cellCenter(cx, cy);
+    if (tile === Tile.Door) {
+      const rotY = doorAxis(grid, cx, cy) === 'z' ? 0 : Math.PI / 2;
+      doors.push({ x: c.x, y: 0, z: c.z, rotY, bake: pointLight(c.x, d.doorHeight / 2, c.z, 1) });
+    } else if (tile !== Tile.Wall && kit.ceilingDetail?.at(cx, cy)) {
+      detail.push({
+        x: c.x,
+        y: 0,
+        z: c.z,
+        rotY: 0,
+        bake: pointLight(c.x, d.wallHeight - 0.25, c.z, -1),
+      });
+    }
+  });
+  addInstanced(kit.doorFrame, doors, 'door-frames', true);
+  if (kit.ceilingDetail) addInstanced(kit.ceilingDetail.build, detail, 'ceiling-detail', false);
+  addInstanced(
+    kit.lampFixture,
+    lamps.map((l) => ({
+      x: l.x,
+      y: l.y,
+      z: l.z,
+      rotY: 0,
+      bake: [l.r * KIT.fixtureGlow, l.g * KIT.fixtureGlow, l.b * KIT.fixtureGlow] as const,
+    })),
+    'lamp-fixtures',
+    false,
   );
-  lintels.castShadow = true;
-  group.add(lintels);
 
   // Exit: cyan-white floor marker (player-relevant colour), unlit so it reads in the dark.
+  const t = grid.tileSize;
   const exitGeo = own(new THREE.PlaneGeometry(t * 0.8, t * 0.8))
     .rotateX(-Math.PI / 2)
     .translate(0, LEVEL.decalLift, 0);
   const openColor = new THREE.Color(LEVEL.exitColor).multiplyScalar(LEVEL.exitEmissiveIntensity);
   const lockedColor = new THREE.Color(LEVEL.exitLockedColor);
   const exitMaterial = own(new THREE.MeshBasicMaterial({ color: openColor }));
-  const exits = instancedForCells(
-    grid,
-    exitGeo,
-    exitMaterial,
-    (cx, cy) => grid.get(cx, cy) === Tile.Exit,
-  );
-  group.add(exits);
+  const exitCells: [number, number][] = [];
+  forCells(grid, (cx, cy, tile) => {
+    if (tile === Tile.Exit) exitCells.push([cx, cy]);
+  });
+  if (exitCells.length > 0) {
+    const exits = new THREE.InstancedMesh(exitGeo, exitMaterial, exitCells.length);
+    exitCells.forEach(([cx, cy], i) => {
+      const c = grid.cellCenter(cx, cy);
+      exits.setMatrixAt(i, m.makeTranslation(c.x, 0, c.z));
+    });
+    exits.instanceMatrix.needsUpdate = true;
+    exits.computeBoundingSphere();
+    group.add(exits);
+  }
 
-  // Lamps: a bulb glow and a floor pool, both additive, per-instance colour × intensity.
+  // Lamp bulbs: an additive glow per lamp (the bake lights the room around it).
   if (level.lamps.length > 0) {
-    const tex = own(radialTexture());
-    const additive = (map: THREE.Texture | null) =>
+    const glows = new THREE.InstancedMesh(
+      own(new THREE.IcosahedronGeometry(LEVEL.lampGlowSize / 4, 1)),
       own(
         new THREE.MeshBasicMaterial({
-          map,
           transparent: true,
           depthWrite: false,
           blending: THREE.AdditiveBlending,
           fog: true,
         }),
-      );
-    const glowGeo = own(new THREE.IcosahedronGeometry(LEVEL.lampGlowSize / 4, 1));
-    const poolGeo = own(new THREE.PlaneGeometry(1, 1)).rotateX(-Math.PI / 2);
-    const glows = new THREE.InstancedMesh(glowGeo, additive(null), level.lamps.length);
-    const pools = new THREE.InstancedMesh(poolGeo, additive(tex), level.lamps.length);
-    const m = new THREE.Matrix4();
-    const color = new THREE.Color();
+      ),
+      level.lamps.length,
+    );
     level.lamps.forEach((lamp, i) => {
       const p = grid.gridToWorld(lamp.x, lamp.y);
       color.set(lamp.color ?? LEVEL.lampDefaultColor);
       color.multiplyScalar(lamp.intensity ?? LEVEL.lampDefaultIntensity);
       glows.setMatrixAt(i, m.makeTranslation(p.x, LEVEL.lampHeight, p.z));
       glows.setColorAt(i, color);
-      const d = LEVEL.lampPoolRadius * 2;
-      pools.setMatrixAt(i, m.makeScale(d, 1, d).setPosition(p.x, LEVEL.decalLift * 2, p.z));
-      pools.setColorAt(i, color);
     });
-    for (const mesh of [glows, pools]) {
-      mesh.instanceMatrix.needsUpdate = true;
-      mesh.computeBoundingSphere();
-      group.add(mesh);
-    }
+    glows.instanceMatrix.needsUpdate = true;
+    glows.computeBoundingSphere();
+    group.add(glows);
   }
 
   if (debug) group.add(buildDebugMarkers(level, grid, own));
@@ -212,7 +372,7 @@ export function buildLevelMesh(level: LevelData, grid: Grid, debug: boolean): Le
       exitMaterial.color.copy(open ? openColor : lockedColor);
     },
     dispose() {
-      for (const d of disposables) d.dispose();
+      for (const x of disposables) x.dispose();
       group.traverse((o) => {
         if (o instanceof THREE.InstancedMesh) o.dispose();
       });

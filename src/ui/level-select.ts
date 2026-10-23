@@ -9,6 +9,8 @@ import { createOverlay, type Overlay } from './overlay';
 export interface LevelSelectOptions {
   onPick: (id: string) => void;
   onBack: () => void;
+  /** A tab with a playable level is showing: its theme's art is worth fetching now. */
+  onTheme?: (theme: Theme) => void;
 }
 
 export class LevelSelect {
@@ -76,11 +78,13 @@ export class LevelSelect {
         return b;
       }),
     );
+    let anyOpen = false;
     this.cards.replaceChildren(
       ...CAMPAIGN.map((level, index) => ({ level, index }))
         .filter(({ level }) => level.theme === this.theme)
         .map(({ level, index }) => {
           const open = this.allOpen || isUnlocked(progress, index);
+          anyOpen ||= open;
           const stars = progress.levels[level.id]?.stars ?? 0;
           const b = document.createElement('button');
           b.type = 'button';
@@ -94,5 +98,6 @@ export class LevelSelect {
           return b;
         }),
     );
+    if (anyOpen && this.theme) this.opts.onTheme?.(this.theme);
   }
 }

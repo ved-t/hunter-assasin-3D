@@ -6,11 +6,14 @@ import { CAMPAIGN, nextLevelId } from './config/campaign';
 import type { QualityTier } from './config/quality';
 import { MISSION } from './config/tunables';
 import { requestGyroPermission } from './input/gyro';
+import { DEFAULT_THEME } from './level/kit';
 import { LevelLoadError, loadLevel } from './level/loader';
+import type { LevelData, Theme } from './level/types';
 import { parseDebugFlags } from './core/debug-flags';
 import { GameLoop } from './core/loop';
 import { Rng } from './core/rng';
 import { createPlatform } from './platform';
+import { ThemeAssets } from './render/assets';
 import {
   applyTier,
   createRenderer,
@@ -62,6 +65,8 @@ function fatal(root: HTMLElement, message: string): void {
   overlay.show();
 }
 
+const themeOf = (level: LevelData): Theme => level.theme ?? DEFAULT_THEME;
+
 function levelName(id: string): string {
   return CAMPAIGN.find((l) => l.id === id)?.name ?? id;
 }
@@ -103,6 +108,7 @@ async function boot(): Promise<void> {
   }
 
   const ctx = createRenderer(canvas, tier, platform.isMobile);
+  const themes = new ThemeAssets(ctx.renderer, ctx.tier);
 
   let world: World;
   let game: GameWorld | null = null;
@@ -114,6 +120,8 @@ async function boot(): Promise<void> {
     let level;
     try {
       level = await loadLevel(flags.level ?? nextToPlay(progress));
+      // The first theme is part of the initial download; a failed load leaves it flat, not broken.
+      await themes.load(themeOf(level.data));
     } catch (err) {
       console.error(err);
       fatal(uiRoot, err instanceof LevelLoadError ? err.message : 'Could not load the level.');
@@ -127,6 +135,7 @@ async function boot(): Promise<void> {
       tier: ctx.tier,
       seed: flags.seed,
       pixelRatio: () => ctx.renderer.getPixelRatio(),
+      themes,
     });
     game.applySettings(settings);
     game.restart(modifiersFor(progress));
@@ -344,6 +353,7 @@ async function boot(): Promise<void> {
   const levelSelect = new LevelSelect(uiRoot, {
     onPick: (id) => void play(id),
     onBack: () => showTitle(),
+    onTheme: (theme) => themes.prefetch(theme),
   });
   const loadout = new Loadout(uiRoot, { onChange: setProgress, onBack: () => showTitle() });
   const loading = new LoadingScreen(uiRoot);
@@ -377,6 +387,9 @@ async function boot(): Promise<void> {
     if (!game) return;
     inLevel = true;
     if (fresh) intro.show(game.level.data.name, game.level.data.tip);
+    // Fetch the next level's theme while this one is played.
+    const next = CAMPAIGN.find((l) => l.id === nextLevelId(game?.level.data.id ?? ''));
+    if (next) themes.prefetch(next.theme);
     menu.hide();
     levelSelect.hide();
     loadout.hide();
@@ -407,7 +420,9 @@ async function boot(): Promise<void> {
     loading.show(levelName(id));
     setPaused('loading', true);
     try {
-      game.loadLevel(await loadLevel(id), mods);
+      const level = await loadLevel(id);
+      await themes.load(themeOf(level.data));
+      game.loadLevel(level, mods);
       // Compile the new level's materials now rather than as a hitch on its first frames.
       await ctx.renderer.compileAsync(world.scene, world.camera);
     } catch (err) {

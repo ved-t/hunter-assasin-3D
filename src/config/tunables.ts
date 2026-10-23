@@ -69,10 +69,6 @@ export const LEVEL = {
   coverInset: 0.1,
   /** Underside of a door lintel (m). */
   doorHeight: 2.2,
-  floorColor: 0x22262d,
-  wallColor: 0x3a4048,
-  coverColor: 0x4a4238,
-  lintelColor: 0x30353c,
   /** Floor brightness next to walls/cover (vertex-colour AO), 0..1. */
   floorAo: 0.45,
   exitColor: 0xbff4ff,

@@ -7,7 +7,7 @@ export default defineConfig({
     target: 'es2020',
     sourcemap: false,
     // three.js alone is ~530 KB minified; the real budget (1 MB gzipped JS) is enforced by npm run size.
-    chunkSizeWarningLimit: 800,
+    chunkSizeWarningLimit: 900,
   },
   server: {
     port: 5173,

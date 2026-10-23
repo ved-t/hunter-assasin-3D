@@ -11,6 +11,7 @@ import { KNIFE, LEVEL_LIMITS, MISSION } from './config/tunables';
 import { Rng } from './core/rng';
 import { InputManager } from './input/input-manager';
 import type { LoadedLevel } from './level/loader';
+import { DEFAULT_THEME } from './level/kit';
 import { buildLevelMesh, type LevelMesh } from './level/mesh-builder';
 import { Flashlights, type FlashlightState } from './lighting/flashlights';
 import { Mission, type ViewLens } from './mission/mission';
@@ -18,6 +19,7 @@ import { NO_MODIFIERS, type MissionModifiers } from './mission/modifiers';
 import { applyCameraFx, applyCameraRig } from './player/camera-rig';
 import type { PlayerController } from './player/controller';
 import type { DebugAi } from './render/debug-ai';
+import type { ThemeAssets } from './render/assets';
 import { guardFlashlight, GuardVisuals } from './render/guard-visuals';
 import { MissionProps } from './render/mission-props';
 import { createSessionScene } from './render/level-scene';
@@ -64,6 +66,8 @@ export interface GameWorldOptions {
   seed: number;
   /** The renderer's current pixel ratio (for screen-sized effects such as beam dust). */
   pixelRatio: () => number;
+  /** Per-theme environment materials (textured once their trim sheets load). */
+  themes: ThemeAssets;
 }
 
 /** Per-level sim seed: the same level always replays the same, whatever was played before it. */
@@ -158,7 +162,8 @@ export function createGameWorld(first: LoadedLevel, opts: GameWorldOptions): Gam
     level = next;
     seed = levelSeed(opts.seed, next.data.id);
     mods = nextMods;
-    levelMesh = buildLevelMesh(next.data, next.grid, opts.debug);
+    const material = opts.themes.material(next.data.theme ?? DEFAULT_THEME);
+    levelMesh = buildLevelMesh(next.data, next.grid, material, opts.debug);
     scene.add(levelMesh.group);
     exitOpen = true;
     flashlights.setGrid(next.grid);
@@ -242,6 +247,7 @@ export function createGameWorld(first: LoadedLevel, opts: GameWorldOptions): Gam
       debugAi?.update(alpha, frameDt, camera, mission.beams, perception.results);
     },
     applyTier(tier) {
+      opts.themes.applyTier(tier);
       flashlights.applyTier(tier);
       audio.applyTier(tier);
     },
