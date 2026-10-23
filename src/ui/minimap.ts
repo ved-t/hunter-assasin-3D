@@ -14,6 +14,12 @@ export interface MinimapPose {
   yaw: number;
 }
 
+/** What the minimap reads from a guard to draw his body (Guard satisfies this). */
+export interface MinimapBody {
+  readonly pos: { x: number; z: number };
+  readonly dead: boolean;
+}
+
 interface NoiseRing {
   x: number;
   z: number;
@@ -84,7 +90,13 @@ export class Minimap {
     this.rings.push({ x, z, radius, age: 0 });
   }
 
-  update(dt: number, player: MinimapPose, markers: readonly MinimapMarker[]): void {
+  /** `bodies`: where the guards the player has killed lie (the player knows; no perception needed). */
+  update(
+    dt: number,
+    player: MinimapPose,
+    markers: readonly MinimapMarker[],
+    bodies: readonly MinimapBody[],
+  ): void {
     this.time += dt;
     this.resize();
     const { ctx } = this;
@@ -122,6 +134,9 @@ export class Minimap {
     ctx.restore();
 
     this.drawRings(dt, player, rot, scale, half);
+    for (const b of bodies) {
+      if (b.dead) this.drawBody(b.pos.x - player.x, b.pos.z - player.z, rot, scale, half, r);
+    }
     for (const m of markers) {
       if (m.visible) this.drawMarker(m, player, rot, scale, half, r);
     }
@@ -204,6 +219,22 @@ export class Minimap {
     }
     this.drawArrow(x, y, yawOnMap(rot, m.yaw), r, color, m.alpha, r * 0.9);
     ctx.globalAlpha = 1;
+  }
+
+  private drawBody(dx: number, dz: number, rot: number, scale: number, half: number, r: number) {
+    const { ctx } = this;
+    const p = toMap(rot, dx, dz, this.p);
+    const x = half + p.x * scale;
+    const y = half + p.y * scale;
+    const k = r * 0.7;
+    ctx.strokeStyle = css(M.bodyColor);
+    ctx.lineWidth = Math.max(1.5, r * 0.35);
+    ctx.beginPath();
+    ctx.moveTo(x - k, y - k);
+    ctx.lineTo(x + k, y + k);
+    ctx.moveTo(x + k, y - k);
+    ctx.lineTo(x - k, y + k);
+    ctx.stroke();
   }
 
   /** A triangle pointing along `angle`; with `offset` it sits outside a marker of that radius. */

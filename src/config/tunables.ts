@@ -488,6 +488,8 @@ export const MINIMAP = {
     search: GUARD_VISUALS.searchColor,
     alert: GUARD_VISUALS.alertColor,
   },
+  /** Bodies of guards the player has killed: a grey cross. */
+  bodyColor: 0x7c838c,
   /** Marker and player-arrow radius as a fraction of the minimap diameter. */
   markerSizeFraction: 0.035,
   /** Sound markers ripple outward at this rate (Hz) to this multiple of the marker size. */
@@ -514,6 +516,15 @@ export const HUD = {
   arcWidthPx: 5,
   /** Awareness from this up to Alert tints the arc from amber to red (0..100). */
   arcRedFrom: 60,
+  /** Damage vignette: a hit's red flash fades over this long (s); it pulses at or below lowHp. */
+  hitFlashS: 0.6,
+  lowHp: 1,
+  /** Hit markers: pool size, ring radius (fraction of the short half-side), arc span, width, life. */
+  hitMarkers: 4,
+  hitMarkerRadius: 0.3,
+  hitMarkerSpanDeg: 40,
+  hitMarkerWidthPx: 6,
+  hitMarkerS: 1.2,
 } as const;
 
 /** Procedural placeholder audio (Phase 5 swaps in recorded SFX). Gains are linear, 0..1. */

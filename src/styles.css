@@ -354,3 +354,125 @@ body {
   fill: none;
   stroke-linecap: round;
 }
+
+/* ---- Phase 4: combat HUD ---- */
+
+/* Red edge vignette: --flash (0..1) on each hit, a slow pulse on the last hit point. */
+.damage-vignette {
+  --flash: 0;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 59, 48, 0) 45%,
+    rgba(255, 59, 48, calc(var(--flash) * 0.55)) 100%
+  );
+}
+
+.damage-vignette.low {
+  animation: low-hp 1.4s ease-in-out infinite;
+}
+
+@keyframes low-hp {
+  0%,
+  100% {
+    box-shadow: inset 0 0 60px rgba(255, 59, 48, 0.15);
+  }
+  50% {
+    box-shadow: inset 0 0 90px rgba(255, 59, 48, 0.4);
+  }
+}
+
+.hit-markers {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.hit-markers path {
+  fill: none;
+  stroke-linecap: round;
+}
+
+/* Health pips, in a row under the light gem. */
+.health-pips {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 48px);
+  display: flex;
+  gap: 6px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.health-pips[hidden] {
+  display: none;
+}
+
+.health-pip {
+  width: 14px;
+  height: 5px;
+  border-radius: 2px;
+  background: var(--accent-player);
+  box-shadow: 0 0 6px rgba(191, 244, 255, 0.5);
+  transition:
+    background 0.2s,
+    box-shadow 0.2s;
+}
+
+.health-pip.lost {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(255, 59, 48, 0.7);
+}
+
+/* Objective line and bottle count: top centre, below the touch settings button. */
+.mission-bar {
+  position: absolute;
+  top: calc(64px + var(--ui-top-safe));
+  left: 50%;
+  display: flex;
+  gap: 14px;
+  transform: translateX(-50%);
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.mission-bar[hidden] {
+  display: none;
+}
+
+.mission-bar .bottles {
+  color: var(--accent-player);
+  opacity: 0.8;
+}
+
+.context-prompt {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 66px);
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  border: 1px solid rgba(191, 244, 255, 0.6);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--accent-player);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  pointer-events: none;
+}
+
+.context-prompt[hidden] {
+  display: none;
+}

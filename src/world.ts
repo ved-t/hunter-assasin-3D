@@ -18,7 +18,7 @@ import { guardFlashlight, GuardVisuals } from './render/guard-visuals';
 import { MissionProps } from './render/mission-props';
 import { createLevelScene } from './render/level-scene';
 import type { Settings } from './save/settings';
-import { Hud } from './ui/hud';
+import { Hud, type HudFrame } from './ui/hud';
 
 export interface World {
   scene: THREE.Scene;
@@ -90,15 +90,33 @@ export function createGameWorld(level: LoadedLevel, opts: GameWorldOptions): Gam
   const hud = new Hud(opts.uiRoot, grid, count);
   const audio = new GameAudio(grid, () => visualRng.next());
   audio.applyTier(opts.tier);
-  audio.attach(mission.guards);
   let settings: Settings | null = null;
-  const hudPose = { x: 0, z: 0, yaw: 0 };
+  const frame: HudFrame = {
+    pose: { x: 0, z: 0, yaw: 0 },
+    exposure: 0,
+    markers: [],
+    guards: [],
+    hp: 0,
+    objective: '',
+    bottles: '',
+    prompt: null,
+  };
   const listener = { x: 0, y: 0, z: 0, yaw: 0, pitch: 0 };
+
+  /** Hook the views up to an attempt's events (a new Mission brings new emitters). */
+  const bind = (m: Mission) => {
+    audio.attach(m.guards);
+    m.events.on('hit', ({ guard }) => hud.hit(guard.pos.x, guard.pos.z));
+  };
+  bind(mission);
 
   let debugAi: DebugAi | null = null;
   if (opts.debug) {
     void import('./render/debug-ai').then(({ DebugAi }) => {
       debugAi = new DebugAi(scene, grid, mission.guards.guards, mission.lamps, opts.uiRoot);
+    });
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'KeyG') mission.godMode = !mission.godMode;
     });
   }
 
@@ -145,12 +163,20 @@ export function createGameWorld(level: LoadedLevel, opts: GameWorldOptions): Gam
       props.update(frameDt, alpha, mission.bottle, itemLeft);
       if (exitOpen !== !itemLeft) setExitOpen((exitOpen = !itemLeft));
 
-      hudPose.x = listener.x = camera.position.x;
-      hudPose.z = listener.z = camera.position.z;
-      hudPose.yaw = listener.yaw = player.yaw;
+      const touch = input.isTouchMode;
+      frame.pose.x = listener.x = camera.position.x;
+      frame.pose.z = listener.z = camera.position.z;
+      frame.pose.yaw = listener.yaw = player.yaw;
       listener.y = camera.position.y;
       listener.pitch = player.pitch;
-      hud.update(frameDt, hudPose, mission.exposure, perception.memory.markers, guards.guards);
+      frame.exposure = mission.exposure;
+      frame.markers = perception.memory.markers;
+      frame.guards = guards.guards;
+      frame.hp = mission.health.hp;
+      frame.objective = mission.objectiveLabel;
+      frame.bottles = `${touch ? '' : 'F · '}Bottles ×${mission.bottles}`;
+      frame.prompt = !touch && mission.knifeTarget >= 0 ? 'E · Takedown' : null;
+      hud.update(frameDt, frame);
       audio.update(frameDt, listener, guards.guards);
       debugAi?.update(alpha, frameDt, camera, mission.beams, perception.results);
     },
@@ -171,7 +197,7 @@ export function createGameWorld(level: LoadedLevel, opts: GameWorldOptions): Gam
       if (settings) mission.player.invertY = settings.invertY;
       input.releaseAll();
       hud.reset();
-      audio.attach(mission.guards);
+      bind(mission);
       debugAi?.setGuards(mission.guards.guards);
       applyCameraRig(camera, mission.player, 1);
     },
@@ -184,14 +210,18 @@ export function createGameWorld(level: LoadedLevel, opts: GameWorldOptions): Gam
         `gait    ${player.gait}${player.crouched ? ' (crouched)' : ''}  ${player.speed.toFixed(2)} m/s`,
         `noise   ${player.noiseRadius} m  input ${input.isTouchMode ? 'touch' : 'kbm'}`,
         `light   ${mission.exposure.toFixed(2)}`,
+        `hp      ${mission.health.hp}${mission.godMode ? ' (god)' : ''}  bottles ${mission.bottles}  knife ${mission.knifeTarget < 0 ? '-' : `g${mission.knifeTarget}`}`,
+        `goal    ${mission.objectiveLabel}  ${mission.time.toFixed(1)} s${mission.outcome ? `  ${mission.outcome}` : ''}`,
         flashlights.debugLine(),
         ...guards.guards.map((g, i) => {
           const m = perception.memory.markers[i];
           const seen = perception.results[i]?.kind ?? '-';
           const map = m?.visible ? `map ${m.alpha.toFixed(2)}` : 'map -';
-          return `g${g.id}      ${g.state.padEnd(10)} ${g.awareness.value.toFixed(0).padStart(3)}  ${seen.padEnd(6)} ${map}${g.seesPlayer ? '  sees you' : ''}`;
+          const gun = g.gun.phase === 'windup' ? `  aim ${g.gun.windupFraction.toFixed(1)}` : '';
+          const state = g.dead ? 'dead' : g.state;
+          return `g${g.id}      ${state.padEnd(10)} ${g.awareness.value.toFixed(0).padStart(3)}  ${seen.padEnd(6)} ${map}${g.seesPlayer ? '  sees you' : ''}${gun}`;
         }),
-        `[N] light/nav heatmap ${debugAi?.heatmapVisible ? 'on' : 'off'}`,
+        `[N] light/nav heatmap ${debugAi?.heatmapVisible ? 'on' : 'off'}  [G] god mode`,
       ];
     },
   };
