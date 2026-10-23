@@ -1,0 +1,34 @@
+{
+  "packs": [
+    {
+      "id": "theme-warehouse",
+      "initial": true,
+      "files": [
+        "assets/themes/warehouse/albedo.ktx2",
+        "assets/themes/warehouse/normal.ktx2",
+        "assets/themes/warehouse/orm.ktx2",
+        "assets/themes/warehouse/sheet.json"
+      ]
+    },
+    {
+      "id": "theme-office",
+      "initial": false,
+      "files": [
+        "assets/themes/office/albedo.ktx2",
+        "assets/themes/office/normal.ktx2",
+        "assets/themes/office/orm.ktx2",
+        "assets/themes/office/sheet.json"
+      ]
+    },
+    {
+      "id": "theme-mansion",
+      "initial": false,
+      "files": [
+        "assets/themes/mansion/albedo.ktx2",
+        "assets/themes/mansion/normal.ktx2",
+        "assets/themes/mansion/orm.ktx2",
+        "assets/themes/mansion/sheet.json"
+      ]
+    }
+  ]
+}
