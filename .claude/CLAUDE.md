@@ -73,7 +73,7 @@ Not low-poly. Use smooth-shaded mid-detail models with realistic proportions and
 - Colour language: warm amber = guard light (danger), cyan-white = player-relevant interactables, red = Alert/damage.
 - Heavy distance fog. Baked lightmaps or vertex-colour AO for static scenery. Light dust particles inside beams.
 - High tier only: vignette, subtle film grain and bloom. On low tier, fake glow with additive sprites.
-- Characters: Mixamo-rigged humanoids (guard, player hands/knife viewmodel). Environments: Poly Haven CC0 textures and modular kits built from simple meshes. Keep a `CREDITS.md` with every asset's licence.
+- Characters: Mixamo-rigged humanoid guards. The first-person gloved hand and knife viewmodel is built in code with procedural animation (Mixamo has no first-person arms). Environments: Poly Haven CC0 textures and modular kits built from simple meshes. Keep a `CREDITS.md` with every asset's licence.
 
 ## Working agreements
 - Before each phase: read PLAN.md for that phase, use plan mode, and list files you'll touch.

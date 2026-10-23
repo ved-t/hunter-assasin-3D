@@ -64,7 +64,7 @@ All numbers below are **starting values** for `config/tunables.ts`, not final ba
   Marker types: solid (direct), outlined (light), ripple (sound).
 - **Visibility meter** (light-gem style, near the crosshair): the player's current light exposure.
 - **Detection arcs:** screen-edge arcs pointing toward any guard whose awareness of you is rising; arc fill = awareness.
-- 3D positional audio: guard footsteps, radio chatter barks, and the player's own footsteps (surface-dependent loudness).
+- 3D positional audio: guard footsteps, radio chatter barks, and the player's own footsteps (surface-dependent loudness moved to Later).
 - Player noise ring on the minimap when running.
 
 **Acceptance:** in a blind playtest, a new player can locate a guard behind a corner by his light alone. The minimap never shows a guard the player could not have perceived (unit-test the rules).
@@ -82,7 +82,9 @@ All numbers below are **starting values** for `config/tunables.ts`, not final ba
 
 ## Phase 5 — Art, content, progression
 **Goal:** looks and feels like a finished game.
-- Apply the "graphic noir" art direction from CLAUDE.md: modular environment kit (warehouse, office, mansion), Mixamo guards with walk/run/idle/turn/shoot/death animations (GPU-skinned, shared skeleton), first-person hands and knife viewmodel.
+Built in four sub-phases, each with its own build, size report and playtest stop:
+5a menus, progression and in-app level flow · 5b the 12 levels in greybox · 5c environment art · 5d characters, viewmodel and audio.
+- Apply the "graphic noir" art direction from CLAUDE.md: modular environment kit (warehouse, office, mansion), Mixamo guards with walk/run/idle/turn/shoot/death animations (GPU-skinned, shared skeleton), and a code-built first-person hand and knife viewmodel.
 - Baked AO/lightmaps for static props; asset pipeline script with `gltf-transform` (meshopt + KTX2) and a size report.
 - 12 hand-made levels across 3 themes with a difficulty curve. Introduce mechanics one at a time: light, sound, bodies, distraction, more guards.
 - Progression: gems from levels → unlock skins and a few perks (quieter steps, faster regen). Main menu, level select, settings, pause.
@@ -107,6 +109,7 @@ All numbers below are **starting values** for `config/tunables.ts`, not final ba
 - Hunter Sense: occupancy-map overlay showing where guards plan to search.
 - Flashlight disguise (pick up a guard's light), breaker boxes, dying-battery guards.
 - Optional WebGPU renderer path with WebGL2 fallback.
+- Surface-dependent footstep loudness (carpet, metal, tile), postponed from Phases 3 and 5.
 
 ## Reference
 Research doc with sources (stealth UX precedents, lighting performance, AI patterns, touch controls):
