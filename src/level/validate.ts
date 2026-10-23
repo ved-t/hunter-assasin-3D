@@ -76,9 +76,17 @@ function checkStructure(c: Checker, json: unknown): json is LevelData {
       'guards',
       'lamps',
       'objective',
+      'bottles',
+      'parTimeS',
     ],
     'level',
   );
+  if ('bottles' in json && (!isInt(json.bottles) || json.bottles < 0)) {
+    c.fail('bottles', 'must be an integer >= 0');
+  }
+  if ('parTimeS' in json && (!isNum(json.parTimeS) || json.parTimeS <= 0)) {
+    c.fail('parTimeS', 'must be a number > 0');
+  }
   if (typeof json.id !== 'string' || !ID_PATTERN.test(json.id))
     c.fail('id', 'must match [a-z0-9-]+');
   if (typeof json.name !== 'string' || json.name.length === 0) c.fail('name', 'must be non-empty');
@@ -271,6 +279,9 @@ function checkSemantics(c: Checker, level: LevelData): void {
   }
   if (level.objective.type === 'reachExit' && exits === 0) {
     c.fail('objective', 'reachExit needs at least one E tile');
+  }
+  if (level.objective.type === 'eliminateAll' && level.guards.length === 0) {
+    c.fail('objective', 'eliminateAll needs at least one guard');
   }
 }
 

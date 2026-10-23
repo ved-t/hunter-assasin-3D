@@ -83,4 +83,8 @@ export interface LevelData {
   guards: GuardDef[];
   lamps: LampDef[];
   objective: Objective;
+  /** Distraction bottles the player starts with (default BOTTLE.defaultCount). */
+  bottles?: number;
+  /** Finishing faster than this earns the time star (s). */
+  parTimeS?: number;
 }

@@ -71,6 +71,15 @@ describe('validateLevel', () => {
     expectBoth(base(), true, true);
   });
 
+  it('accepts bottles, par time and an eliminateAll level without an exit', () => {
+    const l = base();
+    l.bottles = 0;
+    l.parTimeS = 45;
+    l.objective = { type: 'eliminateAll' };
+    l.tiles[2] = '#..D..#';
+    expectBoth(l, true, true);
+  });
+
   // Structural failures: the schema and the runtime validator must both reject.
   const structural: [string, (l: Record<string, unknown>) => void][] = [
     ['unknown tile char', (l) => ((l.tiles as string[])[1] = '#..#x.#')],
@@ -88,6 +97,9 @@ describe('validateLevel', () => {
         ]),
     ],
     ['bad objective type', (l) => (l.objective = { type: 'win' })],
+    ['negative bottles', (l) => (l.bottles = -1)],
+    ['fractional bottles', (l) => (l.bottles = 1.5)],
+    ['zero par time', (l) => (l.parTimeS = 0)],
   ];
   for (const [name, mutate] of structural) {
     it(`rejects ${name} (schema and runtime agree)`, () => {
@@ -106,6 +118,11 @@ describe('validateLevel', () => {
     ['spawn in wall', (l) => (l.playerSpawn = { x: 0.5, y: 0.5, yawDeg: 0 }), /solid/],
     ['unreachable waypoint', (l) => (l.tiles[2] = '#..#.E#'), /not reachable/],
     ['reachExit without exit', (l) => (l.tiles[2] = '#..D..#'), /E tile/],
+    [
+      'eliminateAll without guards',
+      (l) => ((l.objective = { type: 'eliminateAll' }), (l.guards = [])),
+      /at least one guard/,
+    ],
     ['door not between walls', (l) => (l.tiles[1] = '#..D..#'), /door/],
     [
       'item in cover',

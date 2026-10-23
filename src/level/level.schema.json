@@ -83,6 +83,16 @@
         "type": { "enum": ["eliminateAll", "reachExit"] },
         "item": { "$ref": "#/definitions/point" }
       }
+    },
+    "bottles": {
+      "description": "Distraction bottles the player starts with.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "parTimeS": {
+      "description": "Finishing faster than this (seconds) earns the time star.",
+      "type": "number",
+      "exclusiveMinimum": 0
     }
   },
   "definitions": {

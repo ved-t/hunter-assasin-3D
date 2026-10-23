@@ -115,5 +115,7 @@
     { "x": 15.5, "y": 20.5 },
     { "x": 26, "y": 21, "color": "#ffd9a0", "intensity": 0.6 }
   ],
-  "objective": { "type": "reachExit", "item": { "x": 2.5, "y": 1.5 } }
+  "objective": { "type": "reachExit", "item": { "x": 2.5, "y": 1.5 } },
+  "bottles": 3,
+  "parTimeS": 180
 }
