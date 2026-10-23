@@ -123,7 +123,11 @@ async function boot(): Promise<void> {
     update: (dt) => world.update(dt),
     render: (alpha, frameDt) => {
       world.render(alpha, frameDt);
-      touchControls?.setCrouched(game?.player.crouched ?? false);
+      if (game && touchControls) {
+        touchControls.setCrouched(game.player.crouched);
+        touchControls.setContext(game.mission.knifeTarget >= 0);
+        touchControls.setBottles(game.mission.bottles);
+      }
       if (game?.mission.outcome && !result?.isOpen) {
         const { outcome, endedFor } = game.mission;
         if (endedFor >= (outcome === 'won' ? MISSION.winDelayS : MISSION.failDelayS)) showResult();
@@ -242,6 +246,7 @@ async function boot(): Promise<void> {
     touchControls = new TouchControls(uiRoot, {
       onCrouch: () => (g.input.state.crouchToggle = true),
       onContext: () => (g.input.state.context = true),
+      onThrow: () => (g.input.state.throw = true),
       onSettings: openMenu,
     });
     touchControls.visible = g.input.isTouchMode;

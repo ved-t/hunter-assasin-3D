@@ -179,6 +179,18 @@ body {
   bottom: calc(40px + var(--ui-bottom-safe));
 }
 
+.touch-btn-bottle {
+  right: calc(24px + var(--ui-right-safe));
+  bottom: calc(96px + var(--ui-bottom-safe));
+  font-size: 11px;
+}
+
+.touch-btn-context.active {
+  background: rgba(191, 244, 255, 0.35);
+  box-shadow: 0 0 14px rgba(191, 244, 255, 0.6);
+  font-size: 15px;
+}
+
 .touch-btn-settings {
   top: calc(12px + var(--ui-top-safe));
   left: 50%;

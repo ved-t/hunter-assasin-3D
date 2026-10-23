@@ -1,5 +1,6 @@
-// Desktop input: WASD (by physical key position), Shift run, Q sneak, C crouch toggle, E context,
-// and mouse look through Pointer Lock. Ctrl is deliberately unbound: Ctrl+W closes the tab.
+// Desktop input: WASD (by physical key position), Shift run, Q sneak, C crouch toggle, E or left click
+// context (knife), F or right click throw, and mouse look through Pointer Lock. Ctrl is deliberately
+// unbound: Ctrl+W closes the tab.
 
 import { INPUT } from '../config/tunables';
 import type { InputState } from './input-state';
@@ -13,7 +14,12 @@ const KEYS = {
   sneak: 'KeyQ',
   crouch: 'KeyC',
   context: 'KeyE',
+  throw: 'KeyF',
 } as const;
+
+/** MouseEvent.button values. */
+const MOUSE_PRIMARY = 0;
+const MOUSE_SECONDARY = 2;
 
 export class KeyboardMouse {
   /** Look sensitivity multiplier from settings. */
@@ -43,6 +49,17 @@ export class KeyboardMouse {
       opts,
     );
     document.addEventListener('mousemove', (e) => this.onMouseMove(e), opts);
+    // Buttons act only while captured, so the click that takes Pointer Lock never stabs anyone.
+    document.addEventListener(
+      'mousedown',
+      (e) => {
+        if (!this.locked) return;
+        if (e.button === MOUSE_PRIMARY) this.state.context = true;
+        else if (e.button === MOUSE_SECONDARY) this.state.throw = true;
+      },
+      opts,
+    );
+    canvas.addEventListener('contextmenu', (e) => e.preventDefault(), opts);
   }
 
   get locked(): boolean {
@@ -107,6 +124,7 @@ export class KeyboardMouse {
       this.down.add(e.code);
       if (!e.repeat && e.code === KEYS.crouch) this.state.crouchToggle = true;
       if (!e.repeat && e.code === KEYS.context) this.state.context = true;
+      if (!e.repeat && e.code === KEYS.throw) this.state.throw = true;
     } else {
       this.down.delete(e.code);
     }

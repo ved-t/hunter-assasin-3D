@@ -44,7 +44,7 @@ export class SettingsPanel {
         <label class="row">Minimap <select name="minimap"><option value="rotating">Rotating</option><option value="fixed">Fixed (north up)</option></select></label>
         <label class="row">Quality <select name="quality">${tierOptions}</select></label>
         <button type="button" class="resume">Resume</button>
-        <div class="note keys">WASD move · Shift run · Q sneak · C crouch · Esc pause</div>
+        <div class="note keys">WASD move · Shift run · Q sneak · C crouch · E / click takedown · F / right-click bottle · Esc pause</div>
       </div>`,
     );
     const el = this.overlay.element;
