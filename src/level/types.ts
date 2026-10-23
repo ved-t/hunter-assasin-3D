@@ -61,6 +61,10 @@ export interface LampDef extends GridPoint {
   intensity?: number;
 }
 
+/** Environment art sets; each campaign level belongs to one. */
+export const THEMES = ['warehouse', 'office', 'mansion'] as const;
+export type Theme = (typeof THEMES)[number];
+
 export type ObjectiveType = 'eliminateAll' | 'reachExit';
 
 export interface Objective {

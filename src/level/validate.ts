@@ -1,6 +1,7 @@
 // Runtime level validator. Structural checks mirror level.schema.json (tests keep the two in step via ajv);
 // semantic checks cover what a schema can't express: closed borders, walkable spawns, reachability.
 
+import { LEVEL_LIMITS } from '../config/tunables';
 import { Grid } from './grid';
 import { Tile, isTileChar, type GridPoint, type LevelData } from './types';
 
@@ -282,6 +283,9 @@ function checkSemantics(c: Checker, level: LevelData): void {
   }
   if (level.objective.type === 'eliminateAll' && level.guards.length === 0) {
     c.fail('objective', 'eliminateAll needs at least one guard');
+  }
+  if (level.guards.length > LEVEL_LIMITS.maxGuards) {
+    c.fail('guards', `at most ${LEVEL_LIMITS.maxGuards} guards per level`);
   }
 }
 

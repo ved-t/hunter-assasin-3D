@@ -35,9 +35,10 @@ export class Hud {
   private readonly pips: HealthPips;
   private readonly bar: MissionBar;
 
-  constructor(root: HTMLElement, grid: Grid, guardCount: number) {
+  /** `guardCapacity`: the most guards any level has (one detection arc each). */
+  constructor(root: HTMLElement, grid: Grid, guardCapacity: number) {
     this.vignette = new DamageVignette(root);
-    this.arcs = new DetectionArcs(root, guardCount);
+    this.arcs = new DetectionArcs(root, guardCapacity);
     this.hits = new HitMarkers(root);
     this.meter = new VisibilityMeter(root);
     this.pips = new HealthPips(root);
@@ -53,6 +54,11 @@ export class Hud {
   set visible(v: boolean) {
     this.minimap.visible = this.meter.visible = this.arcs.visible = v;
     this.pips.visible = this.bar.visible = v;
+  }
+
+  /** A new level: the minimap shows its layout. Call reset() too. */
+  setGrid(grid: Grid): void {
+    this.minimap.setGrid(grid);
   }
 
   /** A restart: drop everything that belonged to the previous attempt. */

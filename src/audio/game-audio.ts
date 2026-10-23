@@ -63,17 +63,23 @@ export interface ChatterGuard {
 export class GameAudio {
   readonly manager = new AudioManager();
   private readonly spatial = new Spatial();
-  private readonly field: DistanceField;
+  private field: DistanceField;
   private noise: AudioBuffer | null = null;
   private readonly pending: Pending[] = [];
   private chatter: number[] = [];
 
   constructor(
-    private readonly grid: Grid,
+    private grid: Grid,
     private readonly random: () => number,
   ) {
     this.field = createSoundField(grid);
     this.manager.onReady = (ctx) => (this.noise = createNoiseBuffer(ctx));
+  }
+
+  /** A new level: path distance and occlusion use its grid. Call attach() for its first attempt. */
+  setGrid(grid: Grid): void {
+    this.grid = grid;
+    this.field = createSoundField(grid);
   }
 
   /** Listen to a new attempt's guards and mission events; drops anything still queued. */

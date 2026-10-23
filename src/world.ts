@@ -1,22 +1,26 @@
-// A playable world: the long-lived scene, input, HUD, audio and visuals around one Mission (the pure sim
-// of the current attempt), behind the same update/render shape as the Phase 0 perf scene so main.ts can
-// drive either.
+// A playable world: the long-lived scene, input, HUD, audio and visuals, hosting one level at a time and
+// one Mission (the pure sim of the current attempt) on it. Loading a level swaps only the level's meshes,
+// grid and Mission: guard and flashlight visuals are sized for LEVEL_LIMITS.maxGuards once, so the scene's
+// light count (and with it every compiled shader) survives level switches. Same update/render shape as
+// the Phase 0 perf scene so main.ts can drive either.
 
 import type * as THREE from 'three';
 import { GameAudio } from './audio/game-audio';
 import type { QualityTier } from './config/quality';
-import { KNIFE, MISSION } from './config/tunables';
+import { KNIFE, LEVEL_LIMITS, MISSION } from './config/tunables';
 import { Rng } from './core/rng';
 import { InputManager } from './input/input-manager';
 import type { LoadedLevel } from './level/loader';
+import { buildLevelMesh, type LevelMesh } from './level/mesh-builder';
 import { Flashlights, type FlashlightState } from './lighting/flashlights';
 import { Mission, type ViewLens } from './mission/mission';
+import { NO_MODIFIERS, type MissionModifiers } from './mission/modifiers';
 import { applyCameraFx, applyCameraRig } from './player/camera-rig';
 import type { PlayerController } from './player/controller';
 import type { DebugAi } from './render/debug-ai';
 import { guardFlashlight, GuardVisuals } from './render/guard-visuals';
 import { MissionProps } from './render/mission-props';
-import { createLevelScene } from './render/level-scene';
+import { createSessionScene } from './render/level-scene';
 import type { Settings } from './save/settings';
 import { Hud, type HudFrame } from './ui/hud';
 
@@ -33,7 +37,9 @@ export interface World {
 
 export interface GameWorld extends World {
   readonly input: InputManager;
-  /** The current attempt; replaced on restart. */
+  /** The level on stage. */
+  readonly level: LoadedLevel;
+  /** The current attempt; replaced on restart and on a level change. */
   readonly mission: Mission;
   readonly player: PlayerController;
   /** Unlocked by main.ts on the first user gesture; suspended with the host. */
@@ -41,9 +47,11 @@ export interface GameWorld extends World {
   /** While true, look input is discarded (menus, rotate prompt). */
   paused: boolean;
   applySettings(settings: Settings): void;
-  /** Start the level over: a fresh Mission; the scene, HUD and audio are kept. */
-  restart(): void;
-  /** Hide the in-game HUD (behind the result screen). */
+  /** Put another level on stage, with a first attempt using `mods`. */
+  loadLevel(level: LoadedLevel, mods?: Readonly<MissionModifiers>): void;
+  /** Start the level over: a fresh Mission (with new `mods` if given); scene, HUD and audio are kept. */
+  restart(mods?: Readonly<MissionModifiers>): void;
+  /** Hide the in-game HUD (menus, the result screen). */
   setHudVisible(visible: boolean): void;
 }
 
@@ -58,41 +66,44 @@ export interface GameWorldOptions {
   pixelRatio: () => number;
 }
 
-export function createGameWorld(level: LoadedLevel, opts: GameWorldOptions): GameWorld {
-  const { scene, camera, setExitOpen } = createLevelScene(level, opts.debug);
-  const { grid, data } = level;
-  const rng = new Rng(opts.seed);
-  // Every attempt gets the same seed, so a retry replays the same guard behaviour.
-  const missionSeed = rng.int(0, 0xffffffff);
-  const newMission = () => new Mission(level, new Rng(missionSeed));
-  let mission = newMission();
+/** Per-level sim seed: the same level always replays the same, whatever was played before it. */
+function levelSeed(seed: number, id: string): number {
+  let h = 0x811c9dc5 ^ seed;
+  for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 0x01000193);
+  return h >>> 0;
+}
+
+export function createGameWorld(first: LoadedLevel, opts: GameWorldOptions): GameWorld {
+  const { scene, camera } = createSessionScene();
+  const capacity = LEVEL_LIMITS.maxGuards;
+  const visualRng = new Rng(opts.seed).fork();
   const input = new InputManager(opts.canvas, opts.uiRoot, opts.startInTouchMode);
   const look = { yaw: 0, pitch: 0 };
   const lens: ViewLens = { vFov: 0, aspect: 1 };
-  applyCameraRig(camera, mission.player, 1);
 
-  const count = data.guards.length;
-  const visualRng = rng.fork();
-  const flashlights = new Flashlights(scene, grid, count, opts.tier, () => visualRng.next());
-  const guardVisuals = new GuardVisuals(count);
+  const flashlights = new Flashlights(scene, first.grid, capacity, opts.tier, () =>
+    visualRng.next(),
+  );
+  const guardVisuals = new GuardVisuals(capacity);
   const props = new MissionProps();
   scene.add(guardVisuals.group, props.group);
-  let exitOpen = true;
-  // Per-frame interpolated flashlights, for visuals.
-  const lights: FlashlightState[] = Array.from({ length: count }, () => ({
-    id: 0,
-    x: 0,
-    y: 0,
-    z: 0,
-    yaw: 0,
-    pitch: 0,
-    intensity: 0,
-  }));
-
-  const hud = new Hud(opts.uiRoot, grid, count);
-  const audio = new GameAudio(grid, () => visualRng.next());
+  const hud = new Hud(opts.uiRoot, first.grid, capacity);
+  const audio = new GameAudio(first.grid, () => visualRng.next());
   audio.applyTier(opts.tier);
   let settings: Settings | null = null;
+
+  // Per-level state, replaced by load().
+  let level = first;
+  let levelMesh: LevelMesh | null = null;
+  let seed = 0;
+  let mods: Readonly<MissionModifiers> = NO_MODIFIERS;
+  let mission!: Mission;
+  /** ?debug=1 [G]: kept across restarts and levels. */
+  let godMode = false;
+  let exitOpen = true;
+  /** Per-frame interpolated flashlights, one per guard of the current level. */
+  let lights: FlashlightState[] = [];
+
   const frame: HudFrame = {
     pose: { x: 0, z: 0, yaw: 0 },
     exposure: 0,
@@ -105,22 +116,67 @@ export function createGameWorld(level: LoadedLevel, opts: GameWorldOptions): Gam
   };
   const listener = { x: 0, y: 0, z: 0, yaw: 0, pitch: 0 };
 
-  /** Hook the views up to an attempt's events (a new Mission brings new emitters). */
-  const bind = (m: Mission) => {
-    audio.attach(m.guards, m.events);
-    m.events.on('hit', ({ guard }) => hud.hit(guard.pos.x, guard.pos.z));
-  };
-  bind(mission);
-
   let debugAi: DebugAi | null = null;
+  let debugAiModule: typeof import('./render/debug-ai') | null = null;
+  const rebuildDebugAi = () => {
+    debugAi?.dispose();
+    debugAi = debugAiModule
+      ? new debugAiModule.DebugAi(
+          scene,
+          level.grid,
+          mission.guards.guards,
+          mission.lamps,
+          opts.uiRoot,
+        )
+      : null;
+  };
   if (opts.debug) {
-    void import('./render/debug-ai').then(({ DebugAi }) => {
-      debugAi = new DebugAi(scene, grid, mission.guards.guards, mission.lamps, opts.uiRoot);
+    void import('./render/debug-ai').then((m) => {
+      debugAiModule = m;
+      rebuildDebugAi();
     });
     window.addEventListener('keydown', (e) => {
-      if (e.code === 'KeyG') mission.godMode = !mission.godMode;
+      if (e.code === 'KeyG') godMode = mission.godMode = !godMode;
     });
   }
+
+  /** A fresh attempt on the current level. */
+  const begin = () => {
+    mission = new Mission(level, new Rng(seed), mods);
+    mission.godMode = godMode;
+    if (settings) mission.player.invertY = settings.invertY;
+    input.releaseAll();
+    hud.reset();
+    audio.attach(mission.guards, mission.events);
+    mission.events.on('hit', ({ guard }) => hud.hit(guard.pos.x, guard.pos.z));
+    applyCameraRig(camera, mission.player, 1);
+  };
+
+  const load = (next: LoadedLevel, nextMods: Readonly<MissionModifiers>) => {
+    levelMesh?.group.removeFromParent();
+    levelMesh?.dispose();
+    level = next;
+    seed = levelSeed(opts.seed, next.data.id);
+    mods = nextMods;
+    levelMesh = buildLevelMesh(next.data, next.grid, opts.debug);
+    scene.add(levelMesh.group);
+    exitOpen = true;
+    flashlights.setGrid(next.grid);
+    hud.setGrid(next.grid);
+    audio.setGrid(next.grid);
+    lights = next.data.guards.map(() => ({
+      id: 0,
+      x: 0,
+      y: 0,
+      z: 0,
+      yaw: 0,
+      pitch: 0,
+      intensity: 0,
+    }));
+    begin();
+    rebuildDebugAi();
+  };
+  load(first, NO_MODIFIERS);
 
   return {
     scene,
@@ -128,6 +184,9 @@ export function createGameWorld(level: LoadedLevel, opts: GameWorldOptions): Gam
     input,
     audio,
     paused: false,
+    get level() {
+      return level;
+    },
     get mission() {
       return mission;
     },
@@ -163,7 +222,7 @@ export function createGameWorld(level: LoadedLevel, opts: GameWorldOptions): Gam
       guardVisuals.update(guards.guards, lights, alpha, camera);
       const itemLeft = mission.item && !mission.itemTaken ? mission.item : null;
       props.update(frameDt, alpha, mission.bottle, itemLeft);
-      if (exitOpen !== !itemLeft) setExitOpen((exitOpen = !itemLeft));
+      if (exitOpen !== !itemLeft) levelMesh?.setExitOpen((exitOpen = !itemLeft));
 
       const touch = input.isTouchMode;
       frame.pose.x = listener.x = camera.position.x;
@@ -192,25 +251,22 @@ export function createGameWorld(level: LoadedLevel, opts: GameWorldOptions): Gam
       mission.player.invertY = next.invertY;
       hud.minimapMode = next.minimapMode;
     },
+    loadLevel(next, nextMods = NO_MODIFIERS) {
+      load(next, nextMods);
+    },
     setHudVisible(visible) {
       hud.visible = visible;
     },
-    restart() {
-      const godMode = mission.godMode;
-      mission = newMission();
-      mission.godMode = godMode;
-      if (settings) mission.player.invertY = settings.invertY;
-      input.releaseAll();
-      hud.reset();
-      bind(mission);
+    restart(nextMods) {
+      if (nextMods) mods = nextMods;
+      begin();
       debugAi?.setGuards(mission.guards.guards);
-      applyCameraRig(camera, mission.player, 1);
     },
     debugLines() {
       const { player, guards, perception } = mission;
-      const c = grid.worldToCell(player.pos.x, player.pos.z);
+      const c = level.grid.worldToCell(player.pos.x, player.pos.z);
       return [
-        `level   ${data.id}`,
+        `level   ${level.data.id}`,
         `pos     ${player.pos.x.toFixed(2)}, ${player.pos.z.toFixed(2)}  cell ${c.cx},${c.cy}`,
         `gait    ${player.gait}${player.crouched ? ' (crouched)' : ''}  ${player.speed.toFixed(2)} m/s`,
         `noise   ${player.noiseRadius} m  input ${input.isTouchMode ? 'touch' : 'kbm'}`,

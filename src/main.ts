@@ -2,7 +2,8 @@
 
 import './styles.css';
 import type { QualityTier } from './config/quality';
-import { LEVEL_FILES, MISSION } from './config/tunables';
+import { nextLevelId } from './config/campaign';
+import { MISSION } from './config/tunables';
 import { requestGyroPermission } from './input/gyro';
 import { LevelLoadError, loadLevel } from './level/loader';
 import { parseDebugFlags } from './core/debug-flags';
@@ -266,9 +267,7 @@ async function boot(): Promise<void> {
   });
 
   // Win / fail screen. Retry restarts in place (no reload); Next loads the following level.
-  const order: readonly string[] = LEVEL_FILES.order;
-  const index = order.indexOf(flags.level);
-  const nextLevel = index >= 0 ? (order[index + 1] ?? null) : null;
+  const nextLevel = nextLevelId(flags.level);
   const result = game
     ? new ResultScreen(uiRoot, {
         onRetry: retry,

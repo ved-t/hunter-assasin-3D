@@ -45,7 +45,7 @@ export class Flashlights {
 
   constructor(
     scene: THREE.Scene,
-    private readonly grid: Grid,
+    private grid: Grid,
     readonly capacity: number,
     tier: QualityTier,
     private readonly random: () => number,
@@ -66,6 +66,11 @@ export class Flashlights {
       };
     });
     this.setDust(TIER_SETTINGS[tier].beamDust);
+  }
+
+  /** A new level: rays are cast against its grid from now on. */
+  setGrid(grid: Grid): void {
+    this.grid = grid;
   }
 
   /** Tier change: resize the real-light pool (one recompile, already happening) and toggle dust. */

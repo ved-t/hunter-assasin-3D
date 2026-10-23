@@ -99,9 +99,15 @@ export const LEVEL = {
 export const LEVEL_FILES = {
   /** Path relative to the page, so builds served from portal subpaths still resolve. */
   dir: 'levels/',
-  defaultId: 'small',
-  /** Play order: "Next level" on the win screen goes to the following id (Phase 5 adds a menu). */
-  order: ['small', 'medium'],
+} as const;
+
+/** Limits every level must respect, so one long-lived scene can host any of them. */
+export const LEVEL_LIMITS = {
+  /**
+   * Most guards in a level. Flashlight and guard meshes are sized for this once, so switching levels
+   * never resizes buffers or changes the scene's light count.
+   */
+  maxGuards: 10,
 } as const;
 
 export const PLAYER = {

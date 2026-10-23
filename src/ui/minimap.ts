@@ -60,7 +60,7 @@ export class Minimap {
   readonly canvas: HTMLCanvasElement;
   mode: MinimapMode = 'rotating';
   private readonly ctx: CanvasRenderingContext2D;
-  private readonly layout: HTMLCanvasElement;
+  private layout: HTMLCanvasElement;
   private readonly rings: NoiseRing[] = [];
   private readonly p: MapPoint = { x: 0, y: 0 };
   private sizeCss = 0;
@@ -77,6 +77,12 @@ export class Minimap {
 
   set visible(v: boolean) {
     this.canvas.hidden = !v;
+  }
+
+  /** A new level: redraw the layout. */
+  setGrid(grid: Grid): void {
+    this.layout = drawLayout(grid);
+    this.reset();
   }
 
   reset(): void {

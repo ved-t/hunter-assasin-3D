@@ -2,7 +2,7 @@ import { Ajv } from 'ajv';
 import { describe, expect, it } from 'vitest';
 import medium from '../../public/levels/medium.json';
 import small from '../../public/levels/small.json';
-import { GUARD } from '../config/tunables';
+import { GUARD, LEVEL_LIMITS } from '../config/tunables';
 import { Pathfinder } from '../nav/astar';
 import type { Vec2 } from './collision';
 import { Grid } from './grid';
@@ -122,6 +122,11 @@ describe('validateLevel', () => {
       'eliminateAll without guards',
       (l) => ((l.objective = { type: 'eliminateAll' }), (l.guards = [])),
       /at least one guard/,
+    ],
+    [
+      'more guards than one scene can host',
+      (l) => (l.guards = Array.from({ length: LEVEL_LIMITS.maxGuards + 1 }, () => l.guards[0]!)),
+      /at most/,
     ],
     ['door not between walls', (l) => (l.tiles[1] = '#..D..#'), /door/],
     [
