@@ -27,7 +27,8 @@ export function createRenderer(
   });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  // PCFSoftShadowMap was removed in r186 (it fell back to this with a warning).
+  renderer.shadowMap.type = THREE.PCFShadowMap;
   // Reset per-frame counters manually so the debug overlay sees a whole frame's draw calls.
   renderer.info.autoReset = false;
 
