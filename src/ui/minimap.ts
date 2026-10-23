@@ -73,6 +73,10 @@ export class Minimap {
     this.canvas.hidden = !v;
   }
 
+  reset(): void {
+    this.rings.length = 0;
+  }
+
   /** A player footstep of the given noise radius (m); loud ones draw a ring. */
   noise(x: number, z: number, radius: number): void {
     if (radius < M.noiseRingMinRadiusM) return;

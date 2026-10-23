@@ -54,7 +54,7 @@ export class DebugAi {
   constructor(
     scene: THREE.Scene,
     private readonly grid: Grid,
-    private readonly guards: readonly Guard[],
+    private guards: readonly Guard[],
     private readonly lamps: readonly Vec2[],
     uiRoot: HTMLElement,
   ) {
@@ -159,6 +159,11 @@ export class DebugAi {
 
   get heatmapVisible(): boolean {
     return this.heatmap.visible;
+  }
+
+  /** A restart brings a new set of guards (same level, so the same count). */
+  setGuards(guards: readonly Guard[]): void {
+    this.guards = guards;
   }
 
   update(

@@ -39,6 +39,8 @@ export interface GameWorld extends World {
   /** While true, look input is discarded (menus, rotate prompt). */
   paused: boolean;
   applySettings(settings: Settings): void;
+  /** Start the level over: a fresh Mission; the scene, HUD and audio are kept. */
+  restart(): void;
 }
 
 export interface GameWorldOptions {
@@ -56,7 +58,10 @@ export function createGameWorld(level: LoadedLevel, opts: GameWorldOptions): Gam
   const { scene, camera } = createLevelScene(level, opts.debug);
   const { grid, data } = level;
   const rng = new Rng(opts.seed);
-  const mission = new Mission(level, rng.fork());
+  // Every attempt gets the same seed, so a retry replays the same guard behaviour.
+  const missionSeed = rng.int(0, 0xffffffff);
+  const newMission = () => new Mission(level, new Rng(missionSeed));
+  let mission = newMission();
   const input = new InputManager(opts.canvas, opts.uiRoot, opts.startInTouchMode);
   const look = { yaw: 0, pitch: 0 };
   const lens: ViewLens = { vFov: 0, aspect: 1 };
@@ -79,8 +84,10 @@ export function createGameWorld(level: LoadedLevel, opts: GameWorldOptions): Gam
   }));
 
   const hud = new Hud(opts.uiRoot, grid, count);
-  const audio = new GameAudio(grid, mission.guards, () => visualRng.next());
+  const audio = new GameAudio(grid, () => visualRng.next());
   audio.applyTier(opts.tier);
+  audio.attach(mission.guards);
+  let settings: Settings | null = null;
   const hudPose = { x: 0, z: 0, yaw: 0 };
   const listener = { x: 0, y: 0, z: 0, yaw: 0, pitch: 0 };
 
@@ -139,10 +146,22 @@ export function createGameWorld(level: LoadedLevel, opts: GameWorldOptions): Gam
       flashlights.applyTier(tier);
       audio.applyTier(tier);
     },
-    applySettings(settings) {
-      input.apply(settings);
-      mission.player.invertY = settings.invertY;
-      hud.minimapMode = settings.minimapMode;
+    applySettings(next) {
+      settings = next;
+      input.apply(next);
+      mission.player.invertY = next.invertY;
+      hud.minimapMode = next.minimapMode;
+    },
+    restart() {
+      const godMode = mission.godMode;
+      mission = newMission();
+      mission.godMode = godMode;
+      if (settings) mission.player.invertY = settings.invertY;
+      input.releaseAll();
+      hud.reset();
+      audio.attach(mission.guards);
+      debugAi?.setGuards(mission.guards.guards);
+      applyCameraRig(camera, mission.player, 1);
     },
     debugLines() {
       const { player, guards, perception } = mission;

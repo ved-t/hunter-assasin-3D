@@ -22,6 +22,12 @@ export class Hud {
     this.minimap.mode = mode;
   }
 
+  /** A restart: drop everything that belonged to the previous attempt. */
+  reset(): void {
+    this.minimap.reset();
+    this.arcs.reset();
+  }
+
   /** A player footstep (m of noise radius), for the minimap's noise ring. */
   noise(x: number, z: number, radius: number): void {
     this.minimap.noise(x, z, radius);

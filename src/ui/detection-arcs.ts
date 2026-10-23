@@ -102,6 +102,15 @@ export class DetectionArcs {
     this.svg.style.display = v ? '' : 'none';
   }
 
+  /** Forget every arc (a restart: the guards are new). */
+  reset(): void {
+    for (const arc of this.arcs) {
+      Object.assign(arc.state, createArcState());
+      arc.shown = false;
+      arc.track.style.display = arc.fill.style.display = 'none';
+    }
+  }
+
   /** `yaw` is the camera's; (x, z) the player's position. */
   update(dt: number, x: number, z: number, yaw: number, guards: readonly ArcGuard[]): void {
     this.resize();

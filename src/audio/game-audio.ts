@@ -51,15 +51,19 @@ export class GameAudio {
   private readonly field: DistanceField;
   private noise: AudioBuffer | null = null;
   private readonly pending: Pending[] = [];
-  private readonly chatter: number[];
+  private chatter: number[] = [];
 
   constructor(
     private readonly grid: Grid,
-    guards: GuardSystem,
     private readonly random: () => number,
   ) {
     this.field = createSoundField(grid);
     this.manager.onReady = (ctx) => (this.noise = createNoiseBuffer(ctx));
+  }
+
+  /** Listen to a new set of guards (each mission attempt has its own); drops anything queued. */
+  attach(guards: GuardSystem): void {
+    this.pending.length = 0;
     this.chatter = guards.guards.map(() => this.chatterDelay());
     guards.events.on('footstep', (e) =>
       this.queue({ kind: 'step', run: e.gait === 'run', x: e.guard.pos.x, z: e.guard.pos.z }),
