@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import medium from '../../public/levels/medium.json';
 import small from '../../public/levels/small.json';
+import { KNIFE } from '../config/tunables';
 import { Rng } from '../core/rng';
 import { InputState } from '../input/input-state';
 import { levelFromJson as loadJson } from '../level/loader';
@@ -11,6 +12,11 @@ const LENS: ViewLens = { vFov: (70 * Math.PI) / 180, aspect: 16 / 9 };
 
 function run(m: Mission, input: InputState, seconds: number): void {
   for (let t = 0; t < seconds; t += DT) m.step(DT, input, LENS);
+}
+
+function teleport(m: Mission, x: number, z: number): void {
+  m.player.pos.x = m.player.prevPos.x = x;
+  m.player.pos.z = m.player.prevPos.z = z;
 }
 
 describe('Mission', () => {
@@ -34,6 +40,45 @@ describe('Mission', () => {
     run(a, new InputState(), 3);
     run(b, new InputState(), 3);
     expect(a.guards.guards.map((g) => g.pos)).toEqual(b.guards.guards.map((g) => g.pos));
+  });
+
+  it('knifes a guard from behind, then locks movement briefly', () => {
+    const m = new Mission(loadJson(small), new Rng(1));
+    const g = m.guards.guards[0]!;
+    teleport(m, g.pos.x + Math.sin(g.yaw) * 1, g.pos.z + Math.cos(g.yaw) * 1);
+    const input = new InputState();
+    m.step(DT, input, LENS);
+    expect(m.knifeTarget).toBe(0);
+    const kills: number[] = [];
+    m.events.on('kill', (e) => kills.push(e.guard.id));
+    input.context = true;
+    input.moveY = 1;
+    m.step(DT, input, LENS);
+    expect(g.dead).toBe(true);
+    expect(kills).toEqual([0]);
+    expect(m.kills).toBe(1);
+    expect(m.knifeTarget).toBe(-1);
+    // Movement is locked for KNIFE.lockS, then comes back.
+    const locked = { ...m.player.pos };
+    for (let t = 0; t < KNIFE.lockS - 2 * DT; t += DT) {
+      input.moveY = 1;
+      m.step(DT, input, LENS);
+    }
+    expect(m.player.pos).toEqual(locked);
+    for (let t = 0; t < 0.3; t += DT) {
+      input.moveY = 1;
+      m.step(DT, input, LENS);
+    }
+    expect(m.player.pos).not.toEqual(locked);
+  });
+
+  it('does nothing on a knife press with no valid target', () => {
+    const m = new Mission(loadJson(small), new Rng(1));
+    const input = new InputState();
+    input.context = true;
+    m.step(DT, input, LENS);
+    expect(m.kills).toBe(0);
+    expect(m.lockTimer).toBe(0);
   });
 
   it('moves the player from input and tracks light exposure', () => {
