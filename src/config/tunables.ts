@@ -551,6 +551,21 @@ export const AUDIO = {
   /** Ear and source heights for the occlusion LOS test (m). */
   earHeight: 1.6,
   sourceHeight: 1.2,
+  /** Combat one-shots: loudness at the source... */
+  sfxGain: {
+    knife: 0.5,
+    windup: 0.55,
+    shot: 0.9,
+    whiz: 0.35,
+    hurt: 0.6,
+    throw: 0.25,
+    shatter: 0.6,
+    pickup: 0.35,
+    win: 0.4,
+    fail: 0.4,
+  },
+  /** ...and, for those that come from a place, how far they carry by path distance (m). */
+  sfxRangeM: { windup: 16, shot: 45, shatter: 22 },
 } as const;
 
 export const INPUT = {

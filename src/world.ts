@@ -107,7 +107,7 @@ export function createGameWorld(level: LoadedLevel, opts: GameWorldOptions): Gam
 
   /** Hook the views up to an attempt's events (a new Mission brings new emitters). */
   const bind = (m: Mission) => {
-    audio.attach(m.guards);
+    audio.attach(m.guards, m.events);
     m.events.on('hit', ({ guard }) => hud.hit(guard.pos.x, guard.pos.z));
   };
   bind(mission);

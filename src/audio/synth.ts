@@ -1,6 +1,7 @@
 // Procedural placeholder sounds, synthesised in WebAudio so Phase 3 ships with 0 bytes of audio assets:
-// footsteps (filtered noise transients) and radio barks (squelch, static and a formant buzz that reads
-// as a muffled voice). Phase 5 replaces these with recorded SFX.
+// footsteps (filtered noise transients), radio barks (squelch, static and a formant buzz that reads as a
+// muffled voice) and combat one-shots (knife, gun, glass, stingers). Phase 5 replaces these with
+// recorded SFX.
 
 import type { VoiceHandle } from './audio-manager';
 
@@ -183,4 +184,133 @@ export function radioBark(
   voice.start(speechStart);
   voice.stop(speechEnd);
   v.track(voice);
+}
+
+// --- Combat (Phase 4) ---------------------------------------------------------------------------
+
+export type SfxKind =
+  'knife' | 'windup' | 'shot' | 'whiz' | 'hurt' | 'throw' | 'shatter' | 'pickup' | 'win' | 'fail';
+
+/** How long each combat sound rings (s), for voice bookkeeping. */
+export const SFX_S: Record<SfxKind, number> = {
+  knife: 0.3,
+  windup: 0.16,
+  shot: 0.45,
+  whiz: 0.28,
+  hurt: 0.35,
+  throw: 0.22,
+  shatter: 0.5,
+  pickup: 0.5,
+  win: 1.1,
+  fail: 1.4,
+};
+
+/** A short enveloped tone into `dest`. */
+function tone(
+  v: VoiceHandle,
+  dest: AudioNode,
+  type: OscillatorType,
+  hz: number,
+  at: number,
+  duration: number,
+  level: number,
+  endHz = hz,
+): void {
+  const { ctx } = v;
+  const osc = ctx.createOscillator();
+  osc.type = type;
+  osc.frequency.setValueAtTime(hz, at);
+  if (endHz !== hz) osc.frequency.exponentialRampToValueAtTime(endHz, at + duration);
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0, at);
+  env.gain.linearRampToValueAtTime(level, at + 0.005);
+  env.gain.exponentialRampToValueAtTime(SILENT, at + duration);
+  osc.connect(env).connect(dest);
+  osc.start(at);
+  osc.stop(at + duration + 0.01);
+  v.track(osc);
+}
+
+/** A burst of filtered noise into `dest`, optionally sweeping the filter from `hz` to `endHz`. */
+function burst(
+  v: VoiceHandle,
+  dest: AudioNode,
+  noise: AudioBuffer,
+  random: () => number,
+  type: BiquadFilterType,
+  hz: number,
+  at: number,
+  duration: number,
+  level: number,
+  endHz = hz,
+  q = 0.8,
+): void {
+  const { ctx } = v;
+  const f = filter(ctx, type, hz, q);
+  if (endHz !== hz) f.frequency.exponentialRampToValueAtTime(endHz, at + duration);
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0, at);
+  env.gain.linearRampToValueAtTime(level, at + 0.004);
+  env.gain.exponentialRampToValueAtTime(SILENT, at + duration);
+  noiseSlice(v, noise, at, duration, random).connect(f).connect(env).connect(dest);
+}
+
+/** One combat sound into `dest` at loudness `level`. */
+export function sfx(
+  v: VoiceHandle,
+  dest: AudioNode,
+  noise: AudioBuffer,
+  kind: SfxKind,
+  level: number,
+  random: () => number,
+): void {
+  const t = v.ctx.currentTime;
+  switch (kind) {
+    case 'knife': // a fast swish, then a dull thud
+      burst(v, dest, noise, random, 'bandpass', 4000, t, 0.12, level * 0.6, 900, 1.5);
+      tone(v, dest, 'sine', 110, t + 0.1, 0.16, level, 50);
+      burst(v, dest, noise, random, 'lowpass', 500, t + 0.1, 0.12, level * 0.5);
+      break;
+    case 'windup': // the hammer cocking: two dry metallic ticks
+      for (const dt of [0, 0.07]) {
+        burst(v, dest, noise, random, 'highpass', 3500, t + dt, 0.035, level);
+        tone(v, dest, 'square', 1900, t + dt, 0.03, level * 0.25);
+      }
+      break;
+    case 'shot': // crack and boom
+      burst(v, dest, noise, random, 'lowpass', 6000, t, 0.4, level, 400);
+      tone(v, dest, 'sine', 140, t, 0.3, level * 0.9, 40);
+      break;
+    case 'whiz': // a near miss going past
+      burst(v, dest, noise, random, 'bandpass', 2500, t, SFX_S.whiz, level, 900, 4);
+      break;
+    case 'hurt': // a heavy hit
+      tone(v, dest, 'sine', 90, t, 0.3, level, 35);
+      burst(v, dest, noise, random, 'lowpass', 1200, t, 0.18, level * 0.8, 300);
+      break;
+    case 'throw': // the bottle leaving the hand
+      burst(v, dest, noise, random, 'bandpass', 700, t, SFX_S.throw, level, 2000, 1.2);
+      break;
+    case 'shatter': // a crash and glass tinkles
+      burst(v, dest, noise, random, 'highpass', 2500, t, 0.25, level);
+      for (let k = 0; k < 5; k++) {
+        const at = t + 0.03 + random() * 0.3;
+        tone(v, dest, 'sine', 3000 + random() * 3500, at, 0.08, level * 0.3);
+      }
+      break;
+    case 'pickup': // a bright two-note chime (player-relevant, so clean and cool)
+      tone(v, dest, 'sine', 880, t, 0.3, level);
+      tone(v, dest, 'sine', 1320, t + 0.1, 0.38, level * 0.8);
+      break;
+    case 'win': // rising major arpeggio
+      [523, 659, 784, 1047].forEach((hz, k) =>
+        tone(v, dest, 'triangle', hz, t + k * 0.12, 0.6, level * 0.7),
+      );
+      break;
+    case 'fail': // falling minor line, low
+      [311, 262, 196].forEach((hz, k) =>
+        tone(v, dest, 'sawtooth', hz, t + k * 0.28, 0.6, level * 0.35, hz * 0.97),
+      );
+      break;
+  }
 }

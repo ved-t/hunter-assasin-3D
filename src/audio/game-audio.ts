@@ -1,6 +1,7 @@
-// Game sound wiring: guard footsteps and radio barks (positional, muffled by walls, audible only within
-// path range so what you hear matches what the minimap may show), idle patrol chatter, and the
-// player's own footsteps. Sim events are queued and played on the next rendered frame.
+// Game sound wiring: guard footsteps, radio barks and gunfire (positional, muffled by walls, audible
+// only within path range so what you hear matches what the minimap may show), idle patrol chatter, the
+// player's own footsteps, and the player's combat sounds (knife, hits, bottle, pickup, stingers).
+// Positional sim events are queued and played on the next rendered frame.
 
 import type { GuardState } from '../ai/guard-fsm';
 import type { GuardSystem } from '../ai/guards';
@@ -10,6 +11,8 @@ import type { Vec2 } from '../level/collision';
 import type { Grid } from '../level/grid';
 import { hasLineOfSight } from '../nav/los';
 import { createSoundField, type DistanceField } from '../nav/sound';
+import type { Emitter } from '../core/events';
+import type { MissionEvents } from '../mission/mission';
 import type { PlayerGait } from '../player/controller';
 import { AudioManager } from './audio-manager';
 import { Spatial, type ListenerPose } from './spatial';
@@ -19,16 +22,28 @@ import {
   footstep,
   FOOTSTEP_S,
   radioBark,
+  sfx,
+  SFX_S,
   type BarkKind,
+  type SfxKind,
 } from './synth';
 
+/** Combat sounds that come from a place in the world. */
+type PositionalSfx = keyof typeof AUDIO.sfxRangeM;
+
 type Pending = { x: number; z: number } & (
-  { kind: 'step'; run: boolean } | { kind: 'bark'; bark: BarkKind }
+  | { kind: 'step'; run: boolean }
+  | { kind: 'bark'; bark: BarkKind }
+  | { kind: 'sfx'; sfx: PositionalSfx }
 );
 
 /** Most sim events kept between two rendered frames; extras are dropped. */
 const MAX_PENDING = 32;
-const MAX_RANGE = Math.max(AUDIO.barkRangeM, PLAYER_HEARING.runRangeM);
+const MAX_RANGE = Math.max(
+  AUDIO.barkRangeM,
+  PLAYER_HEARING.runRangeM,
+  ...Object.values(AUDIO.sfxRangeM),
+);
 
 /** The bark a state change calls for, if any. */
 export function barkFor(from: GuardState, to: GuardState): BarkKind | null {
@@ -61,9 +76,22 @@ export class GameAudio {
     this.manager.onReady = (ctx) => (this.noise = createNoiseBuffer(ctx));
   }
 
-  /** Listen to a new set of guards (each mission attempt has its own); drops anything queued. */
-  attach(guards: GuardSystem): void {
+  /** Listen to a new attempt's guards and mission events; drops anything still queued. */
+  attach(guards: GuardSystem, mission: Emitter<MissionEvents>): void {
     this.pending.length = 0;
+    const at = (kind: PositionalSfx, p: Vec2) =>
+      this.queue({ kind: 'sfx', sfx: kind, x: p.x, z: p.z });
+    guards.events.on('windup', (e) => at('windup', e.guard.pos));
+    guards.events.on('shot', (e) => {
+      at('shot', e.guard.pos);
+      if (!e.hit) this.flat('whiz');
+    });
+    mission.on('hit', () => this.flat('hurt'));
+    mission.on('kill', () => this.flat('knife'));
+    mission.on('throw', () => this.flat('throw'));
+    mission.on('shatter', (e) => at('shatter', e.at));
+    mission.on('pickup', () => this.flat('pickup'));
+    mission.on('end', (e) => this.flat(e.outcome === 'won' ? 'win' : 'fail'));
     this.chatter = guards.guards.map(() => this.chatterDelay());
     guards.events.on('footstep', (e) =>
       this.queue({ kind: 'step', run: e.gait === 'run', x: e.guard.pos.x, z: e.guard.pos.z }),
@@ -89,6 +117,14 @@ export class GameAudio {
     );
   }
 
+  /** A sound of the player's own (not positional), played at once. */
+  private flat(kind: SfxKind): void {
+    const { noise } = this;
+    if (!noise) return;
+    const level = AUDIO.sfxGain[kind];
+    this.manager.play(level, SFX_S[kind], (v) => sfx(v, v.out, noise, kind, level, this.random));
+  }
+
   /** Once per rendered frame: move the listener, run chatter timers, play queued sounds. */
   update(dt: number, listener: ListenerPose, guards: readonly ChatterGuard[]): void {
     const { ctx } = this.manager;
@@ -111,11 +147,13 @@ export class GameAudio {
     this.field.flood(listener.x, listener.z, MAX_RANGE);
     for (const p of this.pending) {
       const range =
-        p.kind === 'bark'
-          ? AUDIO.barkRangeM
-          : p.run
-            ? PLAYER_HEARING.runRangeM
-            : PLAYER_HEARING.walkRangeM;
+        p.kind === 'sfx'
+          ? AUDIO.sfxRangeM[p.sfx]
+          : p.kind === 'bark'
+            ? AUDIO.barkRangeM
+            : p.run
+              ? PLAYER_HEARING.runRangeM
+              : PLAYER_HEARING.walkRangeM;
       const d = this.field.at(p.x, p.z);
       if (!(d <= range)) continue;
       const falloff = 1 - d / range;
@@ -134,6 +172,12 @@ export class GameAudio {
         const level = AUDIO.guardStepGain[p.run ? 'run' : 'walk'] * falloff;
         this.manager.play(level, FOOTSTEP_S, (v) =>
           footstep(v, this.spatial.chain(v, p.x, y, p.z, cutoff), noise, level, p.run, this.random),
+        );
+      } else if (p.kind === 'sfx') {
+        const level = AUDIO.sfxGain[p.sfx] * falloff;
+        const kind = p.sfx;
+        this.manager.play(level, SFX_S[kind], (v) =>
+          sfx(v, this.spatial.chain(v, p.x, y, p.z, cutoff), noise, kind, level, this.random),
         );
       } else {
         const level = AUDIO.barkGain * falloff;
