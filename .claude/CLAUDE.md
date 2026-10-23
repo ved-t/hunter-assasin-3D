@@ -46,6 +46,7 @@ src/
   ai/                  perception.ts, awareness.ts, guard-fsm.ts, search.ts, guard.ts
   lighting/            flashlight visuals (beam, pool), real-light pool manager, light sampling
   perception/          player-side: which guards the player has perceived → minimap memory
+  mission/             one attempt as pure sim (player, guards, objectives, stats, stars); restart = new Mission
   render/              renderer setup, materials, post (high tier only), quality scaling
   ui/                  HUD (DOM overlay, not WebGL): minimap canvas, meters, prompts, menus
   audio/               WebAudio manager, positional SFX, footsteps

@@ -22,6 +22,11 @@ export async function loadLevel(id: string): Promise<LoadedLevel> {
   } catch {
     throw new LevelLoadError(`Level "${id}" is not valid JSON.`);
   }
+  return levelFromJson(json, id);
+}
+
+/** Validates parsed level JSON and builds its Grid. */
+export function levelFromJson(json: unknown, id = 'level'): LoadedLevel {
   const result = validateLevel(json);
   if (!result.ok) {
     throw new LevelLoadError(`Level "${id}" is invalid:\n${result.errors.join('\n')}`);
