@@ -15,6 +15,7 @@ import { lightExposure, type BeamLight } from '../lighting/light-sampling';
 import { PlayerPerception } from '../perception/player-perception';
 import { createPlayerView } from '../perception/view';
 import { PlayerController } from '../player/controller';
+import { Health } from '../player/health';
 import { findKillTarget } from '../player/knife';
 
 /** The camera's lens, which decides what the player can see. */
@@ -27,11 +28,14 @@ export interface ViewLens {
 export interface MissionEvents {
   /** The player knifed a guard. */
   kill: { guard: Guard };
+  /** A hit point came back. */
+  heal: { hp: number };
 }
 
 export class Mission {
   readonly events = new Emitter<MissionEvents>();
   readonly player: PlayerController;
+  readonly health = new Health();
   readonly guards: GuardSystem;
   readonly perception: PlayerPerception;
   /** Guard i's flashlight as the sim sees it (lens, facing, brightness). */
@@ -75,6 +79,7 @@ export class Mission {
     this.updateBeams();
     this.exposure = lightExposure(grid, player.pos.x, player.pos.z, this.lamps, this.beams);
     guards.step(dt, player, this.exposure);
+    if (this.health.update(dt, this.seen)) this.events.emit('heal', { hp: this.health.hp });
 
     // What the player could have noticed, from where the guards are now.
     this.updateBeams();
@@ -87,6 +92,11 @@ export class Mission {
     v.vFov = lens.vFov;
     v.aspect = lens.aspect;
     this.perception.step(dt, v, guards.guards, this.beams);
+  }
+
+  /** Some living guard has the player in sight this step. */
+  get seen(): boolean {
+    return this.guards.guards.some((g) => g.seesPlayer && !g.dead);
   }
 
   private knife(i: number): void {

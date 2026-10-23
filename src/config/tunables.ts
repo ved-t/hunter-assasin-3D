@@ -249,6 +249,13 @@ export const ALERT = {
   propagateM: 12,
 } as const;
 
+/** Player health. */
+export const HEALTH = {
+  maxHp: 3,
+  /** One HP comes back after this long with no hit and no guard seeing the player (s). */
+  regenDelayS: 8,
+} as const;
+
 /** Knife takedown. */
 export const KNIFE = {
   /** Reach, guard centre to player centre (m). */
