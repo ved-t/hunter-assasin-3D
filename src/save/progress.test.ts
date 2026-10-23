@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CampaignLevel } from '../config/campaign';
+import { CAMPAIGN as FULL_CAMPAIGN, type CampaignLevel } from '../config/campaign';
 import { HEALTH, PERKS, PROGRESSION } from '../config/tunables';
 import { DEFAULT_GLOVE, DEFAULT_KNIFE, UNLOCKS } from '../config/unlocks';
 import { NO_MODIFIERS } from '../mission/modifiers';
@@ -118,8 +118,8 @@ describe('campaign flow', () => {
   });
 
   it('a full 3-star campaign earns enough to buy the whole catalogue', () => {
-    const campaignLevels = 12; // the full campaign from Phase 5b on
-    const earned = campaignLevels * (3 * PROGRESSION.gemsPerNewStar + PROGRESSION.gemsFirstClear);
+    const earned =
+      FULL_CAMPAIGN.length * (3 * PROGRESSION.gemsPerNewStar + PROGRESSION.gemsFirstClear);
     expect(UNLOCKS.reduce((sum, u) => sum + u.cost, 0)).toBeLessThanOrEqual(earned);
   });
 });

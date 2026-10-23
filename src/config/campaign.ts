@@ -16,10 +16,19 @@ export const THEME_NAMES: Record<Theme, string> = {
   mansion: 'Mansion',
 };
 
-// Phase 5a placeholder: the two greybox levels until the 12 campaign levels land in 5b.
 export const CAMPAIGN: readonly CampaignLevel[] = [
-  { id: 'small', name: 'Greybox — Small', theme: 'warehouse' },
-  { id: 'medium', name: 'Greybox — Medium', theme: 'warehouse' },
+  { id: 'warehouse-1', name: 'Night Shift', theme: 'warehouse' },
+  { id: 'warehouse-2', name: 'Footfalls', theme: 'warehouse' },
+  { id: 'warehouse-3', name: 'Loose Ends', theme: 'warehouse' },
+  { id: 'warehouse-4', name: 'The Ledger', theme: 'warehouse' },
+  { id: 'office-1', name: 'After Hours', theme: 'office' },
+  { id: 'office-2', name: 'Corner Offices', theme: 'office' },
+  { id: 'office-3', name: 'Cross Traffic', theme: 'office' },
+  { id: 'office-4', name: 'Server Room', theme: 'office' },
+  { id: 'mansion-1', name: 'The Long Gallery', theme: 'mansion' },
+  { id: 'mansion-2', name: 'Ballroom', theme: 'mansion' },
+  { id: 'mansion-3', name: 'The Study', theme: 'mansion' },
+  { id: 'mansion-4', name: 'Clean Sweep', theme: 'mansion' },
 ];
 
 /** Position in the campaign, or −1 for a development level. */
