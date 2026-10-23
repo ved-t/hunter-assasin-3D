@@ -1,0 +1,63 @@
+{
+  "$schema": "../../src/level/level.schema.json",
+  "id": "warehouse-2",
+  "name": "Footfalls",
+  "theme": "warehouse",
+  "tip": "Running is loud and guards hear it. You hear them too: their footsteps show on the minimap.",
+  "version": 1,
+  "tileSize": 2,
+  "width": 22,
+  "height": 14,
+  "tiles": [
+    "######################",
+    "#........#...........#",
+    "#..c.....#...c...c...#",
+    "#........D...........#",
+    "#........#...........#",
+    "####D#########D#######",
+    "#....................#",
+    "#.##########.#######.#",
+    "#.#....c...#.#.....#.#",
+    "#.#........D.D..c..#.#",
+    "#.#..c.....#.#.....#.#",
+    "#.##########.#######.#",
+    "#....................#",
+    "######################"
+  ],
+  "playerSpawn": { "x": 1.5, "y": 12.5, "yawDeg": 90 },
+  "guards": [
+    {
+      "spawn": { "x": 20.5, "y": 12.5 },
+      "yawDeg": -90,
+      "waypoints": [
+        { "x": 12.5, "y": 12.5 },
+        { "x": 12.5, "y": 6.5 },
+        { "x": 20.5, "y": 6.5, "waitS": 2 },
+        { "x": 20.5, "y": 12.5, "waitS": 2 }
+      ]
+    },
+    {
+      "spawn": { "x": 4.5, "y": 9.5 },
+      "yawDeg": 90,
+      "waypoints": [
+        { "x": 4.5, "y": 9.5, "waitS": 3 },
+        { "x": 9.5, "y": 8.5, "waitS": 3 }
+      ]
+    },
+    {
+      "spawn": { "x": 5.5, "y": 2.5 },
+      "yawDeg": 90,
+      "waypoints": [
+        { "x": 5.5, "y": 2.5, "waitS": 3 },
+        { "x": 16.5, "y": 3.5, "waitS": 3 }
+      ]
+    }
+  ],
+  "lamps": [
+    { "x": 6, "y": 9.5, "color": "#ffd9a0", "intensity": 0.5 },
+    { "x": 16.5, "y": 2.5 }
+  ],
+  "objective": { "type": "eliminateAll" },
+  "bottles": 0,
+  "parTimeS": 135
+}

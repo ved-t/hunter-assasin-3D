@@ -1,0 +1,53 @@
+{
+  "$schema": "../../src/level/level.schema.json",
+  "id": "warehouse-1",
+  "name": "Night Shift",
+  "theme": "warehouse",
+  "tip": "You can't see guards through walls, but you can see their light. Follow the beams.",
+  "version": 1,
+  "tileSize": 2,
+  "width": 18,
+  "height": 12,
+  "tiles": [
+    "##################",
+    "#.....#..........#",
+    "#.....#...c......#",
+    "#.....D..........#",
+    "#.....#......cc..#",
+    "#.....#..........#",
+    "###D######D#######",
+    "#................#",
+    "#..cc......c.....#",
+    "#................#",
+    "#.....cc.........#",
+    "##################"
+  ],
+  "playerSpawn": { "x": 1.5, "y": 1.5, "yawDeg": 135 },
+  "guards": [
+    {
+      "spawn": { "x": 12.5, "y": 1.5 },
+      "yawDeg": 90,
+      "waypoints": [
+        { "x": 15.5, "y": 1.5, "waitS": 2.5 },
+        { "x": 15.5, "y": 5.5 },
+        { "x": 8.5, "y": 5.5, "waitS": 2.5 },
+        { "x": 8.5, "y": 1.5 }
+      ]
+    },
+    {
+      "spawn": { "x": 15.5, "y": 9.5 },
+      "yawDeg": -90,
+      "waypoints": [
+        { "x": 15.5, "y": 9.5, "waitS": 3 },
+        { "x": 6.5, "y": 9.5, "waitS": 3 }
+      ]
+    }
+  ],
+  "lamps": [
+    { "x": 12, "y": 3 },
+    { "x": 9, "y": 8.5, "color": "#ffd9a0", "intensity": 0.6 }
+  ],
+  "objective": { "type": "eliminateAll" },
+  "bottles": 0,
+  "parTimeS": 75
+}
