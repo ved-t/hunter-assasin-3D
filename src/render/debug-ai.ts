@@ -1,11 +1,12 @@
-// ?debug=1 AI view (dynamically imported): vision cones (70° / 14 m plus the near zone), current
-// paths, LKP and search-cell markers, per-guard state/awareness labels, the point each guard was
-// last perceived through (cyan), and a floor heatmap of player light exposure, toggled with N.
+// ?debug=1 AI view (dynamically imported): vision cones (70° / 14 m plus the near zone), the rear arc a
+// knife takedown works from (cyan), current paths, LKP and search-cell markers, per-guard
+// state/awareness labels, the point each guard was last perceived through (cyan), and a floor heatmap
+// of player light exposure, toggled with N.
 
 import * as THREE from 'three';
 import type { Guard } from '../ai/guard';
 import type { GuardState } from '../ai/guard-fsm';
-import { LIGHT_EXPOSURE, SEARCH, VISION } from '../config/tunables';
+import { KNIFE, LIGHT_EXPOSURE, SEARCH, VISION } from '../config/tunables';
 import type { Vec2 } from '../level/collision';
 import type { Grid } from '../level/grid';
 import { Tile } from '../level/types';
@@ -16,7 +17,12 @@ const ARC_SEGMENTS = 10;
 const NEAR_ARC_SEGMENTS = 4;
 /** Path segments drawn per guard. */
 const MAX_PATH = 16;
-const SEGMENTS_PER_GUARD = 2 + ARC_SEGMENTS + 2 + NEAR_ARC_SEGMENTS + MAX_PATH;
+const KNIFE_ARC_SEGMENTS = 8;
+const SEGMENTS_PER_GUARD =
+  2 + ARC_SEGMENTS + 2 + NEAR_ARC_SEGMENTS + 2 + KNIFE_ARC_SEGMENTS + MAX_PATH;
+/** Takedown arc and dead guards' labels. */
+const KNIFE_COLOR = 0xbff4ff;
+const DEAD_COLOR = 0x7c838c;
 const LINE_Y = 0.06;
 const LABEL_Y = 2.7;
 const HEATMAP_REFRESH_S = 0.25;
@@ -47,6 +53,7 @@ export class DebugAi {
   private readonly labelRoot: HTMLDivElement;
   private heatTimer = Infinity;
   private readonly c = new THREE.Color();
+  private readonly knifeColor = new THREE.Color(KNIFE_COLOR);
   private readonly m = new THREE.Matrix4();
   private readonly v = new THREE.Vector3();
   private readonly abort = new AbortController();
@@ -196,7 +203,9 @@ export class DebugAi {
     };
     const half = (VISION.fovDeg * Math.PI) / 360;
     const nearHalf = (VISION.nearFovDeg * Math.PI) / 360;
+    const knifeHalf = (KNIFE.rearArcDeg * Math.PI) / 360;
     for (const g of this.guards) {
+      if (g.dead) continue;
       const x = g.prevPos.x + (g.pos.x - g.prevPos.x) * alpha;
       const z = g.prevPos.z + (g.pos.z - g.prevPos.z) * alpha;
       const color = this.c.set(STATE_COLOR[g.state]);
@@ -204,19 +213,23 @@ export class DebugAi {
         const a = g.yaw + yawOff;
         return [x - Math.sin(a) * r, z - Math.cos(a) * r];
       };
-      const fan = (h: number, r: number, segments: number) => {
-        const [lx, lz] = at(h, r);
-        const [rx, rz] = at(-h, r);
-        seg(x, z, lx, lz, color);
-        seg(x, z, rx, rz, color);
+      /** A wedge of half-angle h and radius r, centred `centre` rad off his facing. */
+      const fan = (h: number, r: number, segments: number, c = color, centre = 0) => {
+        const [lx, lz] = at(centre + h, r);
+        const [rx, rz] = at(centre - h, r);
+        seg(x, z, lx, lz, c);
+        seg(x, z, rx, rz, c);
         for (let i = 0; i < segments; i++) {
-          const [ax, az] = at(h - (2 * h * i) / segments, r);
-          const [bx, bz] = at(h - (2 * h * (i + 1)) / segments, r);
-          seg(ax, az, bx, bz, color);
+          const [ax, az] = at(centre + h - (2 * h * i) / segments, r);
+          const [bx, bz] = at(centre + h - (2 * h * (i + 1)) / segments, r);
+          seg(ax, az, bx, bz, c);
         }
       };
       fan(half, VISION.rangeM, ARC_SEGMENTS);
       fan(nearHalf, VISION.nearRangeM, NEAR_ARC_SEGMENTS);
+      if (g.state !== 'alert') {
+        fan(knifeHalf, KNIFE.rangeM, KNIFE_ARC_SEGMENTS, this.knifeColor, Math.PI);
+      }
       // Path from the guard through its remaining waypoints.
       let px = x;
       let pz = z;
@@ -246,7 +259,7 @@ export class DebugAi {
     this.percepts.instanceMatrix.needsUpdate = true;
     for (const g of this.guards) {
       const lkp = g.awareness.lkp;
-      if (lkp && g.state !== 'patrol') {
+      if (lkp && g.state !== 'patrol' && !g.dead) {
         this.lkps.setMatrixAt(nl++, this.m.makeTranslation(lkp.x, MARKER_SIZE * 2, lkp.z));
       }
       for (const p of g.searchCells) {
@@ -275,9 +288,12 @@ export class DebugAi {
       el.style.display = visible ? '' : 'none';
       if (!visible) return;
       el.style.transform = `translate(${((this.v.x + 1) / 2) * w}px, ${((1 - this.v.y) / 2) * h}px) translate(-50%, -100%)`;
-      el.style.color = `#${STATE_COLOR[g.state].toString(16).padStart(6, '0')}`;
+      const hex = g.dead ? DEAD_COLOR : STATE_COLOR[g.state];
+      el.style.color = `#${hex.toString(16).padStart(6, '0')}`;
       const percept = percepts[i]?.kind;
-      el.textContent = `g${g.id} ${g.state} ${g.awareness.value.toFixed(0)}${g.seesPlayer ? ' 👁' : ''}${percept ? ` [${percept}]` : ''}`;
+      el.textContent = g.dead
+        ? `g${g.id} dead`
+        : `g${g.id} ${g.state} ${g.awareness.value.toFixed(0)}${g.seesPlayer ? ' 👁' : ''}${percept ? ` [${percept}]` : ''}`;
     });
   }
 
