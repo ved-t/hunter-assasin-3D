@@ -35,6 +35,7 @@ import {
 } from './save/progress';
 import { loadSettings, saveSettings, type Settings } from './save/settings';
 import type { DebugOverlay } from './ui/debug-overlay';
+import { LevelIntro } from './ui/level-intro';
 import { LevelSelect } from './ui/level-select';
 import { LoadingScreen } from './ui/loading-screen';
 import { Loadout } from './ui/loadout';
@@ -147,6 +148,7 @@ async function boot(): Promise<void> {
     update: (dt) => world.update(dt),
     render: (alpha, frameDt) => {
       world.render(alpha, frameDt);
+      if (!loop.simPaused) intro.update(frameDt);
       if (game && touchControls) {
         touchControls.setCrouched(game.player.crouched);
         touchControls.setContext(game.mission.knifeTarget >= 0);
@@ -345,6 +347,7 @@ async function boot(): Promise<void> {
   });
   const loadout = new Loadout(uiRoot, { onChange: setProgress, onBack: () => showTitle() });
   const loading = new LoadingScreen(uiRoot);
+  const intro = new LevelIntro(uiRoot);
 
   /** Leave the level (if any) for the main menu; the level stays on stage behind it, frozen. */
   function showTitle(): void {
@@ -355,6 +358,7 @@ async function boot(): Promise<void> {
     panel.close();
     levelSelect.hide();
     loadout.hide();
+    intro.hide();
     game.setHudVisible(false);
     showTouchControls();
     setPaused('title', true);
@@ -368,10 +372,11 @@ async function boot(): Promise<void> {
     });
   }
 
-  /** Begin play on the level now on stage. */
-  function enterLevel(): void {
+  /** Begin play on the level now on stage; `fresh` (not a retry) shows its intro card. */
+  function enterLevel(fresh: boolean): void {
     if (!game) return;
     inLevel = true;
+    if (fresh) intro.show(game.level.data.name, game.level.data.tip);
     menu.hide();
     levelSelect.hide();
     loadout.hide();
@@ -389,7 +394,7 @@ async function boot(): Promise<void> {
     const mods = modifiersFor(progress);
     if (id === game.level.data.id) {
       game.restart(mods);
-      enterLevel();
+      enterLevel(true);
       return;
     }
     // Out of the old level first, so its finished mission can't bring the result screen back.
@@ -414,7 +419,7 @@ async function boot(): Promise<void> {
     }
     loading.hide();
     setPaused('loading', false);
-    enterLevel();
+    enterLevel(true);
   }
 
   window.addEventListener('keydown', (e) => {
@@ -453,6 +458,7 @@ async function boot(): Promise<void> {
       reward = won.reward;
     }
     kbm?.unlock();
+    intro.hide();
     game.setHudVisible(false);
     if (touchControls) touchControls.visible = false;
     result.show(r, level.guards.length, level.parTimeS, nextLevelId(level.id) !== null, reward);
@@ -462,7 +468,7 @@ async function boot(): Promise<void> {
   function retry(): void {
     if (!game) return;
     game.restart(modifiersFor(progress));
-    enterLevel();
+    enterLevel(false);
   }
 
   setPaused(
@@ -500,7 +506,7 @@ async function boot(): Promise<void> {
 
   platform.loadingStop();
   loop.start();
-  if (flags.level) enterLevel();
+  if (flags.level) enterLevel(true);
   else showTitle();
 }
 

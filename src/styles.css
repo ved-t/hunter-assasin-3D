@@ -491,6 +491,43 @@ body {
   display: none;
 }
 
+/* Level intro card: name and tip, under the objective line; fades out on its own. */
+.level-intro {
+  position: absolute;
+  top: calc(100px + var(--ui-top-safe));
+  left: 50%;
+  max-width: min(520px, 80vw);
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  border-left: 2px solid var(--accent-danger);
+  background: rgba(0, 0, 0, 0.5);
+  text-align: center;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.level-intro[hidden] {
+  display: none;
+}
+
+.level-intro .name {
+  color: var(--accent-player);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.level-intro .tip {
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.level-intro .tip[hidden] {
+  display: none;
+}
+
 /* Win / fail screen. */
 .result-overlay .panel {
   display: flex;

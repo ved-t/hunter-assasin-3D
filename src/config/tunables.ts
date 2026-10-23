@@ -551,6 +551,9 @@ export const HUD = {
   hitMarkerSpanDeg: 40,
   hitMarkerWidthPx: 6,
   hitMarkerS: 1.2,
+  /** Level intro card (name + tip): on screen this long once play starts (s), the last part fading. */
+  introCardS: 6,
+  introFadeS: 0.8,
 } as const;
 
 /** Procedural placeholder audio (Phase 5 swaps in recorded SFX). Gains are linear, 0..1. */
