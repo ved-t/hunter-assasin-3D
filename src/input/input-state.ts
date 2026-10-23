@@ -26,6 +26,7 @@ export class InputState {
   /** Edge flags, set by devices and cleared by consumeEdges() after a sim step reads them. */
   crouchToggle = false;
   context = false;
+  throw = false;
   /** Accumulated look in radians: +yaw = turn right, +pitch = look down (screen convention). */
   private lookYaw = 0;
   private lookPitch = 0;
@@ -47,6 +48,7 @@ export class InputState {
   consumeEdges(): void {
     this.crouchToggle = false;
     this.context = false;
+    this.throw = false;
   }
 
   /** Drop all held input (pause, focus loss). Edges and look are discarded too. */

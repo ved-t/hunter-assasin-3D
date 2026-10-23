@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AWARENESS, BODIES, GUARD, SEARCH, WEAPON } from '../config/tunables';
+import { AWARENESS, BODIES, BOTTLE, GUARD, SEARCH, WEAPON } from '../config/tunables';
 import { Rng } from '../core/rng';
 import { Grid } from '../level/grid';
 import type { GuardDef } from '../level/types';
@@ -292,6 +292,31 @@ describe('bodies and stray light', () => {
     expect(foundAt).toBeGreaterThan(0);
     run(sys, away, 0.1);
     expect(g.state).toBe('alert');
+  });
+});
+
+describe('distraction', () => {
+  it('turns guards within path range Suspicious toward the impact, not those beyond', () => {
+    // Guard 0 near the door in room A, guard 1 deep in room B (more than 10 m of path away).
+    const sys = new GuardSystem(grid, [posted(5, 3, 0), posted(12, 1, 180)], new Rng(1));
+    const drawn = sys.distract(c(3), c(3), BOTTLE.noiseRadiusM);
+    expect(drawn.map((g) => g.id)).toEqual([0]);
+    run(sys, player(-50, -50), 0.1);
+    const [g0, g1] = sys.guards;
+    expect(g0!.state).toBe('suspicious');
+    expect(g0!.awareness.lkp).toMatchObject({ x: c(3), z: c(3) });
+    expect(g1!.state).toBe('patrol');
+    // He walks over to look.
+    run(sys, player(-50, -50), 6);
+    expect(Math.hypot(g0!.pos.x - c(3), g0!.pos.z - c(3))).toBeLessThan(1);
+  });
+
+  it('is ignored by the dead and by guards watching the player', () => {
+    const sys = new GuardSystem(grid, [posted(1, 2, 90), posted(4, 1, 180)], new Rng(1));
+    sys.kill(sys.guards[1]!);
+    sys.step(DT, player(c(4), c(2)), 1); // guard 0 sees the player
+    expect(sys.guards[0]!.seesPlayer).toBe(true);
+    expect(sys.distract(c(2), c(3), BOTTLE.noiseRadiusM)).toEqual([]);
   });
 });
 

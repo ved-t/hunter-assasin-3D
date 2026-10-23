@@ -288,6 +288,24 @@ export const KNIFE = {
   noiseRadiusM: 3,
 } as const;
 
+/** Thrown distraction bottle. */
+export const BOTTLE = {
+  /** Bottles per level when the level JSON doesn't say. */
+  defaultCount: 3,
+  /** Launch speed (m/s) and extra upward angle over the camera pitch (deg). */
+  speedMps: 11,
+  loftDeg: 10,
+  gravity: 9.8,
+  /** Released this far below the eye and ahead of the player (m). */
+  releaseDropM: 0.25,
+  releaseForwardM: 0.35,
+  /** Longest collision sub-step (m) and the longest flight before it counts as landed (s). */
+  substepM: 0.25,
+  maxFlightS: 4,
+  /** Guards within this path distance (m) of the impact become Suspicious toward it. */
+  noiseRadiusM: 10,
+} as const;
+
 /** Dead guards: the body, and the flashlight he drops, which stays on. */
 export const BODIES = {
   /** The flashlight lands this far ahead of the body (m), lens this high off the floor (m). */

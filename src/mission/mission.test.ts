@@ -97,6 +97,30 @@ describe('Mission', () => {
     }
   });
 
+  it('throws one bottle at a time from a limited supply', () => {
+    const m = new Mission(loadJson(small), new Rng(1));
+    expect(m.bottles).toBe(small.bottles);
+    const shatters: number[] = [];
+    m.events.on('shatter', (e) => shatters.push(e.at.y));
+    const input = new InputState();
+    input.throw = true;
+    m.step(DT, input, LENS);
+    expect(m.bottles).toBe(small.bottles - 1);
+    expect(m.bottle.flying).toBe(true);
+    input.throw = true; // still in flight: ignored
+    m.step(DT, input, LENS);
+    expect(m.bottles).toBe(small.bottles - 1);
+    run(m, input, 3);
+    expect(shatters).toHaveLength(1);
+    for (let i = 0; i < 5; i++) {
+      input.throw = true;
+      m.step(DT, input, LENS);
+      run(m, input, 3);
+    }
+    expect(m.bottles).toBe(0);
+    expect(shatters).toHaveLength(small.bottles);
+  });
+
   it('moves the player from input and tracks light exposure', () => {
     const m = new Mission(loadJson(small), new Rng(1));
     const input = new InputState();

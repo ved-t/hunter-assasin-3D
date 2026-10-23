@@ -106,6 +106,22 @@ export class GuardSystem {
     if (radius > 0) this.noises.push({ x, z, radius });
   }
 
+  /**
+   * A distraction (a bottle shattering) at (x, z): every living guard within `radius` path distance
+   * becomes at least Suspicious, with his LKP moved there. Guards with the player in sight ignore it.
+   */
+  distract(x: number, z: number, radius: number): Guard[] {
+    this.sound.flood(x, z, radius);
+    const drawn: Guard[] = [];
+    for (const g of this.guards) {
+      if (g.dead || g.seesPlayer) continue;
+      if (!(this.sound.at(g.pos.x, g.pos.z) <= radius)) continue;
+      g.awareness.raiseTo(AWARENESS.suspicious, x, z);
+      drawn.push(g);
+    }
+    return drawn;
+  }
+
   /** Kill a guard. Returns false if he was already dead. */
   kill(g: Guard): boolean {
     if (g.dead) return false;

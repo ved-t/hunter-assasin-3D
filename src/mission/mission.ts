@@ -4,7 +4,7 @@
 
 import type { Guard } from '../ai/guard';
 import { GuardSystem } from '../ai/guards';
-import { GUARD, KNIFE, LIGHT_EXPOSURE, WEAPON } from '../config/tunables';
+import { BOTTLE, GUARD, KNIFE, LIGHT_EXPOSURE, WEAPON } from '../config/tunables';
 import { Emitter } from '../core/events';
 import type { Rng } from '../core/rng';
 import type { InputState } from '../input/input-state';
@@ -17,6 +17,7 @@ import { createPlayerView } from '../perception/view';
 import { PlayerController } from '../player/controller';
 import { Health } from '../player/health';
 import { findKillTarget } from '../player/knife';
+import { Bottle, type Point3 } from '../player/throw';
 
 /** The camera's lens, which decides what the player can see. */
 export interface ViewLens {
@@ -32,6 +33,10 @@ export interface MissionEvents {
   heal: { hp: number };
   /** A guard's shot struck the player. */
   hit: { guard: Guard; hp: number };
+  /** A bottle left the player's hand. */
+  throw: { left: number };
+  /** It shattered at `at`; `drawn` guards turn toward it. */
+  shatter: { at: Point3; drawn: Guard[] };
 }
 
 export class Mission {
@@ -54,6 +59,9 @@ export class Mission {
   lockTimer = 0;
   /** ?debug=1 playtesting aid: hits still land (and show) but cost no HP. */
   godMode = false;
+  /** Distraction bottles left, and the one in flight (only one at a time). */
+  bottles: number;
+  readonly bottle = new Bottle();
   private readonly view = createPlayerView();
 
   constructor(
@@ -67,6 +75,7 @@ export class Mission {
     this.lamps = data.lamps.map((l) => grid.gridToWorld(l.x, l.y));
     this.beams = this.guards.guards.map(() => ({ x: 0, z: 0, height: 0, yaw: 0, intensity: 0 }));
     this.perception = new PlayerPerception(grid, this.guards.guards.length);
+    this.bottles = data.bottles ?? BOTTLE.defaultCount;
     this.guards.events.on('shot', ({ guard, hit }) => {
       if (!hit) return;
       if (!this.godMode) this.health.damage(WEAPON.damage);
@@ -81,8 +90,10 @@ export class Mission {
     this.knifeTarget = findKillTarget(grid, player.pos.x, player.pos.z, guards.guards);
     if (this.lockTimer > 0) this.lockTimer -= dt;
     else if (input.context && this.knifeTarget >= 0) this.knife(this.knifeTarget);
+    else if (input.throw) this.throwBottle();
     if (this.lockTimer > 0) input.moveX = input.moveY = 0;
     player.step(dt, input, grid);
+    if (this.bottle.step(dt, grid)) this.shatter();
     if (player.footstep > 0) guards.noise(player.pos.x, player.pos.z, player.footstep);
     this.time += dt;
     this.updateBeams();
@@ -116,6 +127,26 @@ export class Mission {
     this.knifeTarget = -1;
     this.guards.noise(g.pos.x, g.pos.z, KNIFE.noiseRadiusM);
     this.events.emit('kill', { guard: g });
+  }
+
+  private throwBottle(): void {
+    if (this.bottles <= 0 || this.bottle.flying) return;
+    const { player } = this;
+    this.bottles--;
+    this.bottle.launch(
+      player.pos.x - Math.sin(player.yaw) * BOTTLE.releaseForwardM,
+      player.eyeHeight - BOTTLE.releaseDropM,
+      player.pos.z - Math.cos(player.yaw) * BOTTLE.releaseForwardM,
+      player.yaw,
+      player.pitch,
+    );
+    this.events.emit('throw', { left: this.bottles });
+  }
+
+  private shatter(): void {
+    const at = this.bottle.pos;
+    const drawn = this.guards.distract(at.x, at.z, BOTTLE.noiseRadiusM);
+    this.events.emit('shatter', { at, drawn });
   }
 
   private updateBeams(): void {
