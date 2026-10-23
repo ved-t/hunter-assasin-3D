@@ -10,6 +10,9 @@ export class Health {
   /** Took at least one hit this mission. */
   damaged = false;
 
+  /** `regenDelayS`: seconds of calm per hit point back (the faster-regen perk shortens it). */
+  constructor(private readonly regenDelayS: number = HEALTH.regenDelayS) {}
+
   get dead(): boolean {
     return this.hp <= 0;
   }
@@ -34,7 +37,7 @@ export class Health {
       return false;
     }
     this.calm += dt;
-    if (this.full || this.calm < HEALTH.regenDelayS) return false;
+    if (this.full || this.calm < this.regenDelayS) return false;
     this.hp++;
     this.calm = 0;
     return true;

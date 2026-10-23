@@ -194,4 +194,27 @@ describe('Mission', () => {
     expect(m.player.pos.z).toBeLessThan(z0); // spawn faces north (−Z)
     expect(m.exposure).toBeGreaterThan(0);
   });
+
+  it('applies perk modifiers: quieter steps, faster regen, extra bottles', () => {
+    const mods = { noiseScale: 0.5, regenDelayS: 2, bonusBottles: 2 };
+    const plain = new Mission(loadJson(small), new Rng(1));
+    const perk = new Mission(loadJson(small), new Rng(1), mods);
+    expect(perk.bottles).toBe(plain.bottles + 2);
+    for (const m of [plain, perk]) {
+      const input = new InputState();
+      input.gait = 'run';
+      for (let t = 0; t < 0.3; t += DT) {
+        input.moveY = 1;
+        m.step(DT, input, LENS);
+      }
+    }
+    expect(perk.player.noiseRadius).toBeCloseTo(plain.player.noiseRadius * 0.5);
+    perk.health.damage();
+    let healedAt = -1;
+    for (let t = 0; t < HEALTH.regenDelayS && healedAt < 0; t += DT) {
+      if (perk.health.update(DT, false)) healedAt = t;
+    }
+    expect(healedAt).toBeGreaterThan(1.9);
+    expect(healedAt).toBeLessThan(2.1);
+  });
 });

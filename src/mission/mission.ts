@@ -18,6 +18,7 @@ import { PlayerController } from '../player/controller';
 import { Health } from '../player/health';
 import { findKillTarget } from '../player/knife';
 import { Bottle, type Point3 } from '../player/throw';
+import { NO_MODIFIERS, type MissionModifiers } from './modifiers';
 import { checkOutcome, objectiveLabel, onExitTile, type Outcome } from './objectives';
 import { starCriteria, starRating, type RunStats, type StarCriteria } from './stars';
 
@@ -56,7 +57,7 @@ export interface MissionResult {
 export class Mission {
   readonly events = new Emitter<MissionEvents>();
   readonly player: PlayerController;
-  readonly health = new Health();
+  readonly health: Health;
   readonly guards: GuardSystem;
   readonly perception: PlayerPerception;
   /** Guard i's flashlight as the sim sees it (lens, facing, brightness). */
@@ -87,18 +88,22 @@ export class Mission {
   endedFor = 0;
   private readonly view = createPlayerView();
 
+  /** `mods`: what the equipped perk changes for this attempt. */
   constructor(
     readonly level: LoadedLevel,
     rng: Rng,
+    readonly mods: Readonly<MissionModifiers> = NO_MODIFIERS,
   ) {
     const { grid, data } = level;
     const spawn = grid.gridToWorld(data.playerSpawn.x, data.playerSpawn.y);
     this.player = new PlayerController({ ...spawn, yawDeg: data.playerSpawn.yawDeg });
+    this.player.noiseScale = mods.noiseScale;
+    this.health = new Health(mods.regenDelayS);
     this.guards = new GuardSystem(grid, data.guards, rng.fork());
     this.lamps = data.lamps.map((l) => grid.gridToWorld(l.x, l.y));
     this.beams = this.guards.guards.map(() => ({ x: 0, z: 0, height: 0, yaw: 0, intensity: 0 }));
     this.perception = new PlayerPerception(grid, this.guards.guards.length);
-    this.bottles = data.bottles ?? BOTTLE.defaultCount;
+    this.bottles = (data.bottles ?? BOTTLE.defaultCount) + mods.bonusBottles;
     const item = data.objective.type === 'reachExit' ? data.objective.item : undefined;
     this.item = item ? grid.gridToWorld(item.x, item.y) : null;
     this.guards.events.on('stateChange', ({ guard, to }) => {

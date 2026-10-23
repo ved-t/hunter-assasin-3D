@@ -40,6 +40,8 @@ export class PlayerController {
   prevEyeHeight: number = PLAYER.eyeHeight;
   /** Footstep noise radius for the current gait (m). */
   noiseRadius = 0;
+  /** Multiplies every footstep's noise radius (the quiet-steps perk). */
+  noiseScale = 1;
   /** Radius of the footstep taken this step (m), or 0 if no foot landed. */
   footstep = 0;
   private stepTimer = 0;
@@ -99,7 +101,7 @@ export class PlayerController {
 
     const actual = Math.hypot(this.vel.x, this.vel.z);
     this.gait = actual < STILL_SPEED ? 'still' : moveGait;
-    this.noiseRadius = PLAYER.noiseRadius[this.gait];
+    this.noiseRadius = PLAYER.noiseRadius[this.gait] * this.noiseScale;
     this.footstep = 0;
     if (this.gait === 'still') {
       this.stepTimer = 0; // the first step lands as soon as the player moves again
