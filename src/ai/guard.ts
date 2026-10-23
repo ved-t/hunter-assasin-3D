@@ -13,6 +13,7 @@ import type { DistanceField } from '../nav/sound';
 import { Awareness } from './awareness';
 import type { FsmInput, GuardState } from './guard-fsm';
 import { pickSearchCells } from './search';
+import { Gun } from './weapon';
 
 const DEG = Math.PI / 180;
 const TURN_RATE: Record<GuardState, number> = {
@@ -55,6 +56,8 @@ export class Guard {
   /** Seconds since entering the current state. */
   stateTime = 0;
   readonly awareness = new Awareness();
+  /** Stepped by GuardSystem while Alert; he stands still to aim during a wind-up. */
+  readonly gun = new Gun();
   /** Set by GuardSystem each step: the player is in the cone with LOS. */
   seesPlayer = false;
   /** Put in Alert by another guard's shout; such guards don't shout on in turn. */
@@ -124,6 +127,7 @@ export class Guard {
     this.footstep = null;
     this.searchCells = [];
     this.clearPath();
+    this.gun.reset();
     const d = this.dropLens;
     d.x = this.pos.x - Math.sin(this.yaw) * BODIES.dropForwardM;
     d.z = this.pos.z - Math.cos(this.yaw) * BODIES.dropForwardM;
@@ -153,7 +157,10 @@ export class Guard {
     if (prev === 'search' && next === 'patrol') {
       this.awareness.setFloor(AWARENESS.searchFloor, AWARENESS.searchFloorS);
     }
-    if (next !== 'alert') this.alertedByOther = false;
+    if (next !== 'alert') {
+      this.alertedByOther = false;
+      this.gun.reset();
+    }
     switch (next) {
       case 'patrol':
         this.searchCells = [];
@@ -293,7 +300,8 @@ export class Guard {
       this.atLkp = false;
       this.faceToward(player.x, player.z, TURN_RATE.alert * dt);
       const d = Math.hypot(player.x - this.pos.x, player.z - this.pos.z);
-      if (d > GUARD.standoffM) this.followPath(dt, GUARD.runSpeed, ctx, true);
+      const aiming = this.gun.phase === 'windup';
+      if (d > GUARD.standoffM && !aiming) this.followPath(dt, GUARD.runSpeed, ctx, true);
       return;
     }
     if (this.followPath(dt, GUARD.runSpeed, ctx)) this.atLkp = true;

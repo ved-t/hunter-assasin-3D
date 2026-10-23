@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import medium from '../../public/levels/medium.json';
 import small from '../../public/levels/small.json';
-import { KNIFE } from '../config/tunables';
+import { AWARENESS, HEALTH, KNIFE } from '../config/tunables';
 import { Rng } from '../core/rng';
 import { InputState } from '../input/input-state';
 import { levelFromJson as loadJson } from '../level/loader';
@@ -79,6 +79,22 @@ describe('Mission', () => {
     m.step(DT, input, LENS);
     expect(m.kills).toBe(0);
     expect(m.lockTimer).toBe(0);
+  });
+
+  it('a player standing in front of a guard gets shot; god mode keeps the HP', () => {
+    for (const god of [false, true]) {
+      const m = new Mission(loadJson(small), new Rng(1));
+      m.godMode = god;
+      const g = m.guards.guards[0]!;
+      teleport(m, g.pos.x - Math.sin(g.yaw) * 2.5, g.pos.z - Math.cos(g.yaw) * 2.5);
+      g.awareness.raiseTo(AWARENESS.alert, m.player.pos.x, m.player.pos.z);
+      let hits = 0;
+      m.events.on('hit', () => hits++);
+      run(m, new InputState(), 6);
+      expect(hits).toBeGreaterThan(0);
+      expect(m.health.hp).toBe(god ? HEALTH.maxHp : Math.max(0, HEALTH.maxHp - hits));
+      expect(m.health.damaged).toBe(!god);
+    }
   });
 
   it('moves the player from input and tracks light exposure', () => {

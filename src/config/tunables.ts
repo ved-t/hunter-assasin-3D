@@ -256,6 +256,26 @@ export const HEALTH = {
   regenDelayS: 8,
 } as const;
 
+/** Guard sidearm. Alert guards only, with a readable wind-up so every hit is avoidable. */
+export const WEAPON = {
+  /** Shoots only within this distance (m) of a player in sight. */
+  rangeM: 14,
+  /** Muzzle tell before the shot (s); breaking line of sight during it cancels the shot. */
+  windupS: 0.6,
+  /** Shortest time between two shots (s), wind-up included. */
+  shotIntervalS: 1.2,
+  damage: 1,
+  /** Hit chance at point blank, minus this much per metre, never below the minimum. */
+  hitChanceNear: 0.9,
+  hitFalloffPerM: 0.045,
+  hitChanceMin: 0.2,
+  /** Hit chance × (1 − penalty × player speed in m/s), never below minSpeedFactor. */
+  speedPenaltyPerMps: 0.1,
+  minSpeedFactor: 0.45,
+  /** A shot alerts other guards within this path distance (m), sharing the shooter's LKP. */
+  shotAlertM: 20,
+} as const;
+
 /** Knife takedown. */
 export const KNIFE = {
   /** Reach, guard centre to player centre (m). */

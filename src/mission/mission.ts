@@ -4,7 +4,7 @@
 
 import type { Guard } from '../ai/guard';
 import { GuardSystem } from '../ai/guards';
-import { GUARD, KNIFE, LIGHT_EXPOSURE } from '../config/tunables';
+import { GUARD, KNIFE, LIGHT_EXPOSURE, WEAPON } from '../config/tunables';
 import { Emitter } from '../core/events';
 import type { Rng } from '../core/rng';
 import type { InputState } from '../input/input-state';
@@ -30,6 +30,8 @@ export interface MissionEvents {
   kill: { guard: Guard };
   /** A hit point came back. */
   heal: { hp: number };
+  /** A guard's shot struck the player. */
+  hit: { guard: Guard; hp: number };
 }
 
 export class Mission {
@@ -50,6 +52,8 @@ export class Mission {
   knifeTarget = -1;
   /** Seconds left of the post-kill movement lock. */
   lockTimer = 0;
+  /** ?debug=1 playtesting aid: hits still land (and show) but cost no HP. */
+  godMode = false;
   private readonly view = createPlayerView();
 
   constructor(
@@ -63,6 +67,11 @@ export class Mission {
     this.lamps = data.lamps.map((l) => grid.gridToWorld(l.x, l.y));
     this.beams = this.guards.guards.map(() => ({ x: 0, z: 0, height: 0, yaw: 0, intensity: 0 }));
     this.perception = new PlayerPerception(grid, this.guards.guards.length);
+    this.guards.events.on('shot', ({ guard, hit }) => {
+      if (!hit) return;
+      if (!this.godMode) this.health.damage(WEAPON.damage);
+      this.events.emit('hit', { guard, hp: this.health.hp });
+    });
   }
 
   step(dt: number, input: InputState, lens: ViewLens): void {

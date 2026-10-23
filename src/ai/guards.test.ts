@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AWARENESS, GUARD, SEARCH } from '../config/tunables';
+import { AWARENESS, GUARD, SEARCH, WEAPON } from '../config/tunables';
 import { Rng } from '../core/rng';
 import { Grid } from '../level/grid';
 import type { GuardDef } from '../level/types';
@@ -175,6 +175,77 @@ describe('GuardSystem', () => {
     }
     expect(reached).toBe(true);
     expect(maxTurn).toBeLessThanOrEqual(((110 * Math.PI) / 180) * DT + 1e-9);
+  });
+});
+
+describe('guard shooting', () => {
+  /** A guard already Alert on a player in plain view 6 m ahead. */
+  function alerted() {
+    const sys = new GuardSystem(grid, [posted(1, 2, 90)], new Rng(1));
+    const p = player(c(4), c(2));
+    for (let t = 0; t < 10 && sys.guards[0]!.state !== 'alert'; t += DT) sys.step(DT, p, 1);
+    expect(sys.guards[0]!.state).toBe('alert');
+    return { sys, g: sys.guards[0]!, p };
+  }
+
+  it('shoots only after a wind-up, then keeps the shot interval', () => {
+    const sys = new GuardSystem(grid, [posted(1, 2, 90)], new Rng(1));
+    const p = player(c(4), c(2));
+    const log: string[] = [];
+    let t = 0;
+    const times: number[] = [];
+    sys.events.on('windup', () => log.push('windup'));
+    sys.events.on('shot', () => (log.push('shot'), times.push(t)));
+    for (; t < 6; t += DT) sys.step(DT, p, 1);
+    expect(log.slice(0, 4)).toEqual(['windup', 'shot', 'windup', 'shot']);
+    expect(times[1]! - times[0]!).toBeGreaterThanOrEqual(WEAPON.shotIntervalS - 1e-6);
+  });
+
+  it('stands still while aiming', () => {
+    const { sys, g } = alerted();
+    const p = player(c(6), c(2)); // further than the standoff, so he'd otherwise advance
+    for (let t = 0; t < 2 && g.gun.phase !== 'windup'; t += DT) sys.step(DT, p, 1);
+    expect(g.gun.phase).toBe('windup');
+    const before = { ...g.pos };
+    sys.step(DT, p, 1);
+    expect(g.pos).toEqual(before);
+  });
+
+  it('a broken line of sight during the wind-up means no shot', () => {
+    const { sys, g, p } = alerted();
+    for (let t = 0; t < 2 && g.gun.phase !== 'windup'; t += DT) sys.step(DT, p, 1);
+    let shots = 0;
+    sys.events.on('shot', () => shots++);
+    p.pos.x = -50; // gone behind a wall
+    run(sys, p, 3);
+    expect(shots).toBe(0);
+  });
+
+  it('dead or non-Alert guards never shoot', () => {
+    const calm = new GuardSystem(grid, [posted(1, 2, 90)], new Rng(1));
+    let shots = 0;
+    calm.events.on('shot', () => shots++);
+    run(calm, player(c(4), c(2)), 0.5); // seen, but not yet Alert
+    expect(shots).toBe(0);
+    const { sys, g, p } = alerted();
+    sys.events.on('shot', () => shots++);
+    sys.kill(g);
+    run(sys, p, 3);
+    expect(shots).toBe(0);
+  });
+
+  it('a shot alerts guards within its wider radius', () => {
+    // Guard 1 is posted in room B, out of shout range but within the gunshot's.
+    const sys = new GuardSystem(grid, [posted(1, 2, 90), posted(10, 3, 0)], new Rng(1));
+    const p = player(c(4), c(2));
+    run(sys, p, 2.5); // seen → Alert → shout (12 m doesn't reach him)
+    expect(sys.guards[1]!.state).toBe('patrol');
+    let shot = false;
+    sys.events.on('shot', () => (shot = true));
+    for (let t = 0; t < 3 && !shot; t += DT) sys.step(DT, p, 1);
+    expect(shot).toBe(true);
+    sys.step(DT, p, 1);
+    expect(sys.guards[1]!.state).toBe('alert');
   });
 });
 
