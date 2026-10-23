@@ -343,6 +343,24 @@ export const MISSION = {
   winDelayS: 0.6,
 } as const;
 
+/** Gems: earned by beating your best on a level, spent in the loadout (config/unlocks.ts). */
+export const PROGRESSION = {
+  /** For each star above the level's previous best. */
+  gemsPerNewStar: 10,
+  /** On top, the first time a level is won. */
+  gemsFirstClear: 10,
+} as const;
+
+/** What each perk changes; one perk can be equipped at a time. */
+export const PERKS = {
+  /** Quieter steps: footstep noise radius ×. */
+  quietStepsNoiseScale: 0.8,
+  /** Faster regen: seconds of calm per hit point back (HEALTH.regenDelayS without it). */
+  fastRegenDelayS: 6,
+  /** Extra bottle: bottles on top of the level's count. */
+  extraBottles: 1,
+} as const;
+
 /** Thrown distraction bottle. */
 export const BOTTLE = {
   /** Bottles per level when the level JSON doesn't say. */
