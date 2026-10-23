@@ -8,6 +8,8 @@ import { Tile, type LevelData } from './types';
 
 export interface LevelMesh {
   group: THREE.Group;
+  /** Exit markers glow when the exit counts, and sit dim and grey while it is still locked. */
+  setExitOpen(open: boolean): void;
   dispose(): void;
 }
 
@@ -155,14 +157,13 @@ export function buildLevelMesh(level: LevelData, grid: Grid, debug: boolean): Le
   const exitGeo = own(new THREE.PlaneGeometry(t * 0.8, t * 0.8))
     .rotateX(-Math.PI / 2)
     .translate(0, LEVEL.decalLift, 0);
+  const openColor = new THREE.Color(LEVEL.exitColor).multiplyScalar(LEVEL.exitEmissiveIntensity);
+  const lockedColor = new THREE.Color(LEVEL.exitLockedColor);
+  const exitMaterial = own(new THREE.MeshBasicMaterial({ color: openColor }));
   const exits = instancedForCells(
     grid,
     exitGeo,
-    own(
-      new THREE.MeshBasicMaterial({
-        color: new THREE.Color(LEVEL.exitColor).multiplyScalar(LEVEL.exitEmissiveIntensity),
-      }),
-    ),
+    exitMaterial,
     (cx, cy) => grid.get(cx, cy) === Tile.Exit,
   );
   group.add(exits);
@@ -207,6 +208,9 @@ export function buildLevelMesh(level: LevelData, grid: Grid, debug: boolean): Le
 
   return {
     group,
+    setExitOpen(open) {
+      exitMaterial.color.copy(open ? openColor : lockedColor);
+    },
     dispose() {
       for (const d of disposables) d.dispose();
       group.traverse((o) => {

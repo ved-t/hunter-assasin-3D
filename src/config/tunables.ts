@@ -77,6 +77,8 @@ export const LEVEL = {
   floorAo: 0.45,
   exitColor: 0xbff4ff,
   exitEmissiveIntensity: 1.2,
+  /** Exit marker colour while the objective item is still to be collected. */
+  exitLockedColor: 0x2a3236,
   /** Exit marker floats this far above the floor to avoid z-fighting (m). */
   decalLift: 0.02,
   fogColor: 0x0b0f16,
@@ -213,6 +215,30 @@ export const FLASHLIGHT = {
   alertJitterDepth: 0.2,
 } as const;
 
+/** First-person camera motion until the Phase 5 viewmodel: knife lunge and the death fall. */
+export const CAMERA_FX = {
+  lungeM: 0.18,
+  lungeDipRad: 0.08,
+  /** The view drops to this eye height (m) and rolls this far (rad) as the player falls. */
+  fallEyeHeight: 0.35,
+  fallRollRad: 0.5,
+} as const;
+
+/** Mission prop look: the thrown bottle and the objective item. */
+export const PROPS = {
+  bottleRadius: 0.04,
+  bottleLength: 0.26,
+  bottleColor: 0x2f4a36,
+  bottleSpinRadPerS: 14,
+  /** Item: floating cyan-white octahedron (player-relevant colour), bobbing and turning. */
+  itemSize: 0.18,
+  itemColor: 0xbff4ff,
+  itemHeight: 0.9,
+  itemBobM: 0.08,
+  itemBobHz: 0.6,
+  itemSpinRadPerS: 1.6,
+} as const;
+
 /** Player light exposure, which scales how fast guards see them. */
 export const LIGHT_EXPOSURE = {
   dark: 0.25,
@@ -238,6 +264,17 @@ export const GUARD_VISUALS = {
   iconSize: 0.45,
   /** A killed guard tips over onto the floor over this long (s): a stylised fall, no blood. */
   fallS: 0.4,
+  /** Gun muzzle relative to the body centre (m): ahead, to his right, height. */
+  muzzleForward: 0.5,
+  muzzleRight: 0.22,
+  muzzleHeight: 1.3,
+  /** Wind-up tell: a red glint growing from min to max size (m) as the shot nears. */
+  tellSizeMin: 0.12,
+  tellSizeMax: 0.45,
+  /** Muzzle flash: shown this long after a shot (s), this size (m) and colour. */
+  muzzleFlashS: 0.07,
+  muzzleFlashSize: 0.7,
+  muzzleFlashColor: 0xfff1c8,
   /** Amber "?" (Suspicious, Search) and red "!" (Alert). */
   suspiciousColor: 0xffb347,
   searchColor: 0xc98a3a,

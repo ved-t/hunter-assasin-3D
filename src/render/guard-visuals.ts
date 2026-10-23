@@ -1,5 +1,6 @@
 // Guard placeholders: one InstancedMesh of capsule bodies (with a flashlight nub showing facing), and
-// one instanced billboard mesh for lens glows and the "?" / "!" state icons. Two draw calls total.
+// one instanced billboard mesh for lens glows, the "?" / "!" state icons and the gun's wind-up tell and
+// muzzle flash. Two draw calls total.
 // Reads guard sim state and interpolates it; never writes back.
 
 import * as THREE from 'three';
@@ -137,6 +138,7 @@ export class GuardVisuals {
     search: new THREE.Color(V.searchColor),
     alert: new THREE.Color(V.alertColor),
     lens: new THREE.Color(FLASHLIGHT.color),
+    flash: new THREE.Color(V.muzzleFlashColor),
   };
 
   constructor(readonly capacity: number) {
@@ -152,15 +154,15 @@ export class GuardVisuals {
     this.bodies.frustumCulled = false;
     this.bodies.count = 0;
 
-    // Two billboards per guard: lens glow and state icon.
+    // Up to three billboards per guard: lens glow, state icon, and the muzzle tell or flash.
     this.atlas = buildAtlas();
     this.geo = new THREE.InstancedBufferGeometry();
     const quad = new THREE.PlaneGeometry(1, 1);
     this.geo.index = quad.index;
     this.geo.setAttribute('position', quad.getAttribute('position'));
     this.geo.setAttribute('uv', quad.getAttribute('uv'));
-    this.center = new THREE.InstancedBufferAttribute(new Float32Array(n * 2 * 4), 4);
-    this.tint = new THREE.InstancedBufferAttribute(new Float32Array(n * 2 * 4), 4);
+    this.center = new THREE.InstancedBufferAttribute(new Float32Array(n * 3 * 4), 4);
+    this.tint = new THREE.InstancedBufferAttribute(new Float32Array(n * 3 * 4), 4);
     this.center.setUsage(THREE.DynamicDrawUsage);
     this.tint.setUsage(THREE.DynamicDrawUsage);
     this.geo.setAttribute('aCenter', this.center);
@@ -253,6 +255,20 @@ export class GuardVisuals {
           1,
           g.state === 'alert' ? CELL_BANG : CELL_QUESTION,
         );
+      }
+
+      // The gun, held low on his right: a red glint swelling through the wind-up, then the flash.
+      if (!g.dead) {
+        const yaw = l.yaw;
+        const mx = x - Math.sin(yaw) * V.muzzleForward + Math.cos(yaw) * V.muzzleRight;
+        const mz = z - Math.cos(yaw) * V.muzzleForward - Math.sin(yaw) * V.muzzleRight;
+        const w = g.gun.windupFraction;
+        if (g.gun.sinceShot < V.muzzleFlashS) {
+          put(mx, V.muzzleHeight, mz, V.muzzleFlashSize, this.colors.flash, 1.5, CELL_GLOW);
+        } else if (w > 0) {
+          const size = V.tellSizeMin + (V.tellSizeMax - V.tellSizeMin) * w;
+          put(mx, V.muzzleHeight, mz, size, this.colors.alert, 0.6 + 0.9 * w, CELL_GLOW);
+        }
       }
     }
     this.bodies.count = n;

@@ -5,15 +5,17 @@
 import type * as THREE from 'three';
 import { GameAudio } from './audio/game-audio';
 import type { QualityTier } from './config/quality';
+import { KNIFE, MISSION } from './config/tunables';
 import { Rng } from './core/rng';
 import { InputManager } from './input/input-manager';
 import type { LoadedLevel } from './level/loader';
 import { Flashlights, type FlashlightState } from './lighting/flashlights';
 import { Mission, type ViewLens } from './mission/mission';
-import { applyCameraRig } from './player/camera-rig';
+import { applyCameraFx, applyCameraRig } from './player/camera-rig';
 import type { PlayerController } from './player/controller';
 import type { DebugAi } from './render/debug-ai';
 import { guardFlashlight, GuardVisuals } from './render/guard-visuals';
+import { MissionProps } from './render/mission-props';
 import { createLevelScene } from './render/level-scene';
 import type { Settings } from './save/settings';
 import { Hud } from './ui/hud';
@@ -55,7 +57,7 @@ export interface GameWorldOptions {
 }
 
 export function createGameWorld(level: LoadedLevel, opts: GameWorldOptions): GameWorld {
-  const { scene, camera } = createLevelScene(level, opts.debug);
+  const { scene, camera, setExitOpen } = createLevelScene(level, opts.debug);
   const { grid, data } = level;
   const rng = new Rng(opts.seed);
   // Every attempt gets the same seed, so a retry replays the same guard behaviour.
@@ -71,7 +73,9 @@ export function createGameWorld(level: LoadedLevel, opts: GameWorldOptions): Gam
   const visualRng = rng.fork();
   const flashlights = new Flashlights(scene, grid, count, opts.tier, () => visualRng.next());
   const guardVisuals = new GuardVisuals(count);
-  scene.add(guardVisuals.group);
+  const props = new MissionProps();
+  scene.add(guardVisuals.group, props.group);
+  let exitOpen = true;
   // Per-frame interpolated flashlights, for visuals.
   const lights: FlashlightState[] = Array.from({ length: count }, () => ({
     id: 0,
@@ -125,13 +129,21 @@ export function createGameWorld(level: LoadedLevel, opts: GameWorldOptions): Gam
       const { player, guards, perception } = mission;
       input.flushLook(frameDt);
       input.state.consumeLook(look);
-      if (!this.paused) player.applyLook(look.yaw, look.pitch);
+      if (!this.paused && !mission.outcome) player.applyLook(look.yaw, look.pitch);
       applyCameraRig(camera, player, alpha);
+      applyCameraFx(
+        camera,
+        mission.lockTimer > 0 ? 1 - mission.lockTimer / KNIFE.lockS : 0,
+        mission.outcome === 'failed' ? Math.min(1, mission.endedFor / MISSION.failDelayS) : 0,
+      );
       guards.guards.forEach((g, i) =>
         guardFlashlight(g, alpha, mission.time, lights[i] as FlashlightState),
       );
       flashlights.update(lights, camera, frameDt, mission.time, opts.pixelRatio());
       guardVisuals.update(guards.guards, lights, alpha, camera);
+      const itemLeft = mission.item && !mission.itemTaken ? mission.item : null;
+      props.update(frameDt, alpha, mission.bottle, itemLeft);
+      if (exitOpen !== !itemLeft) setExitOpen((exitOpen = !itemLeft));
 
       hudPose.x = listener.x = camera.position.x;
       hudPose.z = listener.z = camera.position.z;

@@ -9,6 +9,7 @@ import { buildLevelMesh } from '../level/mesh-builder';
 export interface LevelScene {
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
+  setExitOpen(open: boolean): void;
   dispose(): void;
 }
 
@@ -30,5 +31,5 @@ export function createLevelScene(level: LoadedLevel, debug: boolean): LevelScene
   const mesh = buildLevelMesh(level.data, level.grid, debug);
   scene.add(mesh.group);
 
-  return { scene, camera, dispose: () => mesh.dispose() };
+  return { scene, camera, setExitOpen: mesh.setExitOpen, dispose: () => mesh.dispose() };
 }
