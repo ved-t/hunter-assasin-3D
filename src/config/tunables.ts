@@ -236,6 +236,8 @@ export const GUARD_VISUALS = {
   lensGlowFalloff: 4,
   iconHeight: 2.25,
   iconSize: 0.45,
+  /** A killed guard tips over onto the floor over this long (s): a stylised fall, no blood. */
+  fallS: 0.4,
   /** Amber "?" (Suspicious, Search) and red "!" (Alert). */
   suspiciousColor: 0xffb347,
   searchColor: 0xc98a3a,
@@ -245,6 +247,17 @@ export const GUARD_VISUALS = {
 export const ALERT = {
   /** An Alert guard alerts every guard within this path distance (m). */
   propagateM: 12,
+} as const;
+
+/** Dead guards: the body, and the flashlight he drops, which stays on. */
+export const BODIES = {
+  /** The flashlight lands this far ahead of the body (m), lens this high off the floor (m). */
+  dropForwardM: 0.6,
+  dropLensHeight: 0.12,
+  /** Tilt of the dropped beam below level (deg); small, so it rakes along the floor. */
+  dropLensPitchDeg: 1.5,
+  /** The dropped beam points along the guard's last facing ± this much (deg). */
+  dropYawJitterDeg: 25,
 } as const;
 
 /** Guard sight. Fill rates are awareness/s before the exposure × stance × movement multipliers. */

@@ -5,12 +5,13 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { Guard } from '../ai/guard';
-import { FLASHLIGHT, GUARD, GUARD_VISUALS as V } from '../config/tunables';
+import { BODIES, FLASHLIGHT, GUARD, GUARD_VISUALS as V } from '../config/tunables';
 import { lerpAngle } from '../core/angles';
 import { flickerIntensity } from '../lighting/flicker';
 import type { FlashlightState } from '../lighting/flashlights';
 
 const PITCH = THREE.MathUtils.degToRad(GUARD.flashlightPitchDeg);
+const DROP_PITCH = THREE.MathUtils.degToRad(BODIES.dropLensPitchDeg);
 /** Billboard atlas cells: lens glow, "?", "!". */
 const CELL_GLOW = 0;
 const CELL_QUESTION = 1;
@@ -25,16 +26,24 @@ export function guardFlashlight(
   time: number,
   out: FlashlightState,
 ): FlashlightState {
+  out.id = g.id;
+  out.intensity = flickerIntensity(g.flicker, time, g.id);
+  if (g.dead) {
+    out.x = g.dropLens.x;
+    out.y = g.dropLens.height;
+    out.z = g.dropLens.z;
+    out.yaw = g.dropLens.yaw;
+    out.pitch = DROP_PITCH;
+    return out;
+  }
   const x = g.prevPos.x + (g.pos.x - g.prevPos.x) * alpha;
   const z = g.prevPos.z + (g.pos.z - g.prevPos.z) * alpha;
   const yaw = lerpAngle(g.prevYaw, g.yaw, alpha);
-  out.id = g.id;
   out.x = x - Math.sin(yaw) * GUARD.flashlightForward;
   out.y = GUARD.flashlightHeight;
   out.z = z - Math.cos(yaw) * GUARD.flashlightForward;
   out.yaw = yaw;
   out.pitch = PITCH;
-  out.intensity = flickerIntensity(g.flicker, time, g.id);
   return out;
 }
 
@@ -121,6 +130,8 @@ export class GuardVisuals {
   private readonly p = new THREE.Vector3();
   private readonly one = new THREE.Vector3(1, 1, 1);
   private readonly up = new THREE.Vector3(0, 1, 0);
+  private readonly side = new THREE.Vector3(1, 0, 0);
+  private readonly qFall = new THREE.Quaternion();
   private readonly colors = {
     suspicious: new THREE.Color(V.suspiciousColor),
     search: new THREE.Color(V.searchColor),
@@ -207,8 +218,18 @@ export class GuardVisuals {
       const l = lights[i] as FlashlightState;
       const x = g.prevPos.x + (g.pos.x - g.prevPos.x) * alpha;
       const z = g.prevPos.z + (g.pos.z - g.prevPos.z) * alpha;
-      this.q.setFromAxisAngle(this.up, l.yaw);
-      this.bodies.setMatrixAt(i, this.m.compose(this.p.set(x, 0, z), this.q, this.one));
+      let y = 0;
+      if (g.dead) {
+        // Tip forward about the feet onto the floor, lifted so the capsule rests on its side.
+        const fall = Math.min(1, g.deadFor / V.fallS) * (Math.PI / 2);
+        this.q
+          .setFromAxisAngle(this.up, g.yaw)
+          .multiply(this.qFall.setFromAxisAngle(this.side, -fall));
+        y = V.bodyRadius * Math.sin(fall);
+      } else {
+        this.q.setFromAxisAngle(this.up, l.yaw);
+      }
+      this.bodies.setMatrixAt(i, this.m.compose(this.p.set(x, y, z), this.q, this.one));
 
       // Lens glow: bright when the guard faces the camera.
       const tx = camera.position.x - l.x;
@@ -221,7 +242,7 @@ export class GuardVisuals {
       const glow = Math.pow(Math.max(0, facing), V.lensGlowFalloff) * l.intensity;
       if (glow > 0.01) put(l.x, l.y, l.z, V.lensGlowSize, this.colors.lens, glow, CELL_GLOW);
 
-      if (g.state !== 'patrol') {
+      if (g.state !== 'patrol' && !g.dead) {
         const color = this.colors[g.state];
         put(
           x,

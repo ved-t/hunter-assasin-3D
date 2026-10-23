@@ -177,3 +177,40 @@ describe('GuardSystem', () => {
     expect(maxTurn).toBeLessThanOrEqual(((110 * Math.PI) / 180) * DT + 1e-9);
   });
 });
+
+describe('dead guards', () => {
+  it('stop sensing, moving and changing state, and drop a lit flashlight ahead of them', () => {
+    const sys = new GuardSystem(grid, [posted(1, 2, 90)], new Rng(1));
+    const g = sys.guards[0]!;
+    const deaths: number[] = [];
+    sys.events.on('death', (e) => deaths.push(e.guard.id));
+    expect(sys.kill(g)).toBe(true);
+    expect(sys.kill(g)).toBe(false);
+    expect(deaths).toEqual([0]);
+    expect(sys.aliveCount).toBe(0);
+    expect(g.flicker).toBe('steady');
+    // Facing east (+X): the light lands ahead of him, near the floor.
+    expect(g.dropLens.x).toBeGreaterThan(g.pos.x);
+    expect(g.dropLens.height).toBeLessThan(0.5);
+
+    const pos = { ...g.pos };
+    const p = player(c(4), c(2)); // in plain view
+    sys.noise(c(2), c(2), 12);
+    run(sys, p, 3);
+    expect(g.awareness.value).toBe(0);
+    expect(g.seesPlayer).toBe(false);
+    expect(g.state).toBe('patrol');
+    expect(g.pos).toEqual(pos);
+    expect(g.deadFor).toBeCloseTo(3, 1);
+  });
+
+  it('are not shouted to', () => {
+    const sys = new GuardSystem(grid, [posted(4, 2, 90), posted(8, 3, 90)], new Rng(1));
+    sys.kill(sys.guards[1]!);
+    const shouts: number[][] = [];
+    sys.events.on('alert', (e) => shouts.push(e.alerted.map((g) => g.id)));
+    run(sys, player(c(6), c(2)), 3);
+    expect(shouts[0]).toEqual([]);
+    expect(sys.guards[1]!.state).toBe('patrol');
+  });
+});

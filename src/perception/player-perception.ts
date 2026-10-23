@@ -17,6 +17,8 @@ export interface PerceivableGuard {
   readonly yaw: number;
   readonly speed: number;
   readonly state: GuardState;
+  /** Dead guards are never tracked; their dropped light is not "a guard". */
+  readonly dead: boolean;
 }
 
 /** Sim steps between two tests of the same guard. */
@@ -63,6 +65,11 @@ export class PlayerPerception {
     for (let i = bucket; i < guards.length; i += BUCKETS) {
       const g = guards[i] as PerceivableGuard;
       const b = beams[i] as BeamLight;
+      if (g.dead) {
+        this.memory.forget(i);
+        (this.results[i] as SpotResult).kind = null;
+        continue;
+      }
       if (!flooded) {
         // One flood from the player serves every guard tested this step.
         this.sound.flood(view.x, view.z, PLAYER_HEARING.runRangeM);

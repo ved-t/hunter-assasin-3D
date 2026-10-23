@@ -34,7 +34,13 @@ const view: PlayerView = {
 };
 
 function guard(cx: number, cy: number, dirX: number, dirZ: number): PerceivableGuard {
-  return { pos: { x: c(cx), z: c(cy) }, yaw: yawFromDir(dirX, dirZ), speed: 0, state: 'patrol' };
+  return {
+    pos: { x: c(cx), z: c(cy) },
+    yaw: yawFromDir(dirX, dirZ),
+    speed: 0,
+    state: 'patrol',
+    dead: false,
+  };
 }
 
 function beam(g: PerceivableGuard, intensity = 1): BeamLight {
@@ -78,5 +84,16 @@ describe('PlayerPerception', () => {
     expect(m.live).toBe(false);
     expect(m.visible).toBe(true);
     expect(m.yaw).toBeCloseTo(g.yaw); // frozen at the last perceived facing
+  });
+
+  it('drops a dead guard from the minimap even though his flashlight is in plain view', () => {
+    const g = guard(7, 1, -1, 0); // in corridor A, facing the player
+    const p = new PlayerPerception(ell, 1);
+    for (let s = 0; s < STEPS_PER_TEST; s++) p.step(DT, view, [g], [beam(g)]);
+    expect(p.memory.markers[0]!.live).toBe(true);
+    const body = { ...g, dead: true };
+    for (let s = 0; s < SIM.hz; s++) p.step(DT, view, [body], [beam(body)]);
+    expect(p.memory.markers[0]!.visible).toBe(false);
+    expect(p.results[0]!.kind).toBeNull();
   });
 });

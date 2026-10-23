@@ -68,6 +68,14 @@ export class MinimapMemory {
     m.alpha = 1;
   }
 
+  /** Drop guard `i`'s marker at once (he is dead: there is no guard left to track). */
+  forget(i: number): void {
+    const m = this.markers[i];
+    if (!m) return;
+    m.visible = m.live = false;
+    m.alpha = 0;
+  }
+
   /** Advance the fades of lost markers. */
   update(dt: number): void {
     for (const m of this.markers) {

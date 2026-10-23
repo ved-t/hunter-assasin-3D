@@ -73,10 +73,17 @@ export class Mission {
   private updateBeams(): void {
     this.guards.guards.forEach((g, i) => {
       const b = this.beams[i] as BeamLight;
-      b.x = g.pos.x - Math.sin(g.yaw) * GUARD.flashlightForward;
-      b.z = g.pos.z - Math.cos(g.yaw) * GUARD.flashlightForward;
-      b.height = GUARD.flashlightHeight;
-      b.yaw = g.yaw;
+      if (g.dead) {
+        b.x = g.dropLens.x;
+        b.z = g.dropLens.z;
+        b.height = g.dropLens.height;
+        b.yaw = g.dropLens.yaw;
+      } else {
+        b.x = g.pos.x - Math.sin(g.yaw) * GUARD.flashlightForward;
+        b.z = g.pos.z - Math.cos(g.yaw) * GUARD.flashlightForward;
+        b.height = GUARD.flashlightHeight;
+        b.yaw = g.yaw;
+      }
       b.intensity = flickerIntensity(g.flicker, this.time, g.id);
     });
   }

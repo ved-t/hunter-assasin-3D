@@ -1,7 +1,7 @@
 // Runs every guard each sim step: sense (vision, queued noises) → awareness → FSM → behaviour.
 // Operates on the grid and plain data only; rendering reads guard state afterwards.
 
-import { ALERT, AWARENESS, GUARD } from '../config/tunables';
+import { ALERT, AWARENESS, BODIES, GUARD } from '../config/tunables';
 import { Emitter } from '../core/events';
 import type { Rng } from '../core/rng';
 import type { Vec2 } from '../level/collision';
@@ -28,6 +28,7 @@ export interface GuardEvents {
   alert: { guard: Guard; alerted: Guard[] };
   /** One of a guard's feet landed (audio only; the player's perception reads guard speed). */
   footstep: { guard: Guard; gait: GuardGait };
+  death: { guard: Guard };
 }
 
 interface Noise {
@@ -69,6 +70,21 @@ export class GuardSystem {
     if (radius > 0) this.noises.push({ x, z, radius });
   }
 
+  /** Kill a guard. Returns false if he was already dead. */
+  kill(g: Guard): boolean {
+    if (g.dead) return false;
+    const jitter = (BODIES.dropYawJitterDeg * Math.PI) / 180;
+    g.die(this.ctx.rng.range(-jitter, jitter));
+    this.events.emit('death', { guard: g });
+    return true;
+  }
+
+  get aliveCount(): number {
+    let n = 0;
+    for (const g of this.guards) if (!g.dead) n++;
+    return n;
+  }
+
   /** `exposure` is the player's current light exposure (0.25..1). */
   step(dt: number, player: PlayerView, exposure: number): void {
     const { grid } = this.ctx;
@@ -80,6 +96,7 @@ export class GuardSystem {
     t.exposure = exposure;
 
     for (const g of this.guards) {
+      if (g.dead) continue;
       this.viewer.x = g.pos.x;
       this.viewer.z = g.pos.z;
       this.viewer.yaw = g.yaw;
@@ -93,12 +110,14 @@ export class GuardSystem {
     for (const n of this.noises) {
       this.sound.flood(n.x, n.z, n.radius);
       for (const g of this.guards) {
+        if (g.dead) continue;
         g.awareness.stimulus(hearingGain(this.sound.at(g.pos.x, g.pos.z), n.radius), n.x, n.z);
       }
     }
     this.noises.length = 0;
 
     for (const g of this.guards) {
+      if (g.dead) continue;
       g.awareness.update(dt);
       const from = g.state;
       const to = nextState(g.fsmInput());
@@ -120,7 +139,7 @@ export class GuardSystem {
     this.sound.flood(from.pos.x, from.pos.z, ALERT.propagateM);
     const alerted: Guard[] = [];
     for (const g of this.guards) {
-      if (g === from || g.state === 'alert') continue;
+      if (g === from || g.dead || g.state === 'alert') continue;
       if (this.sound.at(g.pos.x, g.pos.z) > ALERT.propagateM) continue;
       g.alertedByOther = true;
       g.awareness.raiseTo(
