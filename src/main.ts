@@ -1,8 +1,9 @@
-// Boot: platform init → settings → tier → renderer → level → world → loop → fps probe. Menu arrives in Phase 5.
+// Boot: platform init → settings and progress → tier → renderer → world (with a level on stage) → loop →
+// main menu. ?level=<id> skips the menu and plays that level straight away.
 
 import './styles.css';
+import { CAMPAIGN, nextLevelId } from './config/campaign';
 import type { QualityTier } from './config/quality';
-import { nextLevelId } from './config/campaign';
 import { MISSION } from './config/tunables';
 import { requestGyroPermission } from './input/gyro';
 import { LevelLoadError, loadLevel } from './level/loader';
@@ -22,18 +23,33 @@ import {
 } from './render/renderer';
 import { createTestScene } from './render/test-scene';
 import { FpsProbe, guessTier, tierAfterProbe } from './render/tier-detect';
+import {
+  loadProgress,
+  modifiersFor,
+  nextToPlay,
+  recordWin,
+  saveProgress,
+  totalStars,
+  type Progress,
+  type WinReward,
+} from './save/progress';
 import { loadSettings, saveSettings, type Settings } from './save/settings';
 import type { DebugOverlay } from './ui/debug-overlay';
+import { LevelSelect } from './ui/level-select';
+import { LoadingScreen } from './ui/loading-screen';
+import { Loadout } from './ui/loadout';
+import { MainMenu } from './ui/main-menu';
 import { createOverlay } from './ui/overlay';
 import { createPlayHint } from './ui/play-hint';
 import { ResultScreen } from './ui/result-screen';
 import { setupRotateOverlay } from './ui/rotate-overlay';
-import { SettingsPanel } from './ui/settings-panel';
+import { SettingsPanel, type SettingsPanelMode } from './ui/settings-panel';
 import { TouchControls } from './ui/touch-controls';
 import { createGameWorld, type GameWorld, type World } from './world';
 
 type TierSource = 'url' | 'settings' | 'guess' | 'probe';
-type PauseReason = 'rotate' | 'menu' | 'result';
+/** Why the sim is frozen: the rotate prompt, the pause panel, the result screen, the menus, loading. */
+type PauseReason = 'rotate' | 'menu' | 'result' | 'title' | 'loading';
 
 const PERF_LEVEL_ID = 'perf';
 
@@ -45,6 +61,10 @@ function fatal(root: HTMLElement, message: string): void {
   overlay.show();
 }
 
+function levelName(id: string): string {
+  return CAMPAIGN.find((l) => l.id === id)?.name ?? id;
+}
+
 async function boot(): Promise<void> {
   const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
   const uiRoot = document.getElementById('ui-root') as HTMLElement;
@@ -54,6 +74,7 @@ async function boot(): Promise<void> {
   await platform.init();
   platform.loadingStart();
   let settings = await loadSettings(platform.storage);
+  let progress = await loadProgress(platform.storage);
 
   // Tier: URL flag > saved override > hardware guess (then refined by the fps probe).
   const gpuInfo = queryGpu();
@@ -88,9 +109,10 @@ async function boot(): Promise<void> {
     const perf = createTestScene(new Rng(flags.seed), tier);
     world = { ...perf, render: (alpha) => perf.render(alpha), debugLines: () => [] };
   } else {
+    // The level asked for, or behind the menu the one Play would start.
     let level;
     try {
-      level = await loadLevel(flags.level);
+      level = await loadLevel(flags.level ?? nextToPlay(progress));
     } catch (err) {
       console.error(err);
       fatal(uiRoot, err instanceof LevelLoadError ? err.message : 'Could not load the level.');
@@ -106,6 +128,7 @@ async function boot(): Promise<void> {
       pixelRatio: () => ctx.renderer.getPixelRatio(),
     });
     game.applySettings(settings);
+    game.restart(modifiersFor(progress));
     world = game;
     // ?debug=1 only: a handle for console poking and scripted (CDP) playtests.
     if (flags.debug) (window as Window & { __shadowHunter?: unknown }).__shadowHunter = { game };
@@ -129,7 +152,7 @@ async function boot(): Promise<void> {
         touchControls.setContext(game.mission.knifeTarget >= 0);
         touchControls.setBottles(game.mission.bottles);
       }
-      if (game?.mission.outcome && !result?.isOpen) {
+      if (game?.mission.outcome && inLevel && !result?.isOpen) {
         const { outcome, endedFor } = game.mission;
         if (endedFor >= (outcome === 'won' ? MISSION.winDelayS : MISSION.failDelayS)) showResult();
       }
@@ -164,16 +187,25 @@ async function boot(): Promise<void> {
     },
   });
 
-  // Pausing: host pause (tab hidden / ads) stops the loop; the rotate prompt and menus only freeze the sim.
+  // Pausing: host pause (tab hidden / ads) stops the loop; prompts, menus and loading only freeze the sim.
+  // The portal hears "gameplay" only while nothing at all holds the sim.
   let hostPaused = false;
   let contextLost = false;
-  const pauseReasons = new Set<PauseReason>();
+  let gameplayActive = false;
+  // Boot starts behind the menu; enterLevel() or showTitle() decides from there.
+  const pauseReasons = new Set<PauseReason>(['title']);
   const setPaused = (reason: PauseReason, on: boolean) => {
     if (on) pauseReasons.add(reason);
     else pauseReasons.delete(reason);
     loop.simPaused = pauseReasons.size > 0;
     if (game) game.paused = loop.simPaused;
     if (on) game?.input.releaseAll();
+    const active = !!game && pauseReasons.size === 0;
+    if (active !== gameplayActive) {
+      gameplayActive = active;
+      if (active) platform.gameplayStart();
+      else platform.gameplayStop();
+    }
     updatePlayHint();
   };
   const resumeIfAllowed = () => {
@@ -197,19 +229,29 @@ async function boot(): Promise<void> {
     window.addEventListener('keydown', unlockAudio, { capture: true });
   }
 
+  /** True while a level is being played (paused or not); false in the menus. */
+  let inLevel = false;
+  let panelMode: SettingsPanelMode = 'pause';
+
   // Settings / pause panel, touch buttons and the desktop click-to-play hint.
   const kbm = game?.input.keyboardMouse ?? null;
   const playHint = createPlayHint(uiRoot);
   function updatePlayHint(): void {
     playHint.set(
       !!game &&
+        inLevel &&
         !game.input.isTouchMode &&
         !kbm?.locked &&
         !panel.isOpen &&
         !result?.isOpen &&
-        !pauseReasons.has('rotate'),
+        !pauseReasons.has('rotate') &&
+        !pauseReasons.has('loading'),
     );
   }
+  /** Take Pointer Lock back for play on desktop (from a click; harmless if it is refused). */
+  const capture = () => {
+    if (game && !game.input.isTouchMode) void kbm?.lock().then(updatePlayHint);
+  };
   const panel = new SettingsPanel(uiRoot, settings, {
     gyroAvailable: navigator.maxTouchPoints > 0,
     requestGyro: requestGyroPermission,
@@ -219,14 +261,27 @@ async function boot(): Promise<void> {
       void saveSettings(platform.storage, next);
     },
     onResume: () => {
+      if (panelMode === 'menu') {
+        showTitle();
+        return;
+      }
       setPaused('menu', false);
-      if (game && !game.input.isTouchMode) void kbm?.lock().then(updatePlayHint);
+      capture();
+    },
+    onRestart: () => {
+      setPaused('menu', false);
+      retry();
+    },
+    onQuit: () => {
+      setPaused('menu', false);
+      showTitle();
     },
   });
-  const openMenu = () => {
-    if (panel.isOpen || result?.isOpen) return;
+  const openPause = () => {
+    if (!inLevel || panel.isOpen || result?.isOpen) return;
     kbm?.unlock();
-    panel.open();
+    panelMode = 'pause';
+    panel.open('pause');
     setPaused('menu', true);
   };
   function applySettingsChange(prev: Settings, next: Settings): void {
@@ -242,62 +297,172 @@ async function boot(): Promise<void> {
   }
 
   let touchControls: TouchControls | null = null;
+  const showTouchControls = () => {
+    if (touchControls && game) touchControls.visible = game.input.isTouchMode && inLevel;
+  };
   if (game) {
     const g = game;
     touchControls = new TouchControls(uiRoot, {
       onCrouch: () => (g.input.state.crouchToggle = true),
       onContext: () => (g.input.state.context = true),
       onThrow: () => (g.input.state.throw = true),
-      onSettings: openMenu,
+      onSettings: openPause,
     });
-    touchControls.visible = g.input.isTouchMode;
-    g.input.onTouchModeChange = (touch) => {
-      touchControls!.visible = touch && !result?.isOpen;
+    g.input.onTouchModeChange = () => {
+      if (!result?.isOpen) showTouchControls();
       updatePlayHint();
     };
     if (kbm) {
-      kbm.onUnlock = openMenu;
+      kbm.onUnlock = openPause;
       document.addEventListener('pointerlockchange', updatePlayHint);
     }
   }
+
+  // Menus.
+  const setProgress = (p: Progress) => {
+    progress = p;
+    void saveProgress(platform.storage, p);
+  };
+  const menu = new MainMenu(uiRoot, {
+    onPlay: () => void play(nextToPlay(progress)),
+    onLevels: () => {
+      menu.hide();
+      levelSelect.show(progress, flags.debug);
+    },
+    onLoadout: () => {
+      menu.hide();
+      loadout.show(progress);
+    },
+    onSettings: () => {
+      menu.hide();
+      panelMode = 'menu';
+      panel.open('menu');
+    },
+  });
+  const levelSelect = new LevelSelect(uiRoot, {
+    onPick: (id) => void play(id),
+    onBack: () => showTitle(),
+  });
+  const loadout = new Loadout(uiRoot, { onChange: setProgress, onBack: () => showTitle() });
+  const loading = new LoadingScreen(uiRoot);
+
+  /** Leave the level (if any) for the main menu; the level stays on stage behind it, frozen. */
+  function showTitle(): void {
+    if (!game) return;
+    inLevel = false;
+    kbm?.unlock();
+    result?.hide();
+    panel.close();
+    levelSelect.hide();
+    loadout.hide();
+    game.setHudVisible(false);
+    showTouchControls();
+    setPaused('title', true);
+    setPaused('menu', false);
+    setPaused('result', false);
+    menu.show({
+      playName: levelName(nextToPlay(progress)),
+      stars: totalStars(progress),
+      maxStars: CAMPAIGN.length * 3,
+      gems: progress.gems,
+    });
+  }
+
+  /** Begin play on the level now on stage. */
+  function enterLevel(): void {
+    if (!game) return;
+    inLevel = true;
+    menu.hide();
+    levelSelect.hide();
+    loadout.hide();
+    result?.hide();
+    game.setHudVisible(true);
+    showTouchControls();
+    setPaused('result', false);
+    setPaused('title', false);
+    capture();
+  }
+
+  /** Play a level from the start: the one on stage restarts in place, any other is loaded first. */
+  async function play(id: string): Promise<void> {
+    if (!game) return;
+    const mods = modifiersFor(progress);
+    if (id === game.level.data.id) {
+      game.restart(mods);
+      enterLevel();
+      return;
+    }
+    // Out of the old level first, so its finished mission can't bring the result screen back.
+    inLevel = false;
+    menu.hide();
+    levelSelect.hide();
+    result?.hide();
+    game.setHudVisible(false);
+    showTouchControls();
+    loading.show(levelName(id));
+    setPaused('loading', true);
+    try {
+      game.loadLevel(await loadLevel(id), mods);
+      // Compile the new level's materials now rather than as a hitch on its first frames.
+      await ctx.renderer.compileAsync(world.scene, world.camera);
+    } catch (err) {
+      console.error(err);
+      loading.hide();
+      setPaused('loading', false);
+      fatal(uiRoot, err instanceof LevelLoadError ? err.message : 'Could not load the level.');
+      return;
+    }
+    loading.hide();
+    setPaused('loading', false);
+    enterLevel();
+  }
+
   window.addEventListener('keydown', (e) => {
-    // With Pointer Lock held, Esc releases it and onUnlock opens the menu; this covers the unlocked case.
-    if (e.code === 'Escape' && game && !kbm?.locked && !panel.isOpen) openMenu();
-    if (e.code === 'KeyR' && !e.repeat && result?.isOpen) retry();
+    if (e.code !== 'Escape' && e.code !== 'KeyR') return;
+    if (e.code === 'KeyR') {
+      if (!e.repeat && result?.isOpen) retry();
+      return;
+    }
+    // With Pointer Lock held, Esc releases it and onUnlock opens the pause panel; this covers the rest.
+    if (inLevel) {
+      if (!kbm?.locked && !panel.isOpen) openPause();
+    } else if (levelSelect.isOpen || loadout.isOpen || (panel.isOpen && panelMode === 'menu')) {
+      showTitle();
+    }
   });
 
-  // Win / fail screen. Retry restarts in place (no reload); Next loads the following level.
-  const nextLevel = nextLevelId(flags.level);
+  // Win / fail screen. Retry restarts in place; Next plays the following level; Menu goes back.
   const result = game
     ? new ResultScreen(uiRoot, {
         onRetry: retry,
         onNext: () => {
-          if (!nextLevel) return;
-          const params = new URLSearchParams(window.location.search);
-          params.set('level', nextLevel);
-          window.location.search = params.toString();
+          const next = game && nextLevelId(game.level.data.id);
+          if (next) void play(next);
         },
+        onMenu: () => showTitle(),
       })
     : null;
   function showResult(): void {
     const r = game?.mission.result;
     if (!game || !r || !result) return;
+    const level = game.level.data;
+    let reward: WinReward | null = null;
+    if (r.outcome === 'won' && CAMPAIGN.some((l) => l.id === level.id)) {
+      const won = recordWin(progress, level.id, r.stars, r.stats.timeS);
+      setProgress(won.progress);
+      reward = won.reward;
+    }
     kbm?.unlock();
     game.setHudVisible(false);
     if (touchControls) touchControls.visible = false;
-    setPaused('result', true);
-    const level = game.mission.level.data;
-    result.show(r, level.guards.length, level.parTimeS, nextLevel !== null);
+    result.show(r, level.guards.length, level.parTimeS, nextLevelId(level.id) !== null, reward);
+    setPaused('result', true); // after show(), so the play hint sees the screen open
   }
   /** From a click or key press, so Pointer Lock can be taken straight back. */
   function retry(): void {
-    if (!game || !result?.isOpen) return;
-    result.hide();
-    game.restart();
-    game.setHudVisible(true);
-    if (touchControls) touchControls.visible = game.input.isTouchMode;
-    setPaused('result', false);
-    if (!game.input.isTouchMode) void kbm?.lock().then(updatePlayHint);
+    if (!game) return;
+    game.restart(modifiersFor(progress));
+    enterLevel();
   }
 
   setPaused(
@@ -335,7 +500,8 @@ async function boot(): Promise<void> {
 
   platform.loadingStop();
   loop.start();
-  platform.gameplayStart();
+  if (flags.level) enterLevel();
+  else showTitle();
 }
 
 boot().catch((err: unknown) => {

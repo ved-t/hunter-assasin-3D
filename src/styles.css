@@ -207,6 +207,8 @@ body {
   min-width: min(360px, 90vw);
   max-height: 100%;
   overflow-y: auto;
+  padding-right: 8px; /* room for the scrollbar */
+  scrollbar-width: thin;
   text-align: left;
   font-size: 16px;
 }
@@ -570,4 +572,315 @@ body {
 
 .result-overlay [hidden] {
   display: none;
+}
+
+/* ---- Phase 5a: menus ---- */
+
+/* Menu screens sit over the frozen level, so let a little of it show through. */
+.menu-screen {
+  background: rgba(5, 7, 10, 0.78);
+}
+
+.menu-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  width: min(340px, 90vw);
+  max-height: 100%;
+  overflow-y: auto;
+  padding-right: 6px; /* room for the scrollbar */
+  scrollbar-width: thin;
+  touch-action: pan-y;
+}
+
+.menu-panel.wide {
+  width: min(640px, 94vw);
+}
+
+.menu-panel h2 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0 0 4px;
+  font-size: 22px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.game-title {
+  margin: 0;
+  font-size: clamp(28px, 7vh, 44px);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-danger);
+  text-shadow: 0 0 22px rgba(255, 179, 71, 0.45);
+}
+
+.menu-totals {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 15px;
+  opacity: 0.85;
+}
+
+.menu-totals .gem {
+  margin-left: 14px;
+}
+
+.star {
+  color: var(--accent-danger);
+}
+
+.gem {
+  color: var(--accent-player);
+}
+
+.menu-btn {
+  padding: 12px 18px;
+  border-radius: 6px;
+  border: 1px solid rgba(191, 244, 255, 0.4);
+  background: #10161e;
+  color: var(--fg);
+  font: inherit;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.menu-btn:hover:not(:disabled),
+.menu-btn:focus-visible {
+  border-color: var(--accent-player);
+  color: var(--accent-player);
+  outline: none;
+}
+
+.menu-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.menu-btn.primary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 18px;
+  border-color: var(--accent-player);
+  color: var(--accent-player);
+  font-size: 20px;
+}
+
+.menu-btn.primary .play-name {
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  opacity: 0.75;
+}
+
+.menu-btn.small {
+  min-width: 92px;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.menu-btn.back {
+  align-self: center;
+  min-width: 160px;
+  margin-top: 4px;
+}
+
+/* Level select. */
+.tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.tab {
+  flex: 1;
+  padding: 8px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.tab.active {
+  border-bottom-color: var(--accent-danger);
+  opacity: 1;
+}
+
+.level-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+.level-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(191, 244, 255, 0.3);
+  background: #0d1218;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.level-card:hover:not(:disabled),
+.level-card:focus-visible {
+  border-color: var(--accent-player);
+  outline: none;
+}
+
+.level-card .num {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--accent-danger);
+}
+
+.level-card .name {
+  font-size: 14px;
+}
+
+.level-card .stars {
+  font-size: 16px;
+  letter-spacing: 0.1em;
+  color: var(--accent-danger);
+}
+
+.level-card.locked {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.level-card.locked .num,
+.level-card.locked .stars {
+  color: var(--fg);
+}
+
+.level-card.locked .stars {
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+/* Loadout. */
+.loadout-body section {
+  margin-bottom: 8px;
+}
+
+.loadout-body h3 {
+  margin: 4px 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  text-align: left;
+}
+
+.unlock-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 8px;
+}
+
+.unlock-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(191, 244, 255, 0.15);
+  background: #0d1218;
+  text-align: left;
+}
+
+.unlock-card.worn {
+  border-color: var(--accent-player);
+}
+
+.swatch {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.unlock-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.unlock-name {
+  font-size: 15px;
+}
+
+.unlock-desc {
+  font-size: 12px;
+  opacity: 0.65;
+}
+
+.gem-balance {
+  font-size: 18px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Loading. */
+.loading-name {
+  font-size: 22px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-danger);
+}
+
+.loading-label {
+  font-size: 14px;
+  opacity: 0.6;
+}
+
+/* Pause panel: Resume first, then Restart / Quit side by side. */
+.settings-overlay .label {
+  min-width: 128px;
+}
+
+.settings-overlay .pause-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.settings-overlay .pause-buttons[hidden] {
+  display: none;
+}
+
+.settings-overlay .pause-buttons button {
+  flex: 1;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(191, 244, 255, 0.35);
+  background: #10161e;
+  color: var(--fg);
+  font: inherit;
+}
+
+.result-overlay .reward {
+  font-size: 18px;
+}
+
+.result-overlay .buttons {
+  flex-wrap: wrap;
+  justify-content: center;
 }
