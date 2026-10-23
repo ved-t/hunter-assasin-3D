@@ -3,7 +3,7 @@
 
 import { LEVEL_LIMITS } from '../config/tunables';
 import { Grid } from './grid';
-import { Tile, isTileChar, type GridPoint, type LevelData } from './types';
+import { THEMES, Tile, isTileChar, type GridPoint, type LevelData } from './types';
 
 export type ValidationResult = { ok: true; level: LevelData } | { ok: false; errors: string[] };
 
@@ -12,6 +12,7 @@ const COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 const MIN_SIZE = 3;
 const MAX_SIZE = 128;
 const SCHEMA_TILE_SIZE = 2;
+const TIP_MAX_LENGTH = 140;
 
 type Obj = Record<string, unknown>;
 
@@ -79,6 +80,8 @@ function checkStructure(c: Checker, json: unknown): json is LevelData {
       'objective',
       'bottles',
       'parTimeS',
+      'theme',
+      'tip',
     ],
     'level',
   );
@@ -87,6 +90,15 @@ function checkStructure(c: Checker, json: unknown): json is LevelData {
   }
   if ('parTimeS' in json && (!isNum(json.parTimeS) || json.parTimeS <= 0)) {
     c.fail('parTimeS', 'must be a number > 0');
+  }
+  if ('theme' in json && !(THEMES as readonly unknown[]).includes(json.theme)) {
+    c.fail('theme', `must be one of ${THEMES.join(', ')}`);
+  }
+  if (
+    'tip' in json &&
+    (typeof json.tip !== 'string' || json.tip.length === 0 || json.tip.length > TIP_MAX_LENGTH)
+  ) {
+    c.fail('tip', `must be a string of 1..${TIP_MAX_LENGTH} characters`);
   }
   if (typeof json.id !== 'string' || !ID_PATTERN.test(json.id))
     c.fail('id', 'must match [a-z0-9-]+');

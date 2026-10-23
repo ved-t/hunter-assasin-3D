@@ -71,6 +71,13 @@ describe('validateLevel', () => {
     expectBoth(base(), true, true);
   });
 
+  it('accepts a theme and an intro tip', () => {
+    const l = base();
+    l.theme = 'office';
+    l.tip = 'Stay out of the light.';
+    expectBoth(l, true, true);
+  });
+
   it('accepts bottles, par time and an eliminateAll level without an exit', () => {
     const l = base();
     l.bottles = 0;
@@ -100,6 +107,9 @@ describe('validateLevel', () => {
     ['negative bottles', (l) => (l.bottles = -1)],
     ['fractional bottles', (l) => (l.bottles = 1.5)],
     ['zero par time', (l) => (l.parTimeS = 0)],
+    ['unknown theme', (l) => (l.theme = 'castle')],
+    ['empty tip', (l) => (l.tip = '')],
+    ['overlong tip', (l) => (l.tip = 'x'.repeat(141))],
   ];
   for (const [name, mutate] of structural) {
     it(`rejects ${name} (schema and runtime agree)`, () => {

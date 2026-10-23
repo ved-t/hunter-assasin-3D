@@ -91,4 +91,8 @@ export interface LevelData {
   bottles?: number;
   /** Finishing faster than this earns the time star (s). */
   parTimeS?: number;
+  /** Environment art set (default warehouse). */
+  theme?: Theme;
+  /** One line shown on the intro card when the level starts. */
+  tip?: string;
 }

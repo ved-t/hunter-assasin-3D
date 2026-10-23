@@ -93,6 +93,16 @@
       "description": "Finishing faster than this (seconds) earns the time star.",
       "type": "number",
       "exclusiveMinimum": 0
+    },
+    "theme": {
+      "description": "Environment art set (default warehouse).",
+      "enum": ["warehouse", "office", "mansion"]
+    },
+    "tip": {
+      "description": "One line shown on the intro card when the level starts.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 140
     }
   },
   "definitions": {
