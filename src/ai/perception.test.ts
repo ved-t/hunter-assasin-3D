@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { HEARING, VISION } from '../config/tunables';
+import { BODIES, GUARD, HEARING, VISION } from '../config/tunables';
 import { turnToward, wrapAngle, yawFromCompassDeg, yawFromDir } from '../core/angles';
 import { Grid } from '../level/grid';
+import { BeamRays, castBeamFan } from '../lighting/beam-rays';
 import {
   hearingGain,
+  inOwnBeam,
+  strayLightSeen,
   inVisionCone,
   visionFill,
   type Viewer,
@@ -114,5 +117,43 @@ describe('hearingGain', () => {
     expect(hearingGain(10.1, 10)).toBe(0);
     expect(hearingGain(Infinity, 10)).toBe(0);
     expect(hearingGain(0, 0)).toBe(0);
+  });
+});
+
+describe('stray light and bodies', () => {
+  /** A dropped flashlight on the floor at (x, z), pointing along (dirX, dirZ). */
+  function dropped(x: number, z: number, dirX: number, dirZ: number) {
+    const yaw = yawFromDir(dirX, dirZ);
+    const lens = {
+      x,
+      y: BODIES.dropLensHeight,
+      z,
+      pitch: (BODIES.dropLensPitchDeg * Math.PI) / 180,
+    };
+    return { lens, rays: castBeamFan(hall, x, z, yaw, new BeamRays()) };
+  }
+
+  it('sees a dropped light ahead, not one behind the guard or past the pillar', () => {
+    const ahead = dropped(c(5), c(1), 0, 1);
+    expect(strayLightSeen(hall, guard, ahead.lens, ahead.rays)).toBe(true);
+    const behind = { ...guard, yaw: yawFromDir(-1, 0) };
+    expect(strayLightSeen(hall, behind, ahead.lens, ahead.rays)).toBe(false);
+    // Lens hidden behind the pillar at (10,2), pointing east away from the guard.
+    const hidden = dropped(c(11), c(2), 1, 0);
+    expect(strayLightSeen(hall, guard, hidden.lens, hidden.rays)).toBe(false);
+  });
+
+  it("a guard's own beam lights a body in front of him, not one behind cover or out of range", () => {
+    const beam = {
+      x: guard.x + GUARD.flashlightForward,
+      z: guard.z,
+      height: GUARD.flashlightHeight,
+      yaw: guard.yaw,
+      intensity: 1,
+    };
+    expect(inOwnBeam(hall, beam, c(4), c(2))).toBe(true);
+    expect(inOwnBeam(hall, beam, c(7), c(2))).toBe(false); // right behind the low cover
+    expect(inOwnBeam(hall, beam, c(4), c(3) + 0.9)).toBe(false); // outside the 22° cone
+    expect(inOwnBeam(hall, beam, c(16), c(1))).toBe(false); // beyond 12 m
   });
 });

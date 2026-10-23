@@ -1,8 +1,12 @@
-// Guard-side senses on the grid: how fast the vision gauge fills, and what a noise is worth.
+// Guard-side senses on the grid: how fast the vision gauge fills, what a noise is worth, and the light
+// that gives a dead guard away (his dropped flashlight, and a beam landing on his body).
 // Pure functions; no meshes, no three.js.
 
-import { VISION, HEARING } from '../config/tunables';
+import { BODIES, HEARING, PLAYER_SIGHT, VISION } from '../config/tunables';
 import type { Grid } from '../level/grid';
+import type { BeamRays } from '../lighting/beam-rays';
+import { beamFactor, type BeamLight } from '../lighting/light-sampling';
+import { forEachPoolPoint, type Lens } from '../lighting/pool-points';
 import { hasLineOfSight } from '../nav/los';
 import type { PlayerGait } from '../player/controller';
 
@@ -91,6 +95,30 @@ export function visionFill(
     VISION.movementMult[target.gait] *
     out.visibleFraction;
   return out;
+}
+
+/**
+ * Can the viewer see a stray light (a dropped flashlight): its lens, or any pool of light it casts?
+ * `rays` is that flashlight's ray fan. Light reads further than a dark body, so the range is its own.
+ */
+export function strayLightSeen(grid: Grid, viewer: Viewer, lens: Lens, rays: BeamRays): boolean {
+  const sees = (x: number, y: number, z: number) =>
+    Math.hypot(x - viewer.x, z - viewer.z) <= BODIES.strayLightRangeM &&
+    angleOff(viewer, x, z) <= HALF_FOV &&
+    hasLineOfSight(grid, viewer.x, viewer.eyeHeight, viewer.z, x, y, z);
+  if (sees(lens.x, lens.y, lens.z)) return true;
+  const inset = PLAYER_SIGHT.pointInsetM;
+  return forEachPoolPoint(lens, rays, (p) => {
+    // Wall pools sit on the wall face; pull them into the open cell so LOS doesn't clip the wall.
+    const x = p.kind === 'wall' ? p.x + (rays.nx[p.ray] as number) * inset : p.x;
+    const z = p.kind === 'wall' ? p.z + (rays.nz[p.ray] as number) * inset : p.z;
+    return sees(x, p.y, z);
+  });
+}
+
+/** Does the viewer's own flashlight beam fall on the point (x, z), e.g. a body on the floor? */
+export function inOwnBeam(grid: Grid, beam: BeamLight, x: number, z: number): boolean {
+  return beamFactor(grid, beam, x, z, BODIES.bodySampleHeight) > 0;
 }
 
 /** Awareness gained from one noise heard at path distance `pathDist` from a source of `radius`. */

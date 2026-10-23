@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AWARENESS, GUARD, SEARCH, WEAPON } from '../config/tunables';
+import { AWARENESS, BODIES, GUARD, SEARCH, WEAPON } from '../config/tunables';
 import { Rng } from '../core/rng';
 import { Grid } from '../level/grid';
 import type { GuardDef } from '../level/types';
@@ -246,6 +246,52 @@ describe('guard shooting', () => {
     expect(shot).toBe(true);
     sys.step(DT, p, 1);
     expect(sys.guards[1]!.state).toBe('alert');
+  });
+});
+
+describe('bodies and stray light', () => {
+  it('a beam landing on a body means Alert, then a search around the body, only once', () => {
+    // Guard 0 posted facing east down room A; guard 1 stands in his beam and is killed.
+    const sys = new GuardSystem(grid, [posted(1, 2, 90), posted(5, 2, 90)], new Rng(1));
+    const [g, body] = [sys.guards[0]!, sys.guards[1]!];
+    const found: number[] = [];
+    const states: GuardState[] = [];
+    sys.events.on('bodyFound', (e) => found.push(e.body.id));
+    sys.events.on('stateChange', (e) => e.guard === g && states.push(e.to));
+    sys.kill(body);
+    const away = player(-50, -50);
+    run(sys, away, 0.3);
+    expect(found).toEqual([1]);
+    expect(g.state).toBe('alert');
+    expect(g.awareness.lkp).toMatchObject({ x: body.pos.x, z: body.pos.z });
+
+    run(sys, away, SEARCH.giveUpS + 20);
+    expect(states.slice(0, 3)).toEqual(['alert', 'search', 'patrol']);
+    // Back on patrol his beam sweeps the body again, but it's old news.
+    expect(found).toEqual([1]);
+    expect(g.state).toBe('patrol');
+  });
+
+  it('a stray dropped light only makes a guard curious, and he walks over to find the body', () => {
+    // Guard 0 in room A faces the doorway; guard 1 dies in room B with his light pointing back
+    // through it. The body is beyond guard 0's beam; the light is not.
+    const sys = new GuardSystem(grid, [posted(1, 3, 90), posted(9, 3, 270)], new Rng(3));
+    const [g, body] = [sys.guards[0]!, sys.guards[1]!];
+    sys.kill(body);
+    let foundAt = -1;
+    let peak = 0;
+    let t = 0;
+    sys.events.on('bodyFound', () => foundAt < 0 && (foundAt = t));
+    const away = player(-50, -50);
+    for (; t < 30 && foundAt < 0; t += DT) {
+      sys.step(DT, away, 1);
+      if (foundAt < 0) peak = Math.max(peak, g.awareness.value);
+    }
+    expect(peak).toBeGreaterThanOrEqual(AWARENESS.suspicious);
+    expect(peak).toBeLessThanOrEqual(BODIES.strayLightCap + 1e-9);
+    expect(foundAt).toBeGreaterThan(0);
+    run(sys, away, 0.1);
+    expect(g.state).toBe('alert');
   });
 });
 

@@ -24,8 +24,14 @@ function edgeFalloff(value: number, limit: number, fraction: number): number {
   return value <= start ? 1 : (limit - value) / (limit - start);
 }
 
-/** How strongly one beam lights the point (x, z) (0..1). */
-export function beamFactor(grid: Grid, beam: BeamLight, x: number, z: number): number {
+/** How strongly one beam lights the point (x, z) (0..1), with LOS tested to height `h` (m). */
+export function beamFactor(
+  grid: Grid,
+  beam: BeamLight,
+  x: number,
+  z: number,
+  h: number = LIGHT_EXPOSURE.sampleHeight,
+): number {
   if (beam.intensity <= 0) return 0;
   const dx = x - beam.x;
   const dz = z - beam.z;
@@ -38,7 +44,6 @@ export function beamFactor(grid: Grid, beam: BeamLight, x: number, z: number): n
     edgeFalloff(angle, HALF, LIGHT_EXPOSURE.beamEdgeFraction) *
     edgeFalloff(d, FLASHLIGHT.rangeM, LIGHT_EXPOSURE.beamRangeFraction);
   if (f <= 0) return 0;
-  const h = LIGHT_EXPOSURE.sampleHeight;
   if (!hasLineOfSight(grid, beam.x, beam.height, beam.z, x, h, z)) return 0;
   return f * beam.intensity;
 }

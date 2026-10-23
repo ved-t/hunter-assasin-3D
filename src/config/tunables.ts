@@ -297,6 +297,16 @@ export const BODIES = {
   dropLensPitchDeg: 1.5,
   /** The dropped beam points along the guard's last facing ± this much (deg). */
   dropYawJitterDeg: 25,
+  /** A beam must reach this point on a body lying on the floor (m), so low cover can hide it. */
+  bodySampleHeight: 0.3,
+  /** Each living guard checks for bodies and stray light this often (Hz), staggered across steps. */
+  checkHz: 10,
+  /** A stray light (lens or pool) is noticed within this distance (m) inside the vision cone. */
+  strayLightRangeM: 20,
+  /** Seeing a stray light adds this much awareness per second (a weak stimulus)... */
+  strayLightPerS: 12,
+  /** ...but never lifts awareness above this: light alone makes a guard curious, not Alert. */
+  strayLightCap: 60,
 } as const;
 
 /** Guard sight. Fill rates are awareness/s before the exposure × stance × movement multipliers. */
