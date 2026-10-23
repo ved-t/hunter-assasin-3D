@@ -3,7 +3,7 @@
 
 import './styles.css';
 import { CAMPAIGN, nextLevelId } from './config/campaign';
-import type { QualityTier } from './config/quality';
+import { TIER_SETTINGS, type QualityTier } from './config/quality';
 import { MISSION } from './config/tunables';
 import { requestGyroPermission } from './input/gyro';
 import { DEFAULT_THEME } from './level/kit';
@@ -14,6 +14,7 @@ import { GameLoop } from './core/loop';
 import { Rng } from './core/rng';
 import { createPlatform } from './platform';
 import { ThemeAssets } from './render/assets';
+import type { PostFx } from './render/post';
 import {
   applyTier,
   createRenderer,
@@ -153,6 +154,24 @@ async function boot(): Promise<void> {
 
   let probe = tierSource === 'guess' ? new FpsProbe() : null;
 
+  // High-tier post (bloom, vignette, grain): its module loads only when a tier asks for it.
+  let post: PostFx | null = null;
+  let postTier = ctx.tier;
+  const updatePost = (next: QualityTier) => {
+    postTier = next;
+    if (!TIER_SETTINGS[next].postFx) {
+      post?.dispose();
+      post = null;
+      return;
+    }
+    if (post) return;
+    void import('./render/post').then(({ PostFx }) => {
+      if (post || !TIER_SETTINGS[postTier].postFx) return;
+      post = new PostFx(ctx.renderer, world.scene, world.camera, TIER_SETTINGS[postTier].antialias);
+    });
+  };
+  updatePost(ctx.tier);
+
   const loop = new GameLoop({
     update: (dt) => world.update(dt),
     render: (alpha, frameDt) => {
@@ -168,7 +187,8 @@ async function boot(): Promise<void> {
         if (endedFor >= (outcome === 'won' ? MISSION.winDelayS : MISSION.failDelayS)) showResult();
       }
       ctx.renderer.info.reset();
-      ctx.renderer.render(world.scene, world.camera);
+      if (post) post.render(frameDt);
+      else ctx.renderer.render(world.scene, world.camera);
 
       if (probe?.push(frameDt * 1000)) {
         const next = tierAfterProbe(ctx.tier, probe.medianFps());
@@ -178,6 +198,7 @@ async function boot(): Promise<void> {
         if (next !== ctx.tier) {
           applyTier(ctx, next);
           world.applyTier(next);
+          updatePost(next);
           markMaterialsDirty(world.scene);
           resizeToCanvas(ctx, world.camera);
           tierSource = 'probe';
@@ -300,6 +321,7 @@ async function boot(): Promise<void> {
     if (next.quality !== prev.quality && next.quality !== 'auto' && next.quality !== ctx.tier) {
       applyTier(ctx, next.quality);
       world.applyTier(next.quality);
+      updatePost(next.quality);
       markMaterialsDirty(world.scene);
       resizeToCanvas(ctx, world.camera);
       tierSource = 'settings';
