@@ -2,6 +2,7 @@
 
 import './styles.css';
 import type { QualityTier } from './config/quality';
+import { LEVEL_FILES, MISSION } from './config/tunables';
 import { requestGyroPermission } from './input/gyro';
 import { LevelLoadError, loadLevel } from './level/loader';
 import { parseDebugFlags } from './core/debug-flags';
@@ -24,13 +25,14 @@ import { loadSettings, saveSettings, type Settings } from './save/settings';
 import type { DebugOverlay } from './ui/debug-overlay';
 import { createOverlay } from './ui/overlay';
 import { createPlayHint } from './ui/play-hint';
+import { ResultScreen } from './ui/result-screen';
 import { setupRotateOverlay } from './ui/rotate-overlay';
 import { SettingsPanel } from './ui/settings-panel';
 import { TouchControls } from './ui/touch-controls';
 import { createGameWorld, type GameWorld, type World } from './world';
 
 type TierSource = 'url' | 'settings' | 'guess' | 'probe';
-type PauseReason = 'rotate' | 'menu';
+type PauseReason = 'rotate' | 'menu' | 'result';
 
 const PERF_LEVEL_ID = 'perf';
 
@@ -104,6 +106,8 @@ async function boot(): Promise<void> {
     });
     game.applySettings(settings);
     world = game;
+    // ?debug=1 only: a handle for console poking and scripted (CDP) playtests.
+    if (flags.debug) (window as Window & { __shadowHunter?: unknown }).__shadowHunter = { game };
   }
   watchResize(ctx, world.camera);
 
@@ -120,6 +124,10 @@ async function boot(): Promise<void> {
     render: (alpha, frameDt) => {
       world.render(alpha, frameDt);
       touchControls?.setCrouched(game?.player.crouched ?? false);
+      if (game?.mission.outcome && !result?.isOpen) {
+        const { outcome, endedFor } = game.mission;
+        if (endedFor >= (outcome === 'won' ? MISSION.winDelayS : MISSION.failDelayS)) showResult();
+      }
       ctx.renderer.info.reset();
       ctx.renderer.render(world.scene, world.camera);
 
@@ -193,6 +201,7 @@ async function boot(): Promise<void> {
         !game.input.isTouchMode &&
         !kbm?.locked &&
         !panel.isOpen &&
+        !result?.isOpen &&
         !pauseReasons.has('rotate'),
     );
   }
@@ -210,7 +219,7 @@ async function boot(): Promise<void> {
     },
   });
   const openMenu = () => {
-    if (panel.isOpen) return;
+    if (panel.isOpen || result?.isOpen) return;
     kbm?.unlock();
     panel.open();
     setPaused('menu', true);
@@ -237,7 +246,7 @@ async function boot(): Promise<void> {
     });
     touchControls.visible = g.input.isTouchMode;
     g.input.onTouchModeChange = (touch) => {
-      touchControls!.visible = touch;
+      touchControls!.visible = touch && !result?.isOpen;
       updatePlayHint();
     };
     if (kbm) {
@@ -248,7 +257,44 @@ async function boot(): Promise<void> {
   window.addEventListener('keydown', (e) => {
     // With Pointer Lock held, Esc releases it and onUnlock opens the menu; this covers the unlocked case.
     if (e.code === 'Escape' && game && !kbm?.locked && !panel.isOpen) openMenu();
+    if (e.code === 'KeyR' && !e.repeat && result?.isOpen) retry();
   });
+
+  // Win / fail screen. Retry restarts in place (no reload); Next loads the following level.
+  const order: readonly string[] = LEVEL_FILES.order;
+  const index = order.indexOf(flags.level);
+  const nextLevel = index >= 0 ? (order[index + 1] ?? null) : null;
+  const result = game
+    ? new ResultScreen(uiRoot, {
+        onRetry: retry,
+        onNext: () => {
+          if (!nextLevel) return;
+          const params = new URLSearchParams(window.location.search);
+          params.set('level', nextLevel);
+          window.location.search = params.toString();
+        },
+      })
+    : null;
+  function showResult(): void {
+    const r = game?.mission.result;
+    if (!game || !r || !result) return;
+    kbm?.unlock();
+    game.setHudVisible(false);
+    if (touchControls) touchControls.visible = false;
+    setPaused('result', true);
+    const level = game.mission.level.data;
+    result.show(r, level.guards.length, level.parTimeS, nextLevel !== null);
+  }
+  /** From a click or key press, so Pointer Lock can be taken straight back. */
+  function retry(): void {
+    if (!game || !result?.isOpen) return;
+    result.hide();
+    game.restart();
+    game.setHudVisible(true);
+    if (touchControls) touchControls.visible = game.input.isTouchMode;
+    setPaused('result', false);
+    if (!game.input.isTouchMode) void kbm?.lock().then(updatePlayHint);
+  }
 
   setPaused(
     'rotate',

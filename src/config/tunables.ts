@@ -100,6 +100,8 @@ export const LEVEL_FILES = {
   /** Path relative to the page, so builds served from portal subpaths still resolve. */
   dir: 'levels/',
   defaultId: 'small',
+  /** Play order: "Next level" on the win screen goes to the following id (Phase 5 adds a menu). */
+  order: ['small', 'medium'],
 } as const;
 
 export const PLAYER = {

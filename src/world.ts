@@ -43,6 +43,8 @@ export interface GameWorld extends World {
   applySettings(settings: Settings): void;
   /** Start the level over: a fresh Mission; the scene, HUD and audio are kept. */
   restart(): void;
+  /** Hide the in-game HUD (behind the result screen). */
+  setHudVisible(visible: boolean): void;
 }
 
 export interface GameWorldOptions {
@@ -189,6 +191,9 @@ export function createGameWorld(level: LoadedLevel, opts: GameWorldOptions): Gam
       input.apply(next);
       mission.player.invertY = next.invertY;
       hud.minimapMode = next.minimapMode;
+    },
+    setHudVisible(visible) {
+      hud.visible = visible;
     },
     restart() {
       const godMode = mission.godMode;
