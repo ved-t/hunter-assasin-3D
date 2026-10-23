@@ -4,7 +4,7 @@
 
 import type { Guard } from '../ai/guard';
 import { GuardSystem } from '../ai/guards';
-import { BOTTLE, GUARD, KNIFE, LIGHT_EXPOSURE, WEAPON } from '../config/tunables';
+import { BOTTLE, GUARD, KNIFE, LIGHT_EXPOSURE, MISSION, WEAPON } from '../config/tunables';
 import { Emitter } from '../core/events';
 import type { Rng } from '../core/rng';
 import type { InputState } from '../input/input-state';
@@ -18,6 +18,8 @@ import { PlayerController } from '../player/controller';
 import { Health } from '../player/health';
 import { findKillTarget } from '../player/knife';
 import { Bottle, type Point3 } from '../player/throw';
+import { checkOutcome, objectiveLabel, onExitTile, type Outcome } from './objectives';
+import { starCriteria, starRating, type RunStats, type StarCriteria } from './stars';
 
 /** The camera's lens, which decides what the player can see. */
 export interface ViewLens {
@@ -37,6 +39,18 @@ export interface MissionEvents {
   throw: { left: number };
   /** It shattered at `at`; `drawn` guards turn toward it. */
   shatter: { at: Point3; drawn: Guard[] };
+  /** The objective item was collected. */
+  pickup: Record<string, never>;
+  /** The mission is over. */
+  end: { outcome: Outcome };
+}
+
+export interface MissionResult {
+  outcome: Outcome;
+  stats: RunStats;
+  criteria: StarCriteria;
+  /** Only meaningful when won. */
+  stars: 1 | 2 | 3;
 }
 
 export class Mission {
@@ -62,6 +76,15 @@ export class Mission {
   /** Distraction bottles left, and the one in flight (only one at a time). */
   bottles: number;
   readonly bottle = new Bottle();
+  /** The objective item's position, if the level has one. */
+  readonly item: Vec2 | null;
+  itemTaken = false;
+  /** A guard went Alert with the player in sight at some point (costs the stealth star). */
+  detected = false;
+  /** Set once, when the mission is won or failed; the sim then freezes. */
+  outcome: Outcome | null = null;
+  /** Seconds since the mission ended. */
+  endedFor = 0;
   private readonly view = createPlayerView();
 
   constructor(
@@ -76,6 +99,11 @@ export class Mission {
     this.beams = this.guards.guards.map(() => ({ x: 0, z: 0, height: 0, yaw: 0, intensity: 0 }));
     this.perception = new PlayerPerception(grid, this.guards.guards.length);
     this.bottles = data.bottles ?? BOTTLE.defaultCount;
+    const item = data.objective.type === 'reachExit' ? data.objective.item : undefined;
+    this.item = item ? grid.gridToWorld(item.x, item.y) : null;
+    this.guards.events.on('stateChange', ({ guard, to }) => {
+      if (to === 'alert' && guard.seesPlayer) this.detected = true;
+    });
     this.guards.events.on('shot', ({ guard, hit }) => {
       if (!hit) return;
       if (!this.godMode) this.health.damage(WEAPON.damage);
@@ -84,6 +112,11 @@ export class Mission {
   }
 
   step(dt: number, input: InputState, lens: ViewLens): void {
+    if (this.outcome) {
+      this.endedFor += dt;
+      input.consumeEdges();
+      return;
+    }
     const { grid } = this.level;
     const { player, guards } = this;
     // Actions read edge flags before the controller consumes them.
@@ -112,6 +145,68 @@ export class Mission {
     v.vFov = lens.vFov;
     v.aspect = lens.aspect;
     this.perception.step(dt, v, guards.guards, this.beams);
+
+    const { item } = this;
+    if (item && !this.itemTaken) {
+      if (Math.hypot(player.pos.x - item.x, player.pos.z - item.z) <= MISSION.itemPickupM) {
+        this.itemTaken = true;
+        this.events.emit('pickup', {});
+      }
+    }
+    const outcome = checkOutcome({
+      type: this.level.data.objective.type,
+      hasItem: item !== null,
+      itemTaken: this.itemTaken,
+      onExit: onExitTile(grid, player.pos),
+      aliveGuards: guards.aliveCount,
+      playerDead: this.health.dead,
+    });
+    if (outcome) this.end(outcome);
+  }
+
+  get stats(): RunStats {
+    return {
+      timeS: this.time,
+      kills: this.kills,
+      detected: this.detected,
+      damaged: this.health.damaged,
+    };
+  }
+
+  /** The end-of-mission summary (null while still playing). */
+  get result(): MissionResult | null {
+    if (!this.outcome) return null;
+    const stats = this.stats;
+    const criteria = starCriteria(stats, this.level.data.parTimeS);
+    return { outcome: this.outcome, stats, criteria, stars: starRating(criteria) };
+  }
+
+  /** What to do next, for the HUD. */
+  get objectiveLabel(): string {
+    const total = this.guards.guards.length;
+    return objectiveLabel(
+      this.level.data.objective.type,
+      this.item !== null,
+      this.itemTaken,
+      this.guards.aliveCount,
+      total,
+    );
+  }
+
+  private end(outcome: Outcome): void {
+    this.outcome = outcome;
+    this.endedFor = 0;
+    // Freeze in place: with prev = current, render interpolation holds still.
+    const { player } = this;
+    player.prevPos.x = player.pos.x;
+    player.prevPos.z = player.pos.z;
+    player.prevEyeHeight = player.eyeHeight;
+    for (const g of this.guards.guards) {
+      g.prevPos.x = g.pos.x;
+      g.prevPos.z = g.pos.z;
+      g.prevYaw = g.yaw;
+    }
+    this.events.emit('end', { outcome });
   }
 
   /** Some living guard has the player in sight this step. */

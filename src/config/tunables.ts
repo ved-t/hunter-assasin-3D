@@ -288,6 +288,16 @@ export const KNIFE = {
   noiseRadiusM: 3,
 } as const;
 
+/** Mission flow: objectives and the end of a run. */
+export const MISSION = {
+  /** Walking within this distance (m) of the objective item picks it up. */
+  itemPickupM: 0.9,
+  /** After the killing hit, the death fall plays this long before the fail screen (s). */
+  failDelayS: 1.2,
+  /** After winning, a short beat before the result screen (s). */
+  winDelayS: 0.6,
+} as const;
+
 /** Thrown distraction bottle. */
 export const BOTTLE = {
   /** Bottles per level when the level JSON doesn't say. */

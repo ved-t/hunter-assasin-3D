@@ -121,6 +121,68 @@ describe('Mission', () => {
     expect(shatters).toHaveLength(small.bottles);
   });
 
+  it('small: two silent takedowns win with three stars', () => {
+    const m = new Mission(loadJson(small), new Rng(1));
+    const input = new InputState();
+    const ends: string[] = [];
+    m.events.on('end', (e) => ends.push(e.outcome));
+    expect(m.objectiveLabel).toMatch(/0\/2/);
+    for (const g of m.guards.guards) {
+      teleport(m, g.pos.x + Math.sin(g.yaw) * 1, g.pos.z + Math.cos(g.yaw) * 1);
+      input.context = true;
+      m.step(DT, input, LENS);
+      expect(g.dead).toBe(true);
+      run(m, input, 0.5);
+    }
+    expect(ends).toEqual(['won']);
+    expect(m.result).toMatchObject({
+      outcome: 'won',
+      stats: { kills: 2, detected: false, damaged: false },
+      stars: 3,
+    });
+    // Frozen once over.
+    const t = m.time;
+    run(m, input, 1);
+    expect(m.time).toBe(t);
+    expect(m.endedFor).toBeGreaterThan(0.9);
+  });
+
+  it('medium: the exit only counts after the intel is collected', () => {
+    const level = loadJson(medium);
+    const m = new Mission(level, new Rng(1));
+    const input = new InputState();
+    const row = level.data.tiles.findIndex((r) => r.includes('E'));
+    const exit = level.grid.cellCenter(level.data.tiles[row]!.indexOf('E'), row);
+    m.godMode = true; // teleporting around may walk into a guard's view
+    teleport(m, exit.x, exit.z);
+    run(m, input, 0.2);
+    expect(m.outcome).toBeNull();
+    expect(m.objectiveLabel).toMatch(/intel/);
+
+    let picked = 0;
+    m.events.on('pickup', () => picked++);
+    teleport(m, m.item!.x, m.item!.z);
+    run(m, input, 0.2);
+    expect(picked).toBe(1);
+    expect(m.objectiveLabel).toMatch(/exit/);
+    teleport(m, exit.x, exit.z);
+    run(m, input, 0.2);
+    expect(m.outcome).toBe('won');
+  });
+
+  it('three hits fail the mission and cost the stealth and damage stars', () => {
+    const m = new Mission(loadJson(small), new Rng(1));
+    const g = m.guards.guards[0]!;
+    teleport(m, g.pos.x - Math.sin(g.yaw) * 2.5, g.pos.z - Math.cos(g.yaw) * 2.5);
+    g.awareness.raiseTo(AWARENESS.alert, m.player.pos.x, m.player.pos.z);
+    run(m, new InputState(), 20);
+    expect(m.health.dead).toBe(true);
+    expect(m.result).toMatchObject({
+      outcome: 'failed',
+      stats: { detected: true, damaged: true },
+    });
+  });
+
   it('moves the player from input and tracks light exposure', () => {
     const m = new Mission(loadJson(small), new Rng(1));
     const input = new InputState();
