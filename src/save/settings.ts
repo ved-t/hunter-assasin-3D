@@ -17,6 +17,9 @@ export interface Settings {
   gyro: boolean;
   /** Rotating keeps the view direction up; fixed keeps north up. */
   minimapMode: MinimapMode;
+  /** 0..1: everything, and sound effects (music gets its own slider with the Phase 5d tracks). */
+  volumeMaster: number;
+  volumeSfx: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -25,11 +28,20 @@ export const DEFAULT_SETTINGS: Settings = {
   invertY: false,
   gyro: false,
   minimapMode: 'rotating',
+  volumeMaster: SETTINGS_LIMITS.volumeDefault,
+  volumeSfx: SETTINGS_LIMITS.volumeDefault,
 };
 
 export function clampSensitivity(v: number): number {
   return Math.min(SETTINGS_LIMITS.sensitivityMax, Math.max(SETTINGS_LIMITS.sensitivityMin, v));
 }
+
+export function clampVolume(v: number): number {
+  return Math.min(1, Math.max(0, v));
+}
+
+const volume = (v: unknown, fallback: number) =>
+  typeof v === 'number' && Number.isFinite(v) ? clampVolume(v) : fallback;
 
 /** Validate an untrusted parsed object field by field. */
 export function parseSettings(raw: unknown): Settings {
@@ -46,6 +58,8 @@ export function parseSettings(raw: unknown): Settings {
     invertY: typeof p.invertY === 'boolean' ? p.invertY : d.invertY,
     gyro: typeof p.gyro === 'boolean' ? p.gyro : d.gyro,
     minimapMode: isMinimapMode(p.minimapMode) ? p.minimapMode : d.minimapMode,
+    volumeMaster: volume(p.volumeMaster, d.volumeMaster),
+    volumeSfx: volume(p.volumeSfx, d.volumeSfx),
   };
 }
 

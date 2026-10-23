@@ -24,6 +24,8 @@ describe('settings', () => {
       invertY: true,
       gyro: true,
       minimapMode: 'fixed',
+      volumeMaster: 0.5,
+      volumeSfx: 0.25,
     } as const;
     await saveSettings(s, value);
     expect(await loadSettings(s)).toEqual(value);
@@ -47,8 +49,17 @@ describe('settings', () => {
         gyro: 1,
         quality: 'ultra',
         minimapMode: 'spinning',
+        volumeMaster: 'loud',
+        volumeSfx: Infinity,
       }),
     ).toEqual(DEFAULT_SETTINGS);
+  });
+
+  it('clamps volumes to 0..1', () => {
+    expect(parseSettings({ volumeMaster: 4, volumeSfx: -1 })).toMatchObject({
+      volumeMaster: 1,
+      volumeSfx: 0,
+    });
   });
 
   it('survives garbage', async () => {

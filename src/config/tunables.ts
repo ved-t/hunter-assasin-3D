@@ -616,4 +616,7 @@ export const SETTINGS_LIMITS = {
   sensitivityMax: 3,
   sensitivityDefault: 1,
   sensitivityStep: 0.05,
+  /** Volume sliders, 0..1. */
+  volumeDefault: 1,
+  volumeStep: 0.05,
 } as const;

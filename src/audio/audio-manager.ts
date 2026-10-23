@@ -22,6 +22,9 @@ export interface VoiceHandle {
 export class AudioManager {
   ctx: AudioContext | null = null;
   private master: GainNode | null = null;
+  /** Every one-shot goes through this bus (the music bus joins it in Phase 5d). */
+  private sfx: GainNode | null = null;
+  private volume = { master: 1, sfx: 1 };
   private readonly voices: Voice[] = [];
   private hostPaused = false;
   /** Called once, right after the context is created (build shared buffers here). */
@@ -36,11 +39,25 @@ export class AudioManager {
       if (!Ctor) return;
       this.ctx = new Ctor();
       this.master = this.ctx.createGain();
-      this.master.gain.value = AUDIO.masterGain;
       this.master.connect(this.ctx.destination);
+      this.sfx = this.ctx.createGain();
+      this.sfx.connect(this.master);
+      this.applyVolume();
       this.onReady?.(this.ctx);
     }
     if (!this.hostPaused && this.ctx.state !== 'running') void this.ctx.resume();
+  }
+
+  /** Player volume sliders, 0..1. Safe before the context exists. */
+  setVolume(master: number, sfx: number): void {
+    this.volume = { master, sfx };
+    this.applyVolume();
+  }
+
+  private applyVolume(): void {
+    if (!this.master || !this.sfx) return;
+    this.master.gain.value = AUDIO.masterGain * this.volume.master;
+    this.sfx.gain.value = this.volume.sfx;
   }
 
   get ready(): boolean {
@@ -63,8 +80,8 @@ export class AudioManager {
    * isn't running or every voice is louder. `build` wires the sound into the handle's output.
    */
   play(level: number, duration: number, build: (v: VoiceHandle) => void): boolean {
-    const { ctx, master } = this;
-    if (!ctx || !master || ctx.state !== 'running' || level <= 0) return false;
+    const { ctx, sfx } = this;
+    if (!ctx || !sfx || ctx.state !== 'running' || level <= 0) return false;
     const now = ctx.currentTime;
     for (let i = this.voices.length - 1; i >= 0; i--) {
       const done = this.voices[i] as Voice;
@@ -83,7 +100,7 @@ export class AudioManager {
       this.voices.splice(quietest, 1);
     }
     const out = ctx.createGain();
-    out.connect(master);
+    out.connect(sfx);
     const voice: Voice = { out, level, end: now + duration, sources: [] };
     build({ ctx, out, track: (s) => voice.sources.push(s) });
     this.voices.push(voice);

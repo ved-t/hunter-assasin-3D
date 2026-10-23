@@ -250,6 +250,7 @@ export function createGameWorld(first: LoadedLevel, opts: GameWorldOptions): Gam
       input.apply(next);
       mission.player.invertY = next.invertY;
       hud.minimapMode = next.minimapMode;
+      audio.manager.setVolume(next.volumeMaster, next.volumeSfx);
     },
     loadLevel(next, nextMods = NO_MODIFIERS) {
       load(next, nextMods);
