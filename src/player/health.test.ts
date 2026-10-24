@@ -51,4 +51,18 @@ describe('Health', () => {
     expect(calm(h, HEALTH.regenDelayS * 2)).toBe(0);
     expect(h.dead).toBe(true);
   });
+
+  it('a revive brings back HP with a window where hits cost nothing', () => {
+    const h = new Health();
+    for (let i = 0; i < HEALTH.maxHp; i++) h.damage();
+    h.revive(1, 2);
+    expect(h.dead).toBe(false);
+    expect(h.hp).toBe(1);
+    expect(h.damage()).toBe(false);
+    calm(h, 1.9);
+    expect(h.damage()).toBe(false);
+    calm(h, 0.2);
+    expect(h.damage()).toBe(true);
+    expect(h.dead).toBe(true);
+  });
 });

@@ -514,6 +514,24 @@ export const MISSION = {
   winDelayS: 0.6,
 } as const;
 
+/** Revive after a fail, paid for with a rewarded ad. Once per attempt. */
+export const REVIVE = {
+  /** HP the player comes back with. */
+  hp: 1,
+  /** Hits cost nothing for this long after a revive (s). */
+  invulnS: 2,
+} as const;
+
+/** When the game asks the platform for an interstitial; the portal SDKs add their own pacing on top. */
+export const ADS = {
+  /** No interstitial before this long into the session (s). */
+  firstInterstitialAfterS: 120,
+  /** Shortest gap between two interstitials (s); rewarded ads count as one too. */
+  interstitialMinGapS: 180,
+  /** ?ads=1 dev build: how long the fake ad stays up (s). */
+  devFakeAdS: 2,
+} as const;
+
 /** Gems: earned by beating your best on a level, spent in the loadout (config/unlocks.ts). */
 export const PROGRESSION = {
   /** For each star above the level's previous best. */

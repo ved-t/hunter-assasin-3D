@@ -4,7 +4,15 @@
 
 import type { Guard } from '../ai/guard';
 import { GuardSystem } from '../ai/guards';
-import { BOTTLE, GUARD, KNIFE, LIGHT_EXPOSURE, MISSION, WEAPON } from '../config/tunables';
+import {
+  BOTTLE,
+  GUARD,
+  KNIFE,
+  LIGHT_EXPOSURE,
+  MISSION,
+  REVIVE,
+  WEAPON,
+} from '../config/tunables';
 import { Emitter } from '../core/events';
 import type { Rng } from '../core/rng';
 import type { InputState } from '../input/input-state';
@@ -44,6 +52,8 @@ export interface MissionEvents {
   pickup: Record<string, never>;
   /** The mission is over. */
   end: { outcome: Outcome };
+  /** A failed mission continues (rewarded revive). */
+  revive: { hp: number };
 }
 
 export interface MissionResult {
@@ -86,6 +96,8 @@ export class Mission {
   outcome: Outcome | null = null;
   /** Seconds since the mission ended. */
   endedFor = 0;
+  /** Revives used this attempt (at most one). */
+  revives = 0;
   private readonly view = createPlayerView();
 
   /** `mods`: what the equipped perk changes for this attempt. */
@@ -110,7 +122,8 @@ export class Mission {
       if (to === 'alert' && guard.seesPlayer) this.detected = true;
     });
     this.guards.events.on('shot', ({ guard, hit }) => {
-      if (!hit) return;
+      // Just revived: a shot that lands counts as a miss.
+      if (!hit || this.health.invulnerable > 0) return;
       if (!this.godMode) this.health.damage(WEAPON.damage);
       this.events.emit('hit', { guard, hp: this.health.hp });
     });
@@ -184,6 +197,27 @@ export class Mission {
     const stats = this.stats;
     const criteria = starCriteria(stats, this.level.data.parTimeS);
     return { outcome: this.outcome, stats, criteria, stars: starRating(criteria) };
+  }
+
+  /** A failed mission can be revived once (after a rewarded ad). */
+  get canRevive(): boolean {
+    return this.outcome === 'failed' && this.revives === 0;
+  }
+
+  /**
+   * Back into the failed attempt where it ended: a little HP, a short invulnerability, and every Alert
+   * guard searching instead of shooting. Detection and damage stay on the record. Returns false if not
+   * allowed.
+   */
+  revive(): boolean {
+    if (!this.canRevive) return false;
+    this.revives++;
+    this.outcome = null;
+    this.endedFor = 0;
+    this.health.revive(REVIVE.hp, REVIVE.invulnS);
+    this.guards.standDown();
+    this.events.emit('revive', { hp: this.health.hp });
+    return true;
   }
 
   /** What to do next, for the HUD. */

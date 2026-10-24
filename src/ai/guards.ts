@@ -133,6 +133,18 @@ export class GuardSystem {
     return true;
   }
 
+  /**
+   * After a revive: every Alert guard drops to Search around his LKP (which caps his awareness), so
+   * only a fresh sighting brings him back. Emits stateChange like any other transition.
+   */
+  standDown(): void {
+    for (const g of this.guards) {
+      if (g.dead || g.state !== 'alert') continue;
+      g.enter('search', this.ctx);
+      this.events.emit('stateChange', { guard: g, from: 'alert', to: 'search' });
+    }
+  }
+
   get aliveCount(): number {
     let n = 0;
     for (const g of this.guards) if (!g.dead) n++;

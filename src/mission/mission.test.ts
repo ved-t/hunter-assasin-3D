@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import medium from '../../public/levels/medium.json';
 import small from '../../public/levels/small.json';
-import { AWARENESS, HEALTH, KNIFE } from '../config/tunables';
+import { AWARENESS, HEALTH, KNIFE, REVIVE } from '../config/tunables';
 import { Rng } from '../core/rng';
 import { InputState } from '../input/input-state';
 import { levelFromJson as loadJson } from '../level/loader';
@@ -181,6 +181,38 @@ describe('Mission', () => {
       outcome: 'failed',
       stats: { detected: true, damaged: true },
     });
+  });
+
+  it('revives once after a fail: 1 HP, a safe window, guards searching, record kept', () => {
+    const m = new Mission(loadJson(small), new Rng(1));
+    expect(m.revive()).toBe(false); // not while playing
+    const g = m.guards.guards[0]!;
+    teleport(m, g.pos.x - Math.sin(g.yaw) * 2.5, g.pos.z - Math.cos(g.yaw) * 2.5);
+    g.awareness.raiseTo(AWARENESS.alert, m.player.pos.x, m.player.pos.z);
+    run(m, new InputState(), 20);
+    expect(m.outcome).toBe('failed');
+    expect(g.state).toBe('alert');
+
+    const revived: number[] = [];
+    m.events.on('revive', (e) => revived.push(e.hp));
+    expect(m.revive()).toBe(true);
+    expect(revived).toEqual([REVIVE.hp]);
+    expect(m.outcome).toBeNull();
+    expect(m.health.hp).toBe(REVIVE.hp);
+    expect(g.state).toBe('search');
+    expect(g.awareness.value).toBeLessThanOrEqual(AWARENESS.searchStart);
+
+    // Hits during the invulnerability window cost nothing, even with the guard re-alerted.
+    g.awareness.raiseTo(AWARENESS.alert, m.player.pos.x, m.player.pos.z);
+    run(m, new InputState(), REVIVE.invulnS - 0.1);
+    expect(m.health.hp).toBe(REVIVE.hp);
+
+    // The second death is final, and the record still shows the first.
+    run(m, new InputState(), 20);
+    expect(m.outcome).toBe('failed');
+    expect(m.canRevive).toBe(false);
+    expect(m.revive()).toBe(false);
+    expect(m.result?.stats).toMatchObject({ detected: true, damaged: true });
   });
 
   it('moves the player from input and tracks light exposure', () => {

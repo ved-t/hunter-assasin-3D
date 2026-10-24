@@ -9,6 +9,8 @@ export class Health {
   calm = 0;
   /** Took at least one hit this mission. */
   damaged = false;
+  /** Seconds of invulnerability left (after a revive). */
+  invulnerable = 0;
 
   /** `regenDelayS`: seconds of calm per hit point back (the faster-regen perk shortens it). */
   constructor(private readonly regenDelayS: number = HEALTH.regenDelayS) {}
@@ -21,17 +23,25 @@ export class Health {
     return this.hp >= HEALTH.maxHp;
   }
 
-  /** Lose `amount` HP. Returns false if already dead. */
+  /** Lose `amount` HP. Returns false if already dead or invulnerable. */
   damage(amount = 1): boolean {
-    if (this.dead) return false;
+    if (this.dead || this.invulnerable > 0) return false;
     this.hp = Math.max(0, this.hp - amount);
     this.damaged = true;
     this.calm = 0;
     return true;
   }
 
+  /** Back from 0 HP with `hp` hit points and `invulnS` seconds of invulnerability. */
+  revive(hp: number, invulnS: number): void {
+    this.hp = Math.min(HEALTH.maxHp, Math.max(1, hp));
+    this.calm = 0;
+    this.invulnerable = invulnS;
+  }
+
   /** Advance the regen clock. Returns true if a hit point came back this step. */
   update(dt: number, detected: boolean): boolean {
+    if (this.invulnerable > 0) this.invulnerable = Math.max(0, this.invulnerable - dt);
     if (detected || this.dead) {
       this.calm = 0;
       return false;
