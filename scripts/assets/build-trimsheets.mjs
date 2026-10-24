@@ -9,52 +9,14 @@
 // before encoding: KTX2 textures are uploaded without flipY, and this keeps +V pointing up the picture,
 // which the OpenGL-convention normal maps rely on.
 
-import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp from 'sharp';
 import { updateManifest } from './manifest.mjs';
+import { encodeKtx2, findToktx } from './toktx.mjs';
 import { CACHE_DIR, INITIAL_THEME, MAPS, OUT_DIR, SHEET, SLOTS, THEMES } from './themes.mjs';
 
 const BUILD_DIR = 'art-src/build';
-
-/** toktx arguments per map: colour data is sRGB, the rest linear. */
-const ENCODE = {
-  albedo: ['--encode', 'etc1s', '--clevel', '2', '--qlevel', '160', '--assign_oetf', 'srgb'],
-  orm: ['--encode', 'etc1s', '--clevel', '2', '--qlevel', '160', '--assign_oetf', 'linear'],
-  normal: [
-    '--encode',
-    'uastc',
-    '--uastc_quality',
-    '2',
-    '--uastc_rdo_l',
-    '2',
-    '--zcmp',
-    '18',
-    '--assign_oetf',
-    'linear',
-  ],
-};
-
-function findToktx() {
-  const exe = process.platform === 'win32' ? 'toktx.exe' : 'toktx';
-  const candidates = [
-    process.env.KTX_BIN && join(process.env.KTX_BIN, exe),
-    process.env.LOCALAPPDATA && join(process.env.LOCALAPPDATA, 'KTX-Software', 'bin', exe),
-    process.env.ProgramFiles && join(process.env.ProgramFiles, 'KTX-Software', 'bin', exe),
-  ].filter(Boolean);
-  for (const c of candidates) if (existsSync(c)) return c;
-  try {
-    execFileSync(exe, ['--version'], { stdio: 'ignore' });
-    return exe;
-  } catch {
-    console.error(
-      'toktx not found. Install KTX-Software 4.x (https://github.com/KhronosGroup/KTX-Software/releases),\n' +
-        'then put its bin folder on PATH or set KTX_BIN to it.',
-    );
-    process.exit(1);
-  }
-}
 
 /** UV rect [u, v, w, h] of a slot's tile (without its border), with v measured up from the bottom. */
 function slotRect(index) {
@@ -98,12 +60,6 @@ async function buildSheet(theme, map) {
   return png;
 }
 
-function encode(toktx, map, png, out) {
-  execFileSync(toktx, ['--t2', '--genmipmap', '--target_type', 'RGB', ...ENCODE[map], out, png], {
-    stdio: ['ignore', 'ignore', 'inherit'],
-  });
-}
-
 const toktx = findToktx();
 const wanted = process.argv.slice(2);
 const themes = wanted.length ? wanted : Object.keys(THEMES);
@@ -116,7 +72,7 @@ for (const theme of themes) {
   for (const map of Object.keys(MAPS)) {
     const png = await buildSheet(theme, map);
     const out = join(dir, `${map}.ktx2`);
-    encode(toktx, map, png, out);
+    encodeKtx2(toktx, map, png, out);
     console.log(`${out.padEnd(44)} ${(readFileSync(out).length / 1024).toFixed(0).padStart(6)} KB`);
   }
   const sheet = {

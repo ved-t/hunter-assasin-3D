@@ -3,4 +3,5 @@ dist/
 coverage/
 *.log
 .DS_Store
-art-src/
+art-src/*
+!art-src/README.md
