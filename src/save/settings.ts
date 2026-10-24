@@ -21,6 +21,8 @@ export interface Settings {
   volumeMaster: number;
   volumeSfx: number;
   volumeMusic: number;
+  /** Scene brightness multiplier (tone-mapping exposure). */
+  brightness: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -32,10 +34,15 @@ export const DEFAULT_SETTINGS: Settings = {
   volumeMaster: SETTINGS_LIMITS.volumeDefault,
   volumeSfx: SETTINGS_LIMITS.volumeDefault,
   volumeMusic: SETTINGS_LIMITS.volumeDefault,
+  brightness: SETTINGS_LIMITS.brightnessDefault,
 };
 
 export function clampSensitivity(v: number): number {
   return Math.min(SETTINGS_LIMITS.sensitivityMax, Math.max(SETTINGS_LIMITS.sensitivityMin, v));
+}
+
+export function clampBrightness(v: number): number {
+  return Math.min(SETTINGS_LIMITS.brightnessMax, Math.max(SETTINGS_LIMITS.brightnessMin, v));
 }
 
 export function clampVolume(v: number): number {
@@ -63,6 +70,10 @@ export function parseSettings(raw: unknown): Settings {
     volumeMaster: volume(p.volumeMaster, d.volumeMaster),
     volumeSfx: volume(p.volumeSfx, d.volumeSfx),
     volumeMusic: volume(p.volumeMusic, d.volumeMusic),
+    brightness:
+      typeof p.brightness === 'number' && Number.isFinite(p.brightness)
+        ? clampBrightness(p.brightness)
+        : d.brightness,
   };
 }
 

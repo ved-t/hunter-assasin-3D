@@ -4,7 +4,7 @@
 
 import { QUALITY_TIERS, isQualitySetting } from '../config/quality';
 import { SETTINGS_LIMITS } from '../config/tunables';
-import { clampSensitivity, clampVolume, type Settings } from '../save/settings';
+import { clampBrightness, clampSensitivity, clampVolume, type Settings } from '../save/settings';
 import { isMinimapMode } from './minimap-math';
 import { createOverlay, type Overlay } from './overlay';
 
@@ -58,6 +58,10 @@ export class SettingsPanel {
         <label class="row"><span class="label">Music</span>
           <input name="volMusic" type="range" min="0" max="1" step="${L.volumeStep}" />
         </label>
+        <label class="row"><span class="label">Brightness</span>
+          <input name="bright" type="range" min="${L.brightnessMin}" max="${L.brightnessMax}" step="${L.brightnessStep}" />
+          <output name="brightOut"></output>
+        </label>
         <label class="row"><span class="label">Look sensitivity</span>
           <input name="sens" type="range" min="${L.sensitivityMin}" max="${L.sensitivityMax}" step="${L.sensitivityStep}" />
           <output name="sensOut"></output>
@@ -74,6 +78,8 @@ export class SettingsPanel {
     const q = <T extends Element>(sel: string) => el.querySelector(sel) as T;
     const sens = q<HTMLInputElement>('[name=sens]');
     const sensOut = q<HTMLOutputElement>('[name=sensOut]');
+    const bright = q<HTMLInputElement>('[name=bright]');
+    const brightOut = q<HTMLOutputElement>('[name=brightOut]');
     const invertY = q<HTMLInputElement>('[name=invertY]');
     const gyro = q<HTMLInputElement>('[name=gyro]');
     const gyroNote = q<HTMLDivElement>('.gyro-note');
@@ -92,9 +98,12 @@ export class SettingsPanel {
       opts.onChange({ ...this.settings });
     };
     const showSens = () => (sensOut.value = Number(sens.value).toFixed(2));
+    const showBright = () => (brightOut.value = Number(bright.value).toFixed(2));
 
     sens.value = String(this.settings.lookSensitivity);
     showSens();
+    bright.value = String(this.settings.brightness);
+    showBright();
     invertY.checked = this.settings.invertY;
     gyro.checked = this.settings.gyro;
     quality.value = this.settings.quality;
@@ -106,6 +115,10 @@ export class SettingsPanel {
     sens.addEventListener('input', () => {
       showSens();
       commit({ lookSensitivity: clampSensitivity(Number(sens.value)) });
+    });
+    bright.addEventListener('input', () => {
+      showBright();
+      commit({ brightness: clampBrightness(Number(bright.value)) });
     });
     volMaster.addEventListener('input', () =>
       commit({ volumeMaster: clampVolume(Number(volMaster.value)) }),

@@ -27,6 +27,7 @@ describe('settings', () => {
       volumeMaster: 0.5,
       volumeSfx: 0.25,
       volumeMusic: 0.75,
+      brightness: 1.4,
     } as const;
     await saveSettings(s, value);
     expect(await loadSettings(s)).toEqual(value);
@@ -52,6 +53,7 @@ describe('settings', () => {
         minimapMode: 'spinning',
         volumeMaster: 'loud',
         volumeSfx: Infinity,
+        brightness: 'max',
       }),
     ).toEqual(DEFAULT_SETTINGS);
   });
@@ -61,6 +63,11 @@ describe('settings', () => {
       volumeMaster: 1,
       volumeSfx: 0,
     });
+  });
+
+  it('clamps brightness to its limits', () => {
+    expect(parseSettings({ brightness: 10 }).brightness).toBe(SETTINGS_LIMITS.brightnessMax);
+    expect(parseSettings({ brightness: 0 }).brightness).toBe(SETTINGS_LIMITS.brightnessMin);
   });
 
   it('survives garbage', async () => {

@@ -22,6 +22,7 @@ import {
   markMaterialsDirty,
   queryGpu,
   resizeToCanvas,
+  setBrightness,
   simulateContextLoss,
   watchResize,
 } from './render/renderer';
@@ -109,6 +110,7 @@ async function boot(): Promise<void> {
   }
 
   const ctx = createRenderer(canvas, tier, platform.isMobile);
+  setBrightness(ctx, settings.brightness);
   const themes = new ThemeAssets(ctx.renderer, ctx.tier);
 
   let world: World;
@@ -345,6 +347,7 @@ async function boot(): Promise<void> {
   };
   function applySettingsChange(prev: Settings, next: Settings): void {
     game?.applySettings(next);
+    setBrightness(ctx, next.brightness);
     if (next.quality !== prev.quality && next.quality !== 'auto' && next.quality !== ctx.tier) {
       applyTier(ctx, next.quality);
       world.applyTier(next.quality);
