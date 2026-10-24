@@ -29,6 +29,8 @@ export class AudioManager {
   private volume = { master: 1, sfx: 1, music: 1 };
   private readonly voices: Voice[] = [];
   private hostPaused = false;
+  /** The portal muted the game (its own audio setting); separate from the player's sliders. */
+  private hostMuted = false;
   /** Called once, right after the context is created (build shared buffers here). */
   onReady: ((ctx: AudioContext) => void) | null = null;
 
@@ -58,9 +60,15 @@ export class AudioManager {
     this.applyVolume();
   }
 
+  /** Portal audio setting: silence everything while muted, whatever the sliders say. */
+  setHostMuted(muted: boolean): void {
+    this.hostMuted = muted;
+    this.applyVolume();
+  }
+
   private applyVolume(): void {
     if (!this.master || !this.sfx || !this.music) return;
-    this.master.gain.value = AUDIO.masterGain * this.volume.master;
+    this.master.gain.value = this.hostMuted ? 0 : AUDIO.masterGain * this.volume.master;
     this.sfx.gain.value = this.volume.sfx;
     this.music.gain.value = this.volume.music;
   }

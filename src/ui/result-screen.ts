@@ -1,5 +1,6 @@
 // End-of-mission screen: success or failure, time, kills, the star rating with the three criteria, gems
-// earned, and Retry / Next level / Menu. Buttons are real clicks, so Retry may take Pointer Lock back.
+// earned, and Retry / Next level / Menu, plus Revive (a rewarded ad) on a fail. Buttons are real clicks,
+// so Retry may take Pointer Lock back.
 
 import type { MissionResult } from '../mission/mission';
 import type { WinReward } from '../save/progress';
@@ -9,6 +10,8 @@ export interface ResultScreenOptions {
   onRetry: () => void;
   onNext: () => void;
   onMenu: () => void;
+  /** Revive button: show the rewarded ad, then continue the failed attempt. */
+  onRevive: () => void;
 }
 
 /** m:ss */
@@ -25,6 +28,8 @@ export class ResultScreen {
   private readonly criteria: HTMLUListElement;
   private readonly reward: HTMLDivElement;
   private readonly next: HTMLButtonElement;
+  private readonly revive: HTMLButtonElement;
+  private readonly reviveNote: HTMLDivElement;
 
   constructor(root: HTMLElement, opts: ResultScreenOptions) {
     this.overlay = createOverlay(
@@ -36,6 +41,8 @@ export class ResultScreen {
         <div class="stats"></div>
         <ul class="criteria"></ul>
         <div class="reward"></div>
+        <button type="button" class="revive">Revive <span class="ad-tag">watch ad</span></button>
+        <div class="revive-note" hidden>Ad not available right now</div>
         <div class="buttons">
           <button type="button" class="retry">Retry <kbd>R</kbd></button>
           <button type="button" class="next">Next level</button>
@@ -51,6 +58,9 @@ export class ResultScreen {
     this.criteria = q('.criteria');
     this.reward = q('.reward');
     this.next = q('.next');
+    this.revive = q('.revive');
+    this.reviveNote = q('.revive-note');
+    this.revive.addEventListener('click', opts.onRevive);
     q<HTMLButtonElement>('.retry').addEventListener('click', opts.onRetry);
     this.next.addEventListener('click', opts.onNext);
     q<HTMLButtonElement>('.menu').addEventListener('click', opts.onMenu);
@@ -62,7 +72,8 @@ export class ResultScreen {
 
   /**
    * `totalGuards` for the kill count; `parTimeS` for the time criterion; `hasNext` shows Next;
-   * `reward` is what a win paid (null for development levels outside the campaign).
+   * `reward` is what a win paid (null for development levels outside the campaign); `canRevive` offers
+   * the rewarded revive on a fail.
    */
   show(
     r: MissionResult,
@@ -70,6 +81,7 @@ export class ResultScreen {
     parTimeS: number | undefined,
     hasNext: boolean,
     reward: WinReward | null,
+    canRevive = false,
   ): void {
     const won = r.outcome === 'won';
     this.overlay.element.classList.toggle('failed', !won);
@@ -103,7 +115,17 @@ export class ResultScreen {
       if (notes) this.reward.append(`  ${notes}`);
     }
     this.next.hidden = !(won && hasNext);
+    this.revive.hidden = won || !canRevive;
+    this.revive.disabled = false;
+    this.reviveNote.hidden = true;
     this.overlay.show();
+  }
+
+  /** While the ad is up, and after it, if it didn't pay out. */
+  setReviveState(state: 'busy' | 'failed'): void {
+    this.revive.disabled = true;
+    this.reviveNote.hidden = state !== 'failed';
+    if (state === 'failed') this.revive.hidden = true;
   }
 
   hide(): void {

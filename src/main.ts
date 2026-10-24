@@ -13,6 +13,7 @@ import { parseDebugFlags } from './core/debug-flags';
 import { GameLoop } from './core/loop';
 import { Rng } from './core/rng';
 import { createPlatform } from './platform';
+import { AdPolicy } from './platform/ad-policy';
 import { ThemeAssets } from './render/assets';
 import type { PostFx } from './render/post';
 import {
@@ -78,8 +79,11 @@ async function boot(): Promise<void> {
   const uiRoot = document.getElementById('ui-root') as HTMLElement;
   const flags = parseDebugFlags(window.location.search);
 
-  const platform = createPlatform(flags.debug);
+  const platform = await createPlatform({ verbose: flags.debug, fakeAds: flags.ads });
   await platform.init();
+  /** Wall-clock seconds, for ad pacing. */
+  const now = () => performance.now() / 1000;
+  const ads = new AdPolicy(now());
   platform.loadingStart();
   let settings = await loadSettings(platform.storage);
   let progress = await loadProgress(platform.storage);
@@ -283,6 +287,7 @@ async function boot(): Promise<void> {
     game?.audio.manager.resume();
     resumeIfAllowed();
   });
+  platform.onMuteChange((muted) => game?.audio.manager.setHostMuted(muted));
   // Browsers keep audio locked until a user gesture; every tap, click or key retries the unlock.
   if (game) {
     const unlockAudio = () => game?.audio.manager.unlock();
@@ -501,7 +506,7 @@ async function boot(): Promise<void> {
   window.addEventListener('keydown', (e) => {
     if (e.code !== 'Escape' && e.code !== 'KeyR') return;
     if (e.code === 'KeyR') {
-      if (!e.repeat && result?.isOpen) retry();
+      if (!e.repeat && result?.isOpen) void afterBreak(retry);
       return;
     }
     // With Pointer Lock held, Esc releases it and onUnlock opens the pause panel; this covers the rest.
@@ -512,15 +517,44 @@ async function boot(): Promise<void> {
     }
   });
 
+  /** An ad is up (or being asked for); result-screen buttons wait for it. */
+  let adBusy = false;
+  /** Leaving the result screen is a natural break: show an interstitial first when one is due. */
+  async function afterBreak(go: () => void): Promise<void> {
+    if (adBusy) return;
+    if (ads.interstitialDue(now())) {
+      adBusy = true;
+      await platform.showInterstitial();
+      ads.adShown(now());
+      adBusy = false;
+    }
+    go();
+  }
+  /** Rewarded revive from the fail screen: the failed attempt carries on where it ended. */
+  async function revive(): Promise<void> {
+    if (!game || !result || adBusy || !game.mission.canRevive) return;
+    adBusy = true;
+    result.setReviveState('busy');
+    const earned = await platform.showRewarded();
+    ads.adShown(now());
+    adBusy = false;
+    if (!earned || !game.mission.revive()) {
+      result.setReviveState('failed');
+      return;
+    }
+    enterLevel(false);
+  }
+
   // Win / fail screen. Retry restarts in place; Next plays the following level; Menu goes back.
   const result = game
     ? new ResultScreen(uiRoot, {
-        onRetry: retry,
+        onRetry: () => void afterBreak(retry),
         onNext: () => {
           const next = game && nextLevelId(game.level.data.id);
-          if (next) void play(next);
+          if (next) void afterBreak(() => void play(next));
         },
-        onMenu: () => showTitle(),
+        onMenu: () => void afterBreak(showTitle),
+        onRevive: () => void revive(),
       })
     : null;
   function showResult(): void {
@@ -533,11 +567,20 @@ async function boot(): Promise<void> {
       setProgress(won.progress);
       reward = won.reward;
     }
+    if (r.outcome === 'won' && r.stars === 3) platform.happyTime();
     kbm?.unlock();
     intro.hide();
     game.setHudVisible(false);
     if (touchControls) touchControls.visible = false;
-    result.show(r, level.guards.length, level.parTimeS, nextLevelId(level.id) !== null, reward);
+    const canRevive = game.mission.canRevive && platform.rewardedAvailable;
+    result.show(
+      r,
+      level.guards.length,
+      level.parTimeS,
+      nextLevelId(level.id) !== null,
+      reward,
+      canRevive,
+    );
     setPaused('result', true); // after show(), so the play hint sees the screen open
   }
   /** From a click or key press, so Pointer Lock can be taken straight back. */
