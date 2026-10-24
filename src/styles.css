@@ -80,6 +80,19 @@ body {
   display: none;
 }
 
+/* ?ads=1 dev stand-in for a portal ad: above everything, like the real thing. */
+.dev-fake-ad {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #222;
+  color: #fff;
+  font: 24px sans-serif;
+  z-index: 1000;
+}
+
 .rotate-icon {
   width: 56px;
   height: 88px;
@@ -609,6 +622,29 @@ body {
 
 .result-overlay [hidden] {
   display: none;
+}
+
+/* Revive: the player's way back in, so the one filled cyan button on the fail screen. */
+.result-overlay button.revive {
+  min-width: 220px;
+  background: var(--accent-player);
+  color: #05070a;
+}
+
+.result-overlay button.revive:disabled {
+  opacity: 0.5;
+}
+
+.result-overlay .ad-tag {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0.75;
+}
+
+.result-overlay .revive-note {
+  font-size: 14px;
+  opacity: 0.7;
 }
 
 /* ---- Phase 5a: menus ---- */

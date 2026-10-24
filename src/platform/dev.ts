@@ -1,7 +1,9 @@
-// Dev platform: no ads, localStorage saves, pause on tab hide. Used for local development.
+// Dev platform: no real ads (fake ones with ?ads=1), localStorage saves, pause on tab hide. Used for
+// local development and as the fallback when a portal SDK is missing.
 
-import type { Platform, PlatformStorage, PlatformUser } from './platform';
-import { Emitter } from '../core/events';
+import { ADS } from '../config/tunables';
+import { BasePlatform } from './base';
+import type { PlatformStorage } from './platform';
 
 const STORAGE_PREFIX = 'shadow-hunter:';
 
@@ -50,23 +52,39 @@ export function detectMobile(): boolean {
   return window.matchMedia('(pointer: coarse)').matches;
 }
 
-interface PauseEvents {
-  pause: void;
-  resume: void;
+/** A stand-in ad for ?ads=1: a full-screen card for ADS.devFakeAdS, so the pause/mute flow can be seen. */
+function fakeAd(label: string): Promise<void> {
+  const card = document.createElement('div');
+  card.className = 'dev-fake-ad';
+  card.textContent = `Fake ${label} ad`;
+  document.body.appendChild(card);
+  return new Promise((resolve) =>
+    setTimeout(() => {
+      card.remove();
+      resolve();
+    }, ADS.devFakeAdS * 1000),
+  );
 }
 
-export class DevPlatform implements Platform {
+export interface DevPlatformOptions {
+  /** Log every platform call to the console. */
+  verbose: boolean;
+  /** Show fake ads instead of skipping them (?ads=1). */
+  fakeAds: boolean;
+}
+
+export class DevPlatform extends BasePlatform {
   readonly name = 'dev';
   readonly isMobile = detectMobile();
   readonly storage = createWebStorage(safeLocalStorage());
-  private readonly events = new Emitter<PauseEvents>();
+  readonly rewardedAvailable = true;
 
-  constructor(private readonly verbose: boolean) {}
+  constructor(private readonly opts: DevPlatformOptions) {
+    super();
+  }
 
   async init(): Promise<void> {
-    document.addEventListener('visibilitychange', () => {
-      this.events.emit(document.hidden ? 'pause' : 'resume', undefined);
-    });
+    this.watchPage();
   }
 
   loadingStart(): void {
@@ -83,27 +101,21 @@ export class DevPlatform implements Platform {
   }
 
   async showInterstitial(): Promise<void> {
-    this.log('showInterstitial (no-op)');
+    this.log('showInterstitial');
+    if (this.opts.fakeAds) await this.adBreak(() => fakeAd('interstitial'));
   }
 
   async showRewarded(): Promise<boolean> {
-    this.log('showRewarded (no-op, granted)');
+    this.log('showRewarded (granted)');
+    if (this.opts.fakeAds) await this.adBreak(() => fakeAd('rewarded'));
     return true;
   }
 
-  async getUser(): Promise<PlatformUser | null> {
-    return null;
-  }
-
-  onPause(fn: () => void): () => void {
-    return this.events.on('pause', fn);
-  }
-
-  onResume(fn: () => void): () => void {
-    return this.events.on('resume', fn);
+  override happyTime(): void {
+    this.log('happyTime');
   }
 
   private log(message: string): void {
-    if (this.verbose) console.info(`[platform:dev] ${message}`);
+    if (this.opts.verbose) console.info(`[platform:dev] ${message}`);
   }
 }
