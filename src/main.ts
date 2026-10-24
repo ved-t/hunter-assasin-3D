@@ -139,6 +139,7 @@ async function boot(): Promise<void> {
       themes,
     });
     game.applySettings(settings);
+    game.setLoadout(progress.equipped.knife, progress.equipped.glove);
     game.restart(modifiersFor(progress));
     world = game;
     // ?debug=1 only: a handle for console poking and scripted (CDP) playtests.
@@ -167,7 +168,13 @@ async function boot(): Promise<void> {
     if (post) return;
     void import('./render/post').then(({ PostFx }) => {
       if (post || !TIER_SETTINGS[postTier].postFx) return;
-      post = new PostFx(ctx.renderer, world.scene, world.camera, TIER_SETTINGS[postTier].antialias);
+      post = new PostFx(
+        ctx.renderer,
+        world.scene,
+        world.camera,
+        TIER_SETTINGS[postTier].antialias,
+        world.overlay,
+      );
     });
   };
   updatePost(ctx.tier);
@@ -188,7 +195,15 @@ async function boot(): Promise<void> {
       }
       ctx.renderer.info.reset();
       if (post) post.render(frameDt);
-      else ctx.renderer.render(world.scene, world.camera);
+      else {
+        ctx.renderer.render(world.scene, world.camera);
+        if (world.overlay) {
+          ctx.renderer.autoClear = false;
+          ctx.renderer.clearDepth();
+          ctx.renderer.render(world.overlay.scene, world.overlay.camera);
+          ctx.renderer.autoClear = true;
+        }
+      }
 
       if (probe?.push(frameDt * 1000)) {
         const next = tierAfterProbe(ctx.tier, probe.medianFps());
@@ -354,6 +369,7 @@ async function boot(): Promise<void> {
   // Menus.
   const setProgress = (p: Progress) => {
     progress = p;
+    game?.setLoadout(p.equipped.knife, p.equipped.glove);
     void saveProgress(platform.storage, p);
   };
   const menu = new MainMenu(uiRoot, {

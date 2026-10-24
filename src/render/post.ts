@@ -1,5 +1,6 @@
 // High-tier post-processing: bloom on the brightest lights (lens glows, lamps, the exit), then a
-// vignette and film grain in display space. Built from three's examples; no extra dependency. Lower
+// vignette and film grain in display space. An optional overlay (the viewmodel) is drawn over the world
+// with cleared depth before bloom, so the hand gets the same grade. Built from three's examples; no extra dependency. Lower
 // tiers skip this module entirely and fake glow with additive sprites.
 
 import * as THREE from 'three';
@@ -56,6 +57,7 @@ export class PostFx {
     scene: THREE.Scene,
     camera: THREE.Camera,
     antialias: boolean,
+    overlay?: { scene: THREE.Scene; camera: THREE.Camera },
   ) {
     const target = new THREE.WebGLRenderTarget(1, 1, {
       type: THREE.HalfFloatType,
@@ -64,6 +66,12 @@ export class PostFx {
     this.composer = new EffectComposer(renderer, target);
     this.composer.setPixelRatio(1);
     this.composer.addPass(new RenderPass(scene, camera));
+    if (overlay) {
+      const pass = new RenderPass(overlay.scene, overlay.camera);
+      pass.clear = false;
+      pass.clearDepth = true;
+      this.composer.addPass(pass);
+    }
     // UnrealBloomPass blurs from half resolution down.
     const bloom = new UnrealBloomPass(
       new THREE.Vector2(1, 1),

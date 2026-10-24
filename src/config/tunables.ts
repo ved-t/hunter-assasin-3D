@@ -290,13 +290,75 @@ export const FLASHLIGHT = {
   alertJitterDepth: 0.2,
 } as const;
 
-/** First-person camera motion until the Phase 5 viewmodel: knife lunge and the death fall. */
+/** First-person camera motion: a small lunge under the viewmodel stab, and the death fall. */
 export const CAMERA_FX = {
   lungeM: 0.18,
   lungeDipRad: 0.08,
   /** The view drops to this eye height (m) and rolls this far (rad) as the player falls. */
   fallEyeHeight: 0.35,
   fallRollRad: 0.5,
+} as const;
+
+/** First-person gloved hand and knife: its own camera and pose, and its procedural motion. */
+export const VIEWMODEL = {
+  /** Overlay camera field of view (deg); narrower than the world's so the hand doesn't stretch. */
+  fovDeg: 55,
+  near: 0.01,
+  far: 2,
+  /** Rest pose in camera space: where the fist sits (m), where the blade points, where the back of the
+   * hand faces. */
+  restPos: { x: 0.13, y: -0.12, z: -0.28 },
+  restBlade: { x: -0.12, y: 0.45, z: -0.88 },
+  restDorsum: { x: 0.45, y: 0.85, z: 0.25 },
+  /** The forearm leaves the fist at this angle to the grip (deg): a saber grip, wrist cocked so the
+   * blade carries on from the forearm, pointing ahead. */
+  wristAngleDeg: 160,
+  /** Hand lighting: cool moon fill, plus a warm key that rises with the player's light exposure. */
+  fillSky: 0x8a9ab0,
+  fillGround: 0x101216,
+  fillIntensity: 1.4,
+  keyColor: 0xffc070,
+  keyBase: 0.1,
+  keyPerExposure: 2.2,
+  /** Frame steps longer than this (s) are clamped, so a stall doesn't fling the hand. */
+  maxDtS: 0.1,
+  /** Bob: cycles per metre walked, sideways and vertical amplitude (m), ×run, ease (s). */
+  bobCyclesPerM: 0.32,
+  bobXM: 0.012,
+  bobYM: 0.01,
+  runBobScale: 1.8,
+  bobEaseS: 0.12,
+  /** The bob also turns (rad per m of sideways bob) and rolls the hand. */
+  bobYawPerM: 2,
+  bobRollPerM: 3,
+  /** Breathing while idle: rate (Hz) and rise (m). */
+  breatheHz: 0.25,
+  breatheM: 0.003,
+  /** Look sway: metres of lag per radian turned this frame, the cap, return time (s), roll (rad/m). */
+  swayPerRad: 0.06,
+  swayMaxM: 0.04,
+  swayReturnS: 0.1,
+  swayRollPerM: 4,
+  /** Crouch lowers the hand (m); crouch and ready poses ease in over this long (s). */
+  crouchDropM: 0.03,
+  poseEaseS: 0.08,
+  /** Ready (takedown possible): blade lifted (m) and tipped up (rad). */
+  readyRaiseM: 0.025,
+  readyPitchRad: 0.2,
+  /** Stab: thrust share of the knife lock, reach (m), inward (m), lift (m), blade tip-down (rad). */
+  stabThrustFraction: 0.3,
+  stabReachM: 0.24,
+  stabInM: 0.08,
+  stabRaiseM: 0.06,
+  stabPitchRad: 0.55,
+  /** Throw flick: duration (s), lift (m), reach (m) and tip (rad) at its peak. */
+  throwS: 0.4,
+  throwLiftM: 0.06,
+  throwReachM: 0.1,
+  throwPitchRad: 0.5,
+  /** Death: the hand drops (m) and rolls (rad) out of view as the player falls. */
+  fallDropM: 0.45,
+  fallRollRad: 0.6,
 } as const;
 
 /** Mission prop look: the thrown bottle and the objective item. */

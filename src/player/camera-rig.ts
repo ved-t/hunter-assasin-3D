@@ -20,8 +20,8 @@ export function applyCameraRig(
 }
 
 /**
- * Motion layered on the rig: `lunge` (0..1 through the knife lock) pushes the view forward and dips it,
- * the placeholder for a stab animation; `fall` (0..1 after the fatal hit) drops it to the floor, rolling.
+ * Motion layered on the rig: `lunge` (0..1 through the knife lock) pushes the view forward and dips it
+ * under the viewmodel stab; `fall` (0..1 after the fatal hit) drops it to the floor, rolling.
  */
 export function applyCameraFx(camera: THREE.PerspectiveCamera, lunge: number, fall: number): void {
   if (lunge > 0) {

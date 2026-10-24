@@ -8,6 +8,7 @@ import type * as THREE from 'three';
 import { GameAudio } from './audio/game-audio';
 import type { QualityTier } from './config/quality';
 import { KNIFE, LEVEL_LIMITS, MISSION } from './config/tunables';
+import { gloveLook, knifeLook } from './config/unlocks';
 import { Rng } from './core/rng';
 import { InputManager } from './input/input-manager';
 import type { LoadedLevel } from './level/loader';
@@ -18,11 +19,13 @@ import { Mission, type ViewLens } from './mission/mission';
 import { NO_MODIFIERS, type MissionModifiers } from './mission/modifiers';
 import { applyCameraFx, applyCameraRig } from './player/camera-rig';
 import type { PlayerController } from './player/controller';
+import { ViewmodelAnimator } from './player/viewmodel';
 import type { DebugAi } from './render/debug-ai';
 import type { ThemeAssets } from './render/assets';
 import { guardFlashlight, GuardVisuals } from './render/guard-visuals';
 import { MissionProps } from './render/mission-props';
 import { createSessionScene } from './render/level-scene';
+import { ViewmodelMesh } from './render/viewmodel-mesh';
 import type { Settings } from './save/settings';
 import { Hud, type HudFrame } from './ui/hud';
 
@@ -35,6 +38,8 @@ export interface World {
   render(alpha: number, frameDt: number): void;
   applyTier(tier: QualityTier): void;
   debugLines(): string[];
+  /** Drawn after the world over a cleared depth buffer (the first-person viewmodel). */
+  overlay?: { scene: THREE.Scene; camera: THREE.Camera };
 }
 
 export interface GameWorld extends World {
@@ -53,8 +58,10 @@ export interface GameWorld extends World {
   loadLevel(level: LoadedLevel, mods?: Readonly<MissionModifiers>): void;
   /** Start the level over: a fresh Mission (with new `mods` if given); scene, HUD and audio are kept. */
   restart(mods?: Readonly<MissionModifiers>): void;
-  /** Hide the in-game HUD (menus, the result screen). */
+  /** Hide the in-game HUD and the viewmodel (menus, the result screen). */
   setHudVisible(visible: boolean): void;
+  /** Paint the viewmodel with these knife and glove skins (unlock ids). */
+  setLoadout(knife: string, glove: string): void;
 }
 
 export interface GameWorldOptions {
@@ -91,6 +98,11 @@ export function createGameWorld(first: LoadedLevel, opts: GameWorldOptions): Gam
   const guardVisuals = new GuardVisuals(capacity);
   const props = new MissionProps();
   scene.add(guardVisuals.group, props.group);
+  const viewmodel = new ViewmodelMesh();
+  const hands = new ViewmodelAnimator();
+  let handsVisible = true;
+  /** A bottle left the hand since the last rendered frame. */
+  let threw = false;
   const hud = new Hud(opts.uiRoot, first.grid, capacity);
   const audio = new GameAudio(first.grid, () => visualRng.next());
   audio.applyTier(opts.tier);
@@ -153,6 +165,7 @@ export function createGameWorld(first: LoadedLevel, opts: GameWorldOptions): Gam
     hud.reset();
     audio.attach(mission.guards, mission.events);
     mission.events.on('hit', ({ guard }) => hud.hit(guard.pos.x, guard.pos.z));
+    mission.events.on('throw', () => (threw = true));
     applyCameraRig(camera, mission.player, 1);
   };
 
@@ -186,6 +199,7 @@ export function createGameWorld(first: LoadedLevel, opts: GameWorldOptions): Gam
   return {
     scene,
     camera,
+    overlay: { scene: viewmodel.scene, camera: viewmodel.camera },
     input,
     audio,
     paused: false,
@@ -213,13 +227,27 @@ export function createGameWorld(first: LoadedLevel, opts: GameWorldOptions): Gam
       const { player, guards, perception } = mission;
       input.flushLook(frameDt);
       input.state.consumeLook(look);
-      if (!this.paused && !mission.outcome) player.applyLook(look.yaw, look.pitch);
+      const looking = !this.paused && !mission.outcome;
+      if (looking) player.applyLook(look.yaw, look.pitch);
+      const stab = mission.lockTimer > 0 ? 1 - mission.lockTimer / KNIFE.lockS : 0;
+      const fall =
+        mission.outcome === 'failed' ? Math.min(1, mission.endedFor / MISSION.failDelayS) : 0;
       applyCameraRig(camera, player, alpha);
-      applyCameraFx(
-        camera,
-        mission.lockTimer > 0 ? 1 - mission.lockTimer / KNIFE.lockS : 0,
-        mission.outcome === 'failed' ? Math.min(1, mission.endedFor / MISSION.failDelayS) : 0,
-      );
+      applyCameraFx(camera, stab, fall);
+      const pose = hands.update({
+        dt: frameDt,
+        speed: player.speed,
+        gait: player.gait,
+        crouched: player.crouched,
+        lookYaw: looking ? look.yaw : 0,
+        lookPitch: looking ? look.pitch : 0,
+        stab,
+        threw,
+        ready: mission.knifeTarget >= 0,
+        fall,
+      });
+      threw = false;
+      viewmodel.update(pose, camera.aspect, mission.exposure, handsVisible);
       guards.guards.forEach((g, i) =>
         guardFlashlight(g, alpha, mission.time, lights[i] as FlashlightState),
       );
@@ -263,6 +291,11 @@ export function createGameWorld(first: LoadedLevel, opts: GameWorldOptions): Gam
     },
     setHudVisible(visible) {
       hud.visible = visible;
+      handsVisible = visible;
+    },
+    setLoadout(knife, glove) {
+      viewmodel.setKnife(knifeLook(knife));
+      viewmodel.setGlove(gloveLook(glove));
     },
     restart(nextMods) {
       if (nextMods) mods = nextMods;
