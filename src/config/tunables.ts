@@ -28,6 +28,8 @@ export const DISPLAY = {
   fovDeg: 70,
   near: 0.05,
   far: 80,
+  /** Tone-mapping exposure at the default Brightness setting (multiplied by Settings.brightness). */
+  toneMappingExposure: 1.3,
 } as const;
 
 export const DEFAULT_SEED = 1337;
@@ -77,11 +79,17 @@ export const LEVEL = {
   exitLockedColor: 0x2a3236,
   /** Exit marker floats this far above the floor to avoid z-fighting (m). */
   decalLift: 0.02,
-  fogColor: 0x0b0f16,
-  fogDensity: 0.05,
-  ambientSkyColor: 0x5a6a80,
-  ambientGroundColor: 0x0a0c10,
-  ambientIntensity: 6,
+  /** Blue-grey haze, a step above black, so dark walls read as silhouettes against it. */
+  fogColor: 0x141b26,
+  fogDensity: 0.035,
+  ambientSkyColor: 0x7d8fa8,
+  ambientGroundColor: 0x10141a,
+  ambientIntensity: 8,
+  /** Fixed shadowless moon light, created once with the scene, so wall faces shade apart. */
+  moonColor: 0x9fb4d0,
+  moonIntensity: 1.2,
+  /** Direction the moonlight comes from (world, normalised at use). */
+  moonFrom: [0.45, 1, 0.3],
   /** Lamp bulb height and glow size; the light itself is baked (KIT.lampBake*). */
   lampHeight: 2.6,
   lampGlowSize: 0.7,
@@ -136,6 +144,8 @@ export const KIT = {
   fixtureGlow: 0.6,
   /** Surface points are pushed this far off the surface before the lamp's LOS test (m). */
   bakeNormalOffsetM: 0.05,
+  /** Strength of the trim sheet's own AO; the vertex-colour AO above already darkens corners. */
+  sheetAoIntensity: 0.5,
 } as const;
 
 /** High-tier post: half-resolution bloom, then a vignette and film grain pass. */
@@ -144,7 +154,7 @@ export const POST = {
   bloomRadius: 0.5,
   /** Linear HDR luminance above which pixels bloom (lens glows, lamps, the exit). */
   bloomThreshold: 0.8,
-  vignette: 0.45,
+  vignette: 0.3,
   /** Vignette starts this far from the centre (0 = centre, 1 = corner). */
   vignetteStart: 0.35,
   grain: 0.045,
@@ -796,4 +806,9 @@ export const SETTINGS_LIMITS = {
   /** Volume sliders, 0..1. */
   volumeDefault: 1,
   volumeStep: 0.05,
+  /** Brightness multiplies DISPLAY.toneMappingExposure. */
+  brightnessMin: 0.6,
+  brightnessMax: 1.8,
+  brightnessDefault: 1,
+  brightnessStep: 0.05,
 } as const;

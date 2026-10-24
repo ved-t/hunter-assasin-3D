@@ -6,6 +6,7 @@
 // colour. One program serves every theme: switching themes changes only uniforms and textures.
 
 import * as THREE from 'three';
+import { KIT } from '../config/tunables';
 import { KIT_SLOTS, type SlotName } from '../level/kit/kit-common';
 
 const SLOT_COUNT = KIT_SLOTS.length;
@@ -157,6 +158,7 @@ export function createKitMaterial(fallback: Record<SlotName, number>): KitMateri
       material.map = textures.albedo;
       material.normalMap = textures.normal;
       material.roughnessMap = material.metalnessMap = material.aoMap = textures.orm;
+      material.aoMapIntensity = KIT.sheetAoIntensity;
       material.roughness = 1;
       material.metalness = 1;
       material.needsUpdate = true;

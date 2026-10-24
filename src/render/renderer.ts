@@ -27,6 +27,7 @@ export function createRenderer(
   });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = DISPLAY.toneMappingExposure;
   // PCFSoftShadowMap was removed in r186 (it fell back to this with a warning).
   renderer.shadowMap.type = THREE.PCFShadowMap;
   // Reset per-frame counters manually so the debug overlay sees a whole frame's draw calls.
@@ -51,6 +52,11 @@ export function applyTier(ctx: RendererContext, tier: QualityTier): void {
   ctx.tier = tier;
   ctx.renderer.shadowMap.enabled = TIER_SETTINGS[tier].shadows;
   ctx.renderer.setPixelRatio(pixelRatioFor(tier, ctx.isMobile, window.devicePixelRatio));
+}
+
+/** The player's Brightness setting scales tone-mapping exposure (a uniform: no shader recompile). */
+export function setBrightness(ctx: RendererContext, brightness: number): void {
+  ctx.renderer.toneMappingExposure = DISPLAY.toneMappingExposure * brightness;
 }
 
 /** Resize the drawing buffer and camera to the canvas's CSS size. */
