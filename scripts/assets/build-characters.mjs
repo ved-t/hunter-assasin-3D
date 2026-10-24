@@ -2,8 +2,9 @@
 //   1. FBX → GLB with FBX2glTF (from the fbx2gltf devDependency), into art-src/build/characters/.
 //   2. Every clip is copied onto the character's own skeleton (bones matched by name), with the hips'
 //      motion trimmed per clip (`keep`), and translation/scale tracks on other bones dropped.
-//   3. Prune, dedup, keyframe resample; textures resized and encoded to KTX2 with toktx; meshopt
-//      (quantized, reordered, compressed geometry and animation).
+//   3. Prune, dedup, keyframe resample; meshes simplified down to the triangle budget; textures
+//      resized and encoded to KTX2 with toktx; meshopt (quantized, reordered, compressed geometry and
+//      animation).
 // Writes public/assets/characters/guard.glb and the characters pack of the asset manifest.
 //   node scripts/assets/build-characters.mjs [config.mjs]   (default ./characters.mjs)
 //
@@ -15,8 +16,8 @@ import { basename, dirname, extname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS, KHRTextureBasisu } from '@gltf-transform/extensions';
-import { dedup, meshopt, prune, resample } from '@gltf-transform/functions';
-import { MeshoptDecoder, MeshoptEncoder } from 'meshoptimizer';
+import { dedup, meshopt, prune, resample, simplify, weld } from '@gltf-transform/functions';
+import { MeshoptDecoder, MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer';
 import sharp from 'sharp';
 import { updateManifest } from './manifest.mjs';
 import { encodeKtx2, findToktx } from './toktx.mjs';
@@ -62,6 +63,7 @@ function toGlb(src) {
 
 await MeshoptEncoder.ready;
 await MeshoptDecoder.ready;
+await MeshoptSimplifier.ready;
 const io = new NodeIO()
   .registerExtensions(ALL_EXTENSIONS)
   .registerDependencies({ 'meshopt.encoder': MeshoptEncoder, 'meshopt.decoder': MeshoptDecoder });
@@ -157,6 +159,22 @@ for (const [name, clip] of Object.entries(CHARACTER.clips)) {
 
 await doc.transform(prune(), dedup(), resample());
 
+/** Triangles drawn per guard (every primitive, as triangle lists). */
+const triangles = () =>
+  root
+    .listMeshes()
+    .flatMap((m) => m.listPrimitives())
+    .reduce(
+      (n, p) => n + (p.getIndices()?.getCount() ?? p.getAttribute('POSITION').getCount()) / 3,
+      0,
+    );
+const sourceTris = triangles();
+if (sourceTris > CHARACTER.maxTriangles) {
+  const ratio = CHARACTER.maxTriangles / sourceTris;
+  await doc.transform(weld(), simplify({ simplifier: MeshoptSimplifier, ratio, error: 0.01 }));
+  console.log(`simplified ${Math.round(sourceTris)} → ${Math.round(triangles())} triangles`);
+}
+
 // Textures: resize, then KTX2 (ETC1S colour / UASTC normals), as the theme sheets are.
 const kinds = new Map();
 for (const m of root.listMaterials()) {
@@ -195,8 +213,9 @@ await io.write(CHARACTER.out, doc);
 const size = statSync(CHARACTER.out).size;
 const prims = root.listMeshes().reduce((n, m) => n + m.listPrimitives().length, 0);
 console.log(
-  `${CHARACTER.out}  ${(size / 1024).toFixed(0)} KB  ${prims} draw call(s) per guard  ` +
-    `${root.listAnimations().length} clips  ${kinds.size} textures`,
+  `${CHARACTER.out}  ${(size / 1024).toFixed(0)} KB  ${prims} draw call(s) and ` +
+    `${Math.round(triangles())} triangles per guard  ${root.listAnimations().length} clips  ` +
+    `${kinds.size} textures`,
 );
 if (size > CHARACTER.budget) {
   console.error(`Over the ${(CHARACTER.budget / 1024 / 1024).toFixed(1)} MB character budget.`);

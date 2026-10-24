@@ -21,6 +21,9 @@ export const CHARACTER = {
   /** Which way the model faces in its file (Mixamo: +z); the build turns it to face −Z. */
   facing: '+z',
   out: 'public/assets/characters/guard.glb',
+  /** Triangles per guard at most (meshes are simplified down to it); up to 10 guards, each drawn
+   * again for every shadow-casting light. */
+  maxTriangles: 12000,
   /** Longest texture side kept (px); guards are seen in the dark at a distance. */
   maxTexturePx: 1024,
   /** Size budget for the output (bytes). */
