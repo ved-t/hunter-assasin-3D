@@ -13,16 +13,8 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp from 'sharp';
-import {
-  CACHE_DIR,
-  INITIAL_THEME,
-  MANIFEST,
-  MAPS,
-  OUT_DIR,
-  SHEET,
-  SLOTS,
-  THEMES,
-} from './themes.mjs';
+import { updateManifest } from './manifest.mjs';
+import { CACHE_DIR, INITIAL_THEME, MAPS, OUT_DIR, SHEET, SLOTS, THEMES } from './themes.mjs';
 
 const BUILD_DIR = 'art-src/build';
 
@@ -143,4 +135,4 @@ const packs = Object.keys(THEMES).map((theme) => ({
     (f) => `assets/themes/${theme}/${f}`,
   ),
 }));
-writeFileSync(MANIFEST, `${JSON.stringify({ packs }, null, 2)}\n`);
+updateManifest((id) => id.startsWith('theme-'), packs);

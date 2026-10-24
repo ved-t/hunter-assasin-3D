@@ -1,0 +1,60 @@
+{
+  "sounds": {
+    "step": {
+      "pack": "sfx",
+      "variants": 5
+    },
+    "knife": {
+      "pack": "sfx",
+      "variants": 2
+    },
+    "windup": {
+      "pack": "sfx",
+      "variants": 1
+    },
+    "shot": {
+      "pack": "sfx",
+      "variants": 1
+    },
+    "hurt": {
+      "pack": "sfx",
+      "variants": 3
+    },
+    "throw": {
+      "pack": "sfx",
+      "variants": 2
+    },
+    "shatter": {
+      "pack": "sfx",
+      "variants": 3
+    },
+    "pickup": {
+      "pack": "sfx",
+      "variants": 1
+    },
+    "win": {
+      "pack": "sfx",
+      "variants": 1
+    },
+    "fail": {
+      "pack": "sfx",
+      "variants": 1
+    },
+    "musicMenu": {
+      "pack": "music-menu",
+      "variants": 1
+    },
+    "musicLevel": {
+      "pack": "music-level",
+      "variants": 1
+    },
+    "ambWarehouse": {
+      "pack": "amb-warehouse",
+      "variants": 1
+    },
+    "ambMansion": {
+      "pack": "amb-mansion",
+      "variants": 1
+    }
+  }
+}

@@ -51,4 +51,3 @@ export const MAPS = { albedo: 'Diffuse', normal: 'nor_gl', orm: 'arm' };
 
 export const CACHE_DIR = 'art-src/polyhaven';
 export const OUT_DIR = 'public/assets/themes';
-export const MANIFEST = 'public/assets/manifest.json';

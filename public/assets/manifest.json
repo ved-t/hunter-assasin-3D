@@ -1,13 +1,101 @@
 {
   "packs": [
     {
-      "id": "theme-warehouse",
+      "id": "audio-amb-mansion",
+      "initial": false,
+      "files": [
+        "assets/audio/amb-mansion/ambMansion-0.ogg"
+      ],
+      "alt": [
+        "assets/audio/amb-mansion/ambMansion-0.m4a"
+      ]
+    },
+    {
+      "id": "audio-amb-warehouse",
       "initial": true,
       "files": [
-        "assets/themes/warehouse/albedo.ktx2",
-        "assets/themes/warehouse/normal.ktx2",
-        "assets/themes/warehouse/orm.ktx2",
-        "assets/themes/warehouse/sheet.json"
+        "assets/audio/amb-warehouse/ambWarehouse-0.ogg"
+      ],
+      "alt": [
+        "assets/audio/amb-warehouse/ambWarehouse-0.m4a"
+      ]
+    },
+    {
+      "id": "audio-music-level",
+      "initial": true,
+      "files": [
+        "assets/audio/music-level/musicLevel-0.ogg"
+      ],
+      "alt": [
+        "assets/audio/music-level/musicLevel-0.m4a"
+      ]
+    },
+    {
+      "id": "audio-music-menu",
+      "initial": true,
+      "files": [
+        "assets/audio/music-menu/musicMenu-0.ogg"
+      ],
+      "alt": [
+        "assets/audio/music-menu/musicMenu-0.m4a"
+      ]
+    },
+    {
+      "id": "audio-sfx",
+      "initial": true,
+      "files": [
+        "assets/audio/sfx/step-0.ogg",
+        "assets/audio/sfx/step-1.ogg",
+        "assets/audio/sfx/step-2.ogg",
+        "assets/audio/sfx/step-3.ogg",
+        "assets/audio/sfx/step-4.ogg",
+        "assets/audio/sfx/knife-0.ogg",
+        "assets/audio/sfx/knife-1.ogg",
+        "assets/audio/sfx/windup-0.ogg",
+        "assets/audio/sfx/shot-0.ogg",
+        "assets/audio/sfx/hurt-0.ogg",
+        "assets/audio/sfx/hurt-1.ogg",
+        "assets/audio/sfx/hurt-2.ogg",
+        "assets/audio/sfx/throw-0.ogg",
+        "assets/audio/sfx/throw-1.ogg",
+        "assets/audio/sfx/shatter-0.ogg",
+        "assets/audio/sfx/shatter-1.ogg",
+        "assets/audio/sfx/shatter-2.ogg",
+        "assets/audio/sfx/pickup-0.ogg",
+        "assets/audio/sfx/win-0.ogg",
+        "assets/audio/sfx/fail-0.ogg"
+      ],
+      "alt": [
+        "assets/audio/sfx/step-0.m4a",
+        "assets/audio/sfx/step-1.m4a",
+        "assets/audio/sfx/step-2.m4a",
+        "assets/audio/sfx/step-3.m4a",
+        "assets/audio/sfx/step-4.m4a",
+        "assets/audio/sfx/knife-0.m4a",
+        "assets/audio/sfx/knife-1.m4a",
+        "assets/audio/sfx/windup-0.m4a",
+        "assets/audio/sfx/shot-0.m4a",
+        "assets/audio/sfx/hurt-0.m4a",
+        "assets/audio/sfx/hurt-1.m4a",
+        "assets/audio/sfx/hurt-2.m4a",
+        "assets/audio/sfx/throw-0.m4a",
+        "assets/audio/sfx/throw-1.m4a",
+        "assets/audio/sfx/shatter-0.m4a",
+        "assets/audio/sfx/shatter-1.m4a",
+        "assets/audio/sfx/shatter-2.m4a",
+        "assets/audio/sfx/pickup-0.m4a",
+        "assets/audio/sfx/win-0.m4a",
+        "assets/audio/sfx/fail-0.m4a"
+      ]
+    },
+    {
+      "id": "theme-mansion",
+      "initial": false,
+      "files": [
+        "assets/themes/mansion/albedo.ktx2",
+        "assets/themes/mansion/normal.ktx2",
+        "assets/themes/mansion/orm.ktx2",
+        "assets/themes/mansion/sheet.json"
       ]
     },
     {
@@ -21,13 +109,13 @@
       ]
     },
     {
-      "id": "theme-mansion",
-      "initial": false,
+      "id": "theme-warehouse",
+      "initial": true,
       "files": [
-        "assets/themes/mansion/albedo.ktx2",
-        "assets/themes/mansion/normal.ktx2",
-        "assets/themes/mansion/orm.ktx2",
-        "assets/themes/mansion/sheet.json"
+        "assets/themes/warehouse/albedo.ktx2",
+        "assets/themes/warehouse/normal.ktx2",
+        "assets/themes/warehouse/orm.ktx2",
+        "assets/themes/warehouse/sheet.json"
       ]
     }
   ]
