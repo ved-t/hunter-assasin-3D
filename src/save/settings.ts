@@ -17,9 +17,10 @@ export interface Settings {
   gyro: boolean;
   /** Rotating keeps the view direction up; fixed keeps north up. */
   minimapMode: MinimapMode;
-  /** 0..1: everything, and sound effects (music gets its own slider with the Phase 5d tracks). */
+  /** 0..1: everything, sound effects (with the ambience), and music. */
   volumeMaster: number;
   volumeSfx: number;
+  volumeMusic: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -30,6 +31,7 @@ export const DEFAULT_SETTINGS: Settings = {
   minimapMode: 'rotating',
   volumeMaster: SETTINGS_LIMITS.volumeDefault,
   volumeSfx: SETTINGS_LIMITS.volumeDefault,
+  volumeMusic: SETTINGS_LIMITS.volumeDefault,
 };
 
 export function clampSensitivity(v: number): number {
@@ -60,6 +62,7 @@ export function parseSettings(raw: unknown): Settings {
     minimapMode: isMinimapMode(p.minimapMode) ? p.minimapMode : d.minimapMode,
     volumeMaster: volume(p.volumeMaster, d.volumeMaster),
     volumeSfx: volume(p.volumeSfx, d.volumeSfx),
+    volumeMusic: volume(p.volumeMusic, d.volumeMusic),
   };
 }
 

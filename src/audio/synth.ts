@@ -1,8 +1,9 @@
-// Procedural placeholder sounds, synthesised in WebAudio so Phase 3 ships with 0 bytes of audio assets:
-// footsteps (filtered noise transients), radio barks (squelch, static and a formant buzz that reads as a
-// muffled voice) and combat one-shots (knife, gun, glass, stingers). Phase 5 replaces these with
-// recorded SFX.
+// Procedural sounds, synthesised in WebAudio: footsteps (filtered noise transients), radio barks
+// (squelch, static and a formant buzz that reads as a muffled voice), combat one-shots (knife, gun,
+// glass, stingers) and a room tone. Recordings (sound-bank.ts) replace most of them once loaded; these
+// stay as the fallback, and barks and the near-miss whiz have no recording.
 
+import { AUDIO } from '../config/tunables';
 import type { VoiceHandle } from './audio-manager';
 
 export type BarkKind = 'suspicious' | 'alert' | 'search' | 'giveUp' | 'chatter';
@@ -313,4 +314,25 @@ export function sfx(
       );
       break;
   }
+}
+
+// --- Beds (Phase 5d) ----------------------------------------------------------------------------
+
+/** A low, steady room tone looped from the shared noise: the ambience until a recording loads. */
+export function roomTone(
+  ctx: AudioContext,
+  dest: AudioNode,
+  noise: AudioBuffer,
+): AudioScheduledSourceNode {
+  const src = ctx.createBufferSource();
+  src.buffer = noise;
+  src.loop = true;
+  const gain = ctx.createGain();
+  gain.gain.value = AUDIO.roomToneGain;
+  src
+    .connect(filter(ctx, 'lowpass', AUDIO.roomToneCutoffHz, 0.5))
+    .connect(gain)
+    .connect(dest);
+  src.start();
+  return src;
 }

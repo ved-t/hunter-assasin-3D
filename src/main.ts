@@ -375,7 +375,10 @@ async function boot(): Promise<void> {
   const levelSelect = new LevelSelect(uiRoot, {
     onPick: (id) => void play(id),
     onBack: () => showTitle(),
-    onTheme: (theme) => themes.prefetch(theme),
+    onTheme: (theme) => {
+      themes.prefetch(theme);
+      game?.audio.prefetchTheme(theme);
+    },
   });
   const loadout = new Loadout(uiRoot, { onChange: setProgress, onBack: () => showTitle() });
   const loading = new LoadingScreen(uiRoot);
@@ -392,6 +395,7 @@ async function boot(): Promise<void> {
     loadout.hide();
     intro.hide();
     game.setHudVisible(false);
+    game.audio.setScene({ kind: 'menu' });
     showTouchControls();
     setPaused('title', true);
     setPaused('menu', false);
@@ -411,7 +415,11 @@ async function boot(): Promise<void> {
     if (fresh) intro.show(game.level.data.name, game.level.data.tip);
     // Fetch the next level's theme while this one is played.
     const next = CAMPAIGN.find((l) => l.id === nextLevelId(game?.level.data.id ?? ''));
-    if (next) themes.prefetch(next.theme);
+    if (next) {
+      themes.prefetch(next.theme);
+      game.audio.prefetchTheme(next.theme);
+    }
+    game.audio.setScene({ kind: 'level', theme: themeOf(game.level.data) });
     menu.hide();
     levelSelect.hide();
     loadout.hide();

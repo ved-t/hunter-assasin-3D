@@ -1,5 +1,6 @@
 // One WebAudio context for the game: created on the first user gesture (browsers keep audio locked until
-// then), suspended while the host pauses us (tab hidden, ads), and a cap on simultaneous voices.
+// then), suspended while the host pauses us (tab hidden, ads), and a cap on simultaneous voices. Two
+// buses under the master: effects (every one-shot and the ambience bed) and music.
 
 import { AUDIO } from '../config/tunables';
 
@@ -22,9 +23,10 @@ export interface VoiceHandle {
 export class AudioManager {
   ctx: AudioContext | null = null;
   private master: GainNode | null = null;
-  /** Every one-shot goes through this bus (the music bus joins it in Phase 5d). */
-  private sfx: GainNode | null = null;
-  private volume = { master: 1, sfx: 1 };
+  /** Every one-shot and the ambience go through this bus. */
+  sfx: GainNode | null = null;
+  music: GainNode | null = null;
+  private volume = { master: 1, sfx: 1, music: 1 };
   private readonly voices: Voice[] = [];
   private hostPaused = false;
   /** Called once, right after the context is created (build shared buffers here). */
@@ -42,6 +44,8 @@ export class AudioManager {
       this.master.connect(this.ctx.destination);
       this.sfx = this.ctx.createGain();
       this.sfx.connect(this.master);
+      this.music = this.ctx.createGain();
+      this.music.connect(this.master);
       this.applyVolume();
       this.onReady?.(this.ctx);
     }
@@ -49,15 +53,16 @@ export class AudioManager {
   }
 
   /** Player volume sliders, 0..1. Safe before the context exists. */
-  setVolume(master: number, sfx: number): void {
-    this.volume = { master, sfx };
+  setVolume(master: number, sfx: number, music: number): void {
+    this.volume = { master, sfx, music };
     this.applyVolume();
   }
 
   private applyVolume(): void {
-    if (!this.master || !this.sfx) return;
+    if (!this.master || !this.sfx || !this.music) return;
     this.master.gain.value = AUDIO.masterGain * this.volume.master;
     this.sfx.gain.value = this.volume.sfx;
+    this.music.gain.value = this.volume.music;
   }
 
   get ready(): boolean {

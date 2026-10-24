@@ -55,6 +55,9 @@ export class SettingsPanel {
         <label class="row"><span class="label">Effects</span>
           <input name="volSfx" type="range" min="0" max="1" step="${L.volumeStep}" />
         </label>
+        <label class="row"><span class="label">Music</span>
+          <input name="volMusic" type="range" min="0" max="1" step="${L.volumeStep}" />
+        </label>
         <label class="row"><span class="label">Look sensitivity</span>
           <input name="sens" type="range" min="${L.sensitivityMin}" max="${L.sensitivityMax}" step="${L.sensitivityStep}" />
           <output name="sensOut"></output>
@@ -78,6 +81,7 @@ export class SettingsPanel {
     const minimap = q<HTMLSelectElement>('[name=minimap]');
     const volMaster = q<HTMLInputElement>('[name=volMaster]');
     const volSfx = q<HTMLInputElement>('[name=volSfx]');
+    const volMusic = q<HTMLInputElement>('[name=volMusic]');
     this.title = q('h2');
     this.resume = q('.resume');
     this.pauseButtons = q('.pause-buttons');
@@ -97,6 +101,7 @@ export class SettingsPanel {
     minimap.value = this.settings.minimapMode;
     volMaster.value = String(this.settings.volumeMaster);
     volSfx.value = String(this.settings.volumeSfx);
+    volMusic.value = String(this.settings.volumeMusic);
 
     sens.addEventListener('input', () => {
       showSens();
@@ -107,6 +112,9 @@ export class SettingsPanel {
     );
     volSfx.addEventListener('input', () =>
       commit({ volumeSfx: clampVolume(Number(volSfx.value)) }),
+    );
+    volMusic.addEventListener('input', () =>
+      commit({ volumeMusic: clampVolume(Number(volMusic.value)) }),
     );
     invertY.addEventListener('change', () => commit({ invertY: invertY.checked }));
     gyro.addEventListener('change', () => {

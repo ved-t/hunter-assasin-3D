@@ -26,6 +26,7 @@ describe('settings', () => {
       minimapMode: 'fixed',
       volumeMaster: 0.5,
       volumeSfx: 0.25,
+      volumeMusic: 0.75,
     } as const;
     await saveSettings(s, value);
     expect(await loadSettings(s)).toEqual(value);

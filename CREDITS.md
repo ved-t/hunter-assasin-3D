@@ -43,4 +43,19 @@ are packed into one trim sheet per theme by `scripts/assets/build-trimsheets.mjs
 
 ## Audio
 
-None yet: footsteps, radio barks and combat sounds are synthesised at runtime with WebAudio.
+Recorded sounds are fetched by `scripts/assets/fetch-audio.mjs` and encoded by `build-audio.mjs`
+(sources and which game sound each becomes: `scripts/assets/audio-sources.mjs`). All are CC0 (public
+domain; credit given as thanks). Radio barks, the near-miss whiz and the office room tone are
+synthesised at runtime with WebAudio, which also stands in for any recording still loading.
+
+| Sound | Source | Author | Used for | Licence |
+| --- | --- | --- | --- | --- |
+| Impact Sounds | [kenney.nl](https://kenney.nl/assets/impact-sounds) | Kenney | footsteps, hits, glass | CC0 |
+| RPG Audio | [kenney.nl](https://kenney.nl/assets/rpg-audio) | Kenney | knife, gun cock, bottle throw | CC0 |
+| Interface Sounds | [kenney.nl](https://kenney.nl/assets/interface-sounds) | Kenney | item pickup | CC0 |
+| Music Jingles | [kenney.nl](https://kenney.nl/assets/music-jingles) | Kenney | win and fail stingers | CC0 |
+| 22 Pistol | [OpenGameArt](https://opengameart.org/content/gunshots) | kurt | guard gunshot | CC0 |
+| Insistent | [OpenGameArt](https://opengameart.org/content/insistent-background-loop) | yd | menu music | CC0 |
+| Pressure | [OpenGameArt](https://opengameart.org/content/pressure) | yd | level music | CC0 |
+| Factory Ambiance | [OpenGameArt](https://opengameart.org/content/factory-ambiance) | yd | warehouse ambience | CC0 |
+| Dark Rainy Night | [OpenGameArt](https://opengameart.org/content/rain-and-thunders) | kindland | mansion ambience | CC0 |

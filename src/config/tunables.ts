@@ -162,6 +162,10 @@ export const LEVEL_FILES = {
 export const ASSET_FILES = {
   /** One folder per theme: albedo/normal/orm.ktx2 trim sheets and sheet.json. */
   themesDir: 'assets/themes/',
+  /** bank.json and one folder per sound pack (scripts/assets/build-audio.mjs). */
+  audioDir: 'assets/audio/',
+  /** The skinned guard (scripts/assets/build-characters.mjs); capsules stand in when it is missing. */
+  guardModel: 'assets/characters/guard.glb',
 } as const;
 
 /** Limits every level must respect, so one long-lived scene can host any of them. */
@@ -619,7 +623,7 @@ export const HUD = {
   introFadeS: 0.8,
 } as const;
 
-/** Procedural placeholder audio (Phase 5 swaps in recorded SFX). Gains are linear, 0..1. */
+/** Sound: recorded samples with the procedural synth as fallback. Gains are linear, 0..1. */
 export const AUDIO = {
   masterGain: 0.8,
   /** Simultaneous one-shot voices; a louder new sound steals the quietest. */
@@ -656,6 +660,19 @@ export const AUDIO = {
   },
   /** ...and, for those that come from a place, how far they carry by path distance (m). */
   sfxRangeM: { windup: 16, shot: 45, shatter: 22 },
+  /** Recorded one-shots play at 1 ± this rate (pitch) so repeats don't sound copied. */
+  sampleRateJitter: 0.06,
+  /** Recorded footsteps play this much faster (higher, snappier) at a run. */
+  runStepRate: 1.08,
+  /** Music bed gain on the music bus: the menu track, and the in-level track (low under the game). */
+  musicGain: { menu: 0.5, level: 0.18 },
+  /** Theme ambience loop gain on the effects bus. */
+  ambienceGain: 0.3,
+  /** Procedural room tone standing in for a missing ambience: gain and lowpass cutoff (Hz). */
+  roomToneGain: 0.05,
+  roomToneCutoffHz: 260,
+  /** Crossfade time when the music or ambience bed changes (s). */
+  loopFadeS: 1.5,
 } as const;
 
 export const INPUT = {

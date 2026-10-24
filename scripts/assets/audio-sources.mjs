@@ -51,7 +51,7 @@ export const SOURCES = [
     url: 'https://opengameart.org/sites/default/files/Dark_Rainy_Night%28ambience%29.ogg',
     file: 'dark-rainy-night.ogg',
     page: 'https://opengameart.org/content/rain-and-thunders',
-    author: 'Ylmir',
+    author: 'kindland',
     licence: 'CC0',
   },
 ];
