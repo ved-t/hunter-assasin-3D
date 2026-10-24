@@ -4,8 +4,9 @@
 //   total    the whole build (≤ 50 MB)
 //   files    file count (≤ 1,500)
 //   JS       gzipped JavaScript (≤ 1 MB)
-// Sizes are raw bytes (KTX2 is already supercompressed; portals count what they host). Exits 1 on any
-// overrun.
+// Sizes are raw bytes (KTX2 is already supercompressed; portals count what they host). A pack's `alt`
+// files are another format of its `files` (M4A beside OGG); a client fetches one of the two, so only the
+// larger set counts toward initial and total (both count toward the file limit). Exits 1 on any overrun.
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { gzipSync } from 'node:zlib';
@@ -25,13 +26,15 @@ function walk(dir) {
 const kb = (n) => `${(n / 1024).toFixed(1)} KB`;
 const mb = (n) => `${(n / MB).toFixed(2)} MB`;
 
-/** Published paths (as in the manifest) of every lazy pack, keyed to the pack id. */
-const lazy = new Map();
-if (existsSync(MANIFEST)) {
-  for (const pack of JSON.parse(readFileSync(MANIFEST, 'utf8')).packs) {
-    if (!pack.initial) for (const f of pack.files) lazy.set(f, pack.id);
-  }
-} else {
+/** Published paths (as in the manifest) of every pack's files, keyed to the pack. */
+const owner = new Map();
+const packs = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, 'utf8')).packs : [];
+for (const pack of packs) {
+  pack.size = { files: 0, alt: 0 };
+  for (const f of pack.files) owner.set(f, { pack, set: 'files' });
+  for (const f of pack.alt ?? []) owner.set(f, { pack, set: 'alt' });
+}
+if (!existsSync(MANIFEST)) {
   console.warn(`${MANIFEST} missing: every file counts as initial`);
 }
 
@@ -40,7 +43,6 @@ let total = 0;
 let initial = 0;
 let gz = 0;
 let jsGz = 0;
-const packSizes = new Map();
 for (const file of files) {
   const buf = readFileSync(file);
   const g = gzipSync(buf).length;
@@ -48,16 +50,28 @@ for (const file of files) {
   total += buf.length;
   gz += g;
   if (file.endsWith('.js')) jsGz += g;
-  const pack = lazy.get(path);
-  if (pack) packSizes.set(pack, (packSizes.get(pack) ?? 0) + buf.length);
+  const own = owner.get(path);
+  if (own) own.pack.size[own.set] += buf.length;
   else initial += buf.length;
   console.log(
-    `${path.padEnd(48)} ${kb(buf.length).padStart(10)} ${kb(g).padStart(10)} gz${pack ? `  (${pack})` : ''}`,
+    `${path.padEnd(48)} ${kb(buf.length).padStart(10)} ${kb(g).padStart(10)} gz${own ? `  (${own.pack.id}${own.set === 'alt' ? ' alt' : ''})` : ''}`,
   );
+}
+// Count each pack once, in its larger format.
+for (const pack of packs) {
+  const { files: main, alt } = pack.size;
+  total -= Math.min(main, alt);
+  if (pack.initial) initial += Math.max(main, alt);
 }
 
 console.log('-'.repeat(80));
-for (const [pack, size] of packSizes) console.log(`lazy ${pack.padEnd(30)} ${mb(size)}`);
+for (const pack of packs) {
+  const { files: main, alt } = pack.size;
+  const formats = alt ? `  (${mb(main)} / ${mb(alt)} alt)` : '';
+  console.log(
+    `${pack.initial ? 'initial' : 'lazy   '} ${pack.id.padEnd(24)} ${mb(Math.max(main, alt)).padStart(10)}${formats}`,
+  );
+}
 console.log(`initial ${mb(initial).padStart(10)}   budget ${mb(BUDGET.initial)}`);
 console.log(`total   ${mb(total).padStart(10)}   budget ${mb(BUDGET.total)}   (gzipped ${mb(gz)})`);
 console.log(`files   ${String(files.length).padStart(10)}   budget ${BUDGET.files}`);
