@@ -1,4 +1,5 @@
-// Prints raw and gzipped sizes of everything in dist/, then checks the download budgets:
+// Prints raw and gzipped sizes of everything in a build folder (dist/, or the one given:
+// node scripts/size-report.mjs dist-crazygames), then checks the download budgets:
 //   initial  what a new player downloads before level 1: everything except the lazy packs listed in
 //            assets/manifest.json with initial: false (≤ 20 MB, the CrazyGames mobile limit)
 //   total    the whole build (≤ 50 MB)
@@ -11,7 +12,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
-const DIST = 'dist';
+const DIST = process.argv[2] ?? 'dist';
 const MANIFEST = join(DIST, 'assets', 'manifest.json');
 const MB = 1024 * 1024;
 const BUDGET = { initial: 20 * MB, total: 50 * MB, files: 1500, jsGz: 1 * MB };
