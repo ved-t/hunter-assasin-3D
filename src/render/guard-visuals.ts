@@ -1,6 +1,7 @@
-// Guard placeholders: one InstancedMesh of capsule bodies (with a flashlight nub showing facing), and
-// one instanced billboard mesh for lens glows, the "?" / "!" state icons and the gun's wind-up tell and
-// muzzle flash. Two draw calls total.
+// Guard bodies and their in-world signals. Bodies are the skinned Mixamo guards (guard-models.ts) once
+// that model has loaded, and until then (or if it is missing) one InstancedMesh of capsules with a
+// flashlight nub showing facing. One instanced billboard mesh draws lens glows, the "?" / "!" state
+// icons and the gun's wind-up tell and muzzle flash for either.
 // Reads guard sim state and interpolates it; never writes back.
 
 import * as THREE from 'three';
@@ -10,6 +11,8 @@ import { BODIES, FLASHLIGHT, GUARD, GUARD_VISUALS as V } from '../config/tunable
 import { lerpAngle } from '../core/angles';
 import { flickerIntensity } from '../lighting/flicker';
 import type { FlashlightState } from '../lighting/flashlights';
+import type { DeathClip } from './guard-anim';
+import { GuardRigs, type GuardModel } from './guard-models';
 
 const PITCH = THREE.MathUtils.degToRad(GUARD.flashlightPitchDeg);
 const DROP_PITCH = THREE.MathUtils.degToRad(BODIES.dropLensPitchDeg);
@@ -126,6 +129,7 @@ export class GuardVisuals {
   private readonly center: THREE.InstancedBufferAttribute;
   private readonly tint: THREE.InstancedBufferAttribute;
   private readonly atlas: THREE.CanvasTexture;
+  private rigs: GuardRigs | null = null;
   private readonly m = new THREE.Matrix4();
   private readonly q = new THREE.Quaternion();
   private readonly p = new THREE.Vector3();
@@ -184,14 +188,38 @@ export class GuardVisuals {
     this.group.add(this.bodies, this.billboards);
   }
 
-  /** `lights[i]` must be guardFlashlight(guards[i], …) for this frame. */
+  /** Swap the capsules for skinned guards. */
+  setModel(model: GuardModel): void {
+    this.rigs?.group.removeFromParent();
+    this.rigs?.dispose();
+    this.rigs = new GuardRigs(model, this.capacity);
+    this.group.add(this.rigs.group);
+    this.bodies.visible = false;
+  }
+
+  /** A new attempt (or level): animations start over. */
+  reset(): void {
+    this.rigs?.reset();
+  }
+
+  /** How guard `i` was killed, so he falls the right way. */
+  setDeath(i: number, clip: DeathClip): void {
+    this.rigs?.setDeath(i, clip);
+  }
+
+  /**
+   * `lights[i]` must be guardFlashlight(guards[i], …) for this frame. With skinned guards, each
+   * light is moved to the flashlight in his hand, so call this before rendering the beams.
+   */
   update(
     guards: readonly Guard[],
-    lights: readonly FlashlightState[],
+    lights: FlashlightState[],
     alpha: number,
+    frameDt: number,
     camera: THREE.Camera,
   ): void {
     const n = Math.min(guards.length, this.capacity);
+    this.rigs?.update(guards, lights, alpha, frameDt, camera);
     const ce = this.center.array as Float32Array;
     const ti = this.tint.array as Float32Array;
     let b = 0;
@@ -221,7 +249,9 @@ export class GuardVisuals {
       const x = g.prevPos.x + (g.pos.x - g.prevPos.x) * alpha;
       const z = g.prevPos.z + (g.pos.z - g.prevPos.z) * alpha;
       let y = 0;
-      if (g.dead) {
+      if (this.rigs) {
+        // Skinned bodies were posed above.
+      } else if (g.dead) {
         // Tip forward about the feet onto the floor, lifted so the capsule rests on its side.
         const fall = Math.min(1, g.deadFor / V.fallS) * (Math.PI / 2);
         this.q
@@ -231,7 +261,8 @@ export class GuardVisuals {
       } else {
         this.q.setFromAxisAngle(this.up, l.yaw);
       }
-      this.bodies.setMatrixAt(i, this.m.compose(this.p.set(x, y, z), this.q, this.one));
+      if (!this.rigs)
+        this.bodies.setMatrixAt(i, this.m.compose(this.p.set(x, y, z), this.q, this.one));
 
       // Lens glow: bright when the guard faces the camera.
       const tx = camera.position.x - l.x;
@@ -271,7 +302,7 @@ export class GuardVisuals {
         }
       }
     }
-    this.bodies.count = n;
+    this.bodies.count = this.rigs ? 0 : n;
     this.bodies.instanceMatrix.needsUpdate = true;
     this.geo.instanceCount = b;
     this.center.needsUpdate = this.tint.needsUpdate = true;
@@ -284,5 +315,6 @@ export class GuardVisuals {
     this.geo.dispose();
     (this.billboards.material as THREE.Material).dispose();
     this.atlas.dispose();
+    this.rigs?.dispose();
   }
 }

@@ -22,6 +22,8 @@ import type { PlayerController } from './player/controller';
 import { ViewmodelAnimator } from './player/viewmodel';
 import type { DebugAi } from './render/debug-ai';
 import type { ThemeAssets } from './render/assets';
+import { deathClipFor } from './render/guard-anim';
+import type { GuardModel } from './render/guard-models';
 import { guardFlashlight, GuardVisuals } from './render/guard-visuals';
 import { MissionProps } from './render/mission-props';
 import { createSessionScene } from './render/level-scene';
@@ -62,6 +64,8 @@ export interface GameWorld extends World {
   setHudVisible(visible: boolean): void;
   /** Paint the viewmodel with these knife and glove skins (unlock ids). */
   setLoadout(knife: string, glove: string): void;
+  /** The skinned guard model has loaded: it replaces the capsules. */
+  setGuardModel(model: GuardModel): void;
 }
 
 export interface GameWorldOptions {
@@ -166,6 +170,12 @@ export function createGameWorld(first: LoadedLevel, opts: GameWorldOptions): Gam
     audio.attach(mission.guards, mission.events);
     mission.events.on('hit', ({ guard }) => hud.hit(guard.pos.x, guard.pos.z));
     mission.events.on('throw', () => (threw = true));
+    mission.events.on('kill', ({ guard }) => {
+      const p = mission.player.pos;
+      const i = mission.guards.guards.indexOf(guard);
+      guardVisuals.setDeath(i, deathClipFor(guard.yaw, guard.pos.x, guard.pos.z, p.x, p.z));
+    });
+    guardVisuals.reset();
     applyCameraRig(camera, mission.player, 1);
   };
 
@@ -251,8 +261,9 @@ export function createGameWorld(first: LoadedLevel, opts: GameWorldOptions): Gam
       guards.guards.forEach((g, i) =>
         guardFlashlight(g, alpha, mission.time, lights[i] as FlashlightState),
       );
+      // Guards first: skinned guards move each beam's start to the flashlight in their hand.
+      guardVisuals.update(guards.guards, lights, alpha, frameDt, camera);
       flashlights.update(lights, camera, frameDt, mission.time, opts.pixelRatio());
-      guardVisuals.update(guards.guards, lights, alpha, camera);
       const itemLeft = mission.item && !mission.itemTaken ? mission.item : null;
       props.update(frameDt, alpha, mission.bottle, itemLeft);
       if (exitOpen !== !itemLeft) levelMesh?.setExitOpen((exitOpen = !itemLeft));
@@ -292,6 +303,9 @@ export function createGameWorld(first: LoadedLevel, opts: GameWorldOptions): Gam
     setHudVisible(visible) {
       hud.visible = visible;
       handsVisible = visible;
+    },
+    setGuardModel(model) {
+      guardVisuals.setModel(model);
     },
     setLoadout(knife, glove) {
       viewmodel.setKnife(knifeLook(knife));

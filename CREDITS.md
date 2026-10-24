@@ -41,6 +41,14 @@ are packed into one trim sheet per theme by `scripts/assets/build-trimsheets.mjs
 | [White Plaster 02](https://polyhaven.com/a/white_plaster_02) | Rob Tuytel | mansion ceiling | CC0 |
 | [Wood Planks Grey](https://polyhaven.com/a/wood_planks_grey) | Rob Tuytel | warehouse propA | CC0 |
 
+### Characters
+
+- **Guards:** a [Mixamo](https://www.mixamo.com) character and animations (Adobe), used under the
+  Mixamo terms (free in games; raw files are not redistributed). They are downloaded by hand per
+  `art-src/README.md` and built into `public/assets/characters/guard.glb` by
+  `scripts/assets/build-characters.mjs`. Until that file is built, guards are drawn as capsules.
+- **First-person hand and knife:** built in code (`src/render/viewmodel-mesh.ts`). No third-party asset.
+
 ## Audio
 
 Recorded sounds are fetched by `scripts/assets/fetch-audio.mjs` and encoded by `build-audio.mjs`

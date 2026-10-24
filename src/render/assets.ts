@@ -3,7 +3,7 @@
 // colours until its sheet arrives; a failed load leaves it flat rather than failing the level.
 
 import * as THREE from 'three';
-import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
+import type { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
 import { TIER_SETTINGS, type QualityTier } from '../config/quality';
 import { ASSET_FILES } from '../config/tunables';
 import { THEME_KITS } from '../level/kit';
@@ -14,6 +14,7 @@ import {
   type SheetTextures,
   type TrimSheet,
 } from './kit-material';
+import { ktx2Loader } from './ktx2';
 
 export class ThemeAssets {
   private readonly loader: KTX2Loader;
@@ -26,8 +27,7 @@ export class ThemeAssets {
     private readonly renderer: THREE.WebGLRenderer,
     tier: QualityTier,
   ) {
-    // No transcoder path: the loader then fetches three's Basis transcoder by URL, which Vite bundles.
-    this.loader = new KTX2Loader().detectSupport(renderer);
+    this.loader = ktx2Loader(renderer);
     this.anisotropy = this.anisotropyFor(tier);
   }
 

@@ -14,6 +14,7 @@ import { GameLoop } from './core/loop';
 import { Rng } from './core/rng';
 import { createPlatform } from './platform';
 import { ThemeAssets } from './render/assets';
+import { loadGuardModel } from './render/guard-models';
 import type { PostFx } from './render/post';
 import {
   applyTier,
@@ -142,6 +143,16 @@ async function boot(): Promise<void> {
     game.setLoadout(progress.equipped.knife, progress.equipped.glove);
     game.restart(modifiersFor(progress));
     world = game;
+    // Skinned guards replace the capsules once their model arrives (or never, if it is missing).
+    const g = game;
+    void loadGuardModel(ctx.renderer)
+      .then((model) => {
+        g.setGuardModel(model);
+        return ctx.renderer.compileAsync(g.scene, g.camera);
+      })
+      .catch((err: unknown) =>
+        console.info('[guards] no skinned model, using capsules:', (err as Error).message ?? err),
+      );
     // ?debug=1 only: a handle for console poking and scripted (CDP) playtests.
     if (flags.debug) (window as Window & { __shadowHunter?: unknown }).__shadowHunter = { game };
   }

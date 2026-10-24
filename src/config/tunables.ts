@@ -389,7 +389,39 @@ export const LIGHT_EXPOSURE = {
   beamRangeFraction: 0.2,
 } as const;
 
-/** Placeholder guard look: capsule body, lens glow, and the in-world state icons. */
+/** Skinned guards (Mixamo): clip choice, playback, update rates and the props in their hands. */
+export const GUARD_ANIM = {
+  /** Crossfade between clips (s). */
+  fadeS: 0.25,
+  /** Ground speed (m/s) from which he walks, and runs. */
+  walkFromMps: 0.2,
+  runFromMps: 2.5,
+  /** The speed each locomotion clip's stride covers at 1× (m/s); playback is scaled to match. */
+  walkClipMps: 1.5,
+  runClipMps: 4.2,
+  minTimeScale: 0.5,
+  maxTimeScale: 1.6,
+  /** Standing still but turning faster than this (rad/s) plays a turn clip. */
+  turnFromRadPerS: 0.9,
+  /** Killed from inside this rear arc (deg) he pitches forward; otherwise he falls back. */
+  backArcDeg: 120,
+  /** Mixers update every frame within this distance (m); beyond it, and off screen, less often. */
+  nearM: 12,
+  farEveryFrames: 2,
+  offscreenEveryFrames: 6,
+  /** Bounding radius (m) used to cull a guard against the view. */
+  cullRadiusM: 1.4,
+  /** The rendered beam starts at the flashlight in his hand, at most this far from the sim's lens (m). */
+  lensMaxOffsetM: 0.35,
+  /** Flashlight prop: length and radius (m); the lens sits at its front. Pistol: length, height (m). */
+  torchLengthM: 0.2,
+  torchRadiusM: 0.025,
+  pistolLengthM: 0.19,
+  pistolHeightM: 0.13,
+  propColor: 0x1b1d21,
+} as const;
+
+/** Guard look: the capsule fallback body, lens glow, state icons, and the gun tell and flash. */
 export const GUARD_VISUALS = {
   bodyColor: 0x2b323c,
   bodyRadius: 0.28,
