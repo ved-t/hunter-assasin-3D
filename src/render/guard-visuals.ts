@@ -12,7 +12,7 @@ import { lerpAngle } from '../core/angles';
 import { flickerIntensity } from '../lighting/flicker';
 import type { FlashlightState } from '../lighting/flashlights';
 import type { DeathClip } from './guard-anim';
-import { GuardRigs, type GuardModel } from './guard-models';
+import type { GuardRigs } from './guard-models';
 
 const PITCH = THREE.MathUtils.degToRad(GUARD.flashlightPitchDeg);
 const DROP_PITCH = THREE.MathUtils.degToRad(BODIES.dropLensPitchDeg);
@@ -188,11 +188,11 @@ export class GuardVisuals {
     this.group.add(this.bodies, this.billboards);
   }
 
-  /** Swap the capsules for skinned guards. */
-  setModel(model: GuardModel): void {
+  /** Swap the capsules for skinned guards, made by `make` for this many guard slots. */
+  setRigs(make: (capacity: number) => GuardRigs): void {
     this.rigs?.group.removeFromParent();
     this.rigs?.dispose();
-    this.rigs = new GuardRigs(model, this.capacity);
+    this.rigs = make(this.capacity);
     this.group.add(this.rigs.group);
     this.bodies.visible = false;
   }

@@ -23,7 +23,7 @@ import { ViewmodelAnimator } from './player/viewmodel';
 import type { DebugAi } from './render/debug-ai';
 import type { ThemeAssets } from './render/assets';
 import { deathClipFor } from './render/guard-anim';
-import type { GuardModel } from './render/guard-models';
+import type { GuardRigs } from './render/guard-models';
 import { guardFlashlight, GuardVisuals } from './render/guard-visuals';
 import { MissionProps } from './render/mission-props';
 import { createSessionScene } from './render/level-scene';
@@ -64,8 +64,8 @@ export interface GameWorld extends World {
   setHudVisible(visible: boolean): void;
   /** Paint the viewmodel with these knife and glove skins (unlock ids). */
   setLoadout(knife: string, glove: string): void;
-  /** The skinned guard model has loaded: it replaces the capsules. */
-  setGuardModel(model: GuardModel): void;
+  /** The skinned guard model has loaded: rigs made by `make` replace the capsules. */
+  setGuardRigs(make: (capacity: number) => GuardRigs): void;
 }
 
 export interface GameWorldOptions {
@@ -304,8 +304,8 @@ export function createGameWorld(first: LoadedLevel, opts: GameWorldOptions): Gam
       hud.visible = visible;
       handsVisible = visible;
     },
-    setGuardModel(model) {
-      guardVisuals.setModel(model);
+    setGuardRigs(make) {
+      guardVisuals.setRigs(make);
     },
     setLoadout(knife, glove) {
       viewmodel.setKnife(knifeLook(knife));
