@@ -17,7 +17,7 @@ const ARC_SEGMENTS = 10;
 const NEAR_ARC_SEGMENTS = 4;
 /** Path segments drawn per guard. */
 const MAX_PATH = 16;
-const KNIFE_ARC_SEGMENTS = 8;
+const KNIFE_ARC_SEGMENTS = 16;
 const SEGMENTS_PER_GUARD =
   2 + ARC_SEGMENTS + 2 + NEAR_ARC_SEGMENTS + 2 + KNIFE_ARC_SEGMENTS + MAX_PATH;
 /** Takedown arc and dead guards' labels. */
@@ -203,7 +203,6 @@ export class DebugAi {
     };
     const half = (VISION.fovDeg * Math.PI) / 360;
     const nearHalf = (VISION.nearFovDeg * Math.PI) / 360;
-    const knifeHalf = (KNIFE.rearArcDeg * Math.PI) / 360;
     for (const g of this.guards) {
       if (g.dead) continue;
       const x = g.prevPos.x + (g.pos.x - g.prevPos.x) * alpha;
@@ -228,7 +227,7 @@ export class DebugAi {
       fan(half, VISION.rangeM, ARC_SEGMENTS);
       fan(nearHalf, VISION.nearRangeM, NEAR_ARC_SEGMENTS);
       if (g.state !== 'alert') {
-        fan(knifeHalf, KNIFE.rangeM, KNIFE_ARC_SEGMENTS, this.knifeColor, Math.PI);
+        fan(Math.PI, KNIFE.rangeM, KNIFE_ARC_SEGMENTS, this.knifeColor);
       }
       // Path from the guard through its remaining waypoints.
       let px = x;

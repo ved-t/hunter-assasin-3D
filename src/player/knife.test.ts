@@ -20,7 +20,8 @@ const grid = Grid.fromRows(
 );
 
 /** A guard at the centre of (3, 1) facing east (+X). */
-function guard(over: Partial<KnifeTarget> = {}): KnifeTarget {
+type TestGuard = KnifeTarget & { yaw: number };
+function guard(over: Partial<TestGuard> = {}): TestGuard {
   return {
     pos: { x: c(3), z: c(1) },
     yaw: yawFromDir(1, 0),
@@ -31,20 +32,15 @@ function guard(over: Partial<KnifeTarget> = {}): KnifeTarget {
 }
 
 /** Player position at `distance` from the guard, `deg` off his facing (0 = in front). */
-function at(g: KnifeTarget, distance: number, deg: number): [number, number] {
+function at(g: TestGuard, distance: number, deg: number): [number, number] {
   const a = g.yaw + (deg * Math.PI) / 180;
   return [g.pos.x - Math.sin(a) * distance, g.pos.z - Math.cos(a) * distance];
 }
 
 describe('canKnife', () => {
-  it('works from behind and from the side, not from the front 140°', () => {
+  it('works from any angle, the front included', () => {
     const g = guard();
-    expect(canKnife(grid, ...at(g, 1, 180), g)).toBe(true);
-    expect(canKnife(grid, ...at(g, 1, 90), g)).toBe(true);
-    expect(canKnife(grid, ...at(g, 1, -90), g)).toBe(true);
-    expect(canKnife(grid, ...at(g, 1, 71), g)).toBe(true);
-    expect(canKnife(grid, ...at(g, 1, 69), g)).toBe(false);
-    expect(canKnife(grid, ...at(g, 1, 0), g)).toBe(false);
+    for (const deg of [180, 90, -90, 45, 0]) expect(canKnife(grid, ...at(g, 1, deg), g)).toBe(true);
   });
 
   it('reaches exactly 1.6 m', () => {

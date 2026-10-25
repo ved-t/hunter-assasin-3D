@@ -518,8 +518,6 @@ export const WEAPON = {
 export const KNIFE = {
   /** Reach, guard centre to player centre (m). */
   rangeM: 1.6,
-  /** The player must be inside the guard's rear arc this wide (deg); his front 140° is safe. */
-  rearArcDeg: 220,
   /** The kill locks player movement this long (s); look stays free. */
   lockS: 0.4,
   /** The kill itself makes this much noise (m of radius). */
