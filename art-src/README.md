@@ -8,21 +8,24 @@ the built `guard.glb` is committed.
 | --- | --- | --- |
 | `polyhaven/` | `npm run assets:textures` (downloads automatically) | `build-trimsheets.mjs` |
 | `audio/` | `npm run assets:audio` (downloads automatically) | `build-audio.mjs` |
-| `mixamo/` | **you, by hand** (checklist below) | `npm run assets:characters` |
+| `anims/` | **you, by hand** (checklist below) | `npm run assets:characters` |
 | `build/` | intermediate files from the scripts | — |
 
 ## Mixamo checklist (guards)
 
 Mixamo has no API and needs an Adobe login, so these are downloaded by hand from
-<https://www.mixamo.com>. Save each file into `art-src/mixamo/` under the name in the first column.
+<https://www.mixamo.com>. Save each file into `art-src/anims/` under the name in the first column.
+The names are the ones `scripts/assets/characters.mjs` points at.
 
 **1. The character.** Pick one guard-like humanoid in dark clothing, for example by searching
 `swat`, `soldier` or `police`. Prefer a character with one material, because each extra material
-costs one draw call per guard. Use the download button with **no animation** selected.
+costs one draw call per guard. Any download with skin works: the build keeps only the mesh and
+skeleton and discards the file's own animation. The current guard is Mixamo's "Double Dagger Stab"
+download, saved as `guard.fbx`.
 
-| Save as | Format | Skin | Frames per second | Pose |
-| --- | --- | --- | --- | --- |
-| `guard.fbx` | FBX Binary (.fbx) | With Skin | 30 | T-pose |
+| Save as | Format | Skin | Frames per second |
+| --- | --- | --- | --- |
+| `guard.fbx` | FBX Binary (.fbx) | With Skin | 30 |
 
 **2. The animations.** With the same character selected, search each name, set the options, then download:
 
@@ -34,15 +37,25 @@ costs one draw call per guard. Use the download button with **no animation** sel
 
 | Save as | Mixamo search | Notes |
 | --- | --- | --- |
-| `pistol-idle.fbx` | Pistol Idle | |
-| `pistol-walk.fbx` | Pistol Walk | In Place |
-| `pistol-run.fbx` | Pistol Run | In Place |
-| `turn-left.fbx` | Left Turn | the pistol version if listed |
-| `turn-right.fbx` | Right Turn | the pistol version if listed |
-| `looking-around.fbx` | Looking Around | |
-| `shooting.fbx` | Shooting | the pistol one (one-handed or two-handed) |
-| `death-back.fbx` | Death From The Back | he falls forward |
-| `death-front.fbx` | Death From Front | he falls backward |
+| `pistol_idle.fbx` | Pistol Idle | |
+| `pistol_walk.fbx` | Pistol Walk | In Place |
+| `pistol_run.fbx` | Pistol Run | In Place |
+| `looking_around.fbx` | Looking Around | |
+| `death_from_the_back.fbx` | Death From The Back | he falls forward |
+| `death_from_the_front.fbx` | Death From The Front | he falls backward |
+
+Optional. Not downloaded yet; the game plays `idle` in their place. To use one, save it and add
+its line back to `CHARACTER.clips` in `characters.mjs` (the build stops on a file that's listed but
+missing):
+
+| Save as | Mixamo search | Clip | `keep` |
+| --- | --- | --- | --- |
+| `turn_left.fbx` | Left Turn (the pistol version if listed) | `turnLeft` | `'turn'` |
+| `turn_right.fbx` | Right Turn (the pistol version if listed) | `turnRight` | `'turn'` |
+| `shooting.fbx` | a pistol shoot or aim clip | `shoot` | `'inPlace'` |
+
+Also in the folder but unused: `dying.fbx` (a possible 3rd death) and `pistol_whip.fbx` (there's
+no guard melee in the design).
 
 **3. Build:** `npm run assets:characters`. The script prints the clip list, the size (budget 3 MB),
 and the draw calls per guard. It writes `public/assets/characters/guard.glb` and adds the guard to
