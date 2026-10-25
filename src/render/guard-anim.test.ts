@@ -40,8 +40,10 @@ describe('pickClip', () => {
     expect(pick({ speed: 50 }).timeScale).toBe(GUARD_ANIM.maxTimeScale);
   });
 
-  it('aims over everything but death', () => {
-    expect(pick({ aiming: true, speed: 3, state: 'alert' }).clip).toBe('shoot');
+  it('aims standing still, but keeps the stride when aiming on the move', () => {
+    expect(pick({ aiming: true, state: 'alert' }).clip).toBe('shoot');
+    expect(pick({ aiming: true, speed: 3, state: 'alert' }).clip).toBe('run');
+    expect(pick({ aiming: true, speed: 1, state: 'alert' }).clip).toBe('walk');
     expect(pick({ aiming: true, dead: true, death: 'deathFront' }).clip).toBe('deathFront');
   });
 });

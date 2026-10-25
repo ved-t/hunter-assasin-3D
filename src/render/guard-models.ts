@@ -3,7 +3,8 @@
 // (guard-anim.ts); mixers of far and off-screen guards update less often, and guards outside the view
 // are hidden. The flashlight and pistol in their hands are two InstancedMeshes for all guards; the
 // flashlight follows the left hand and points along the sim's beam, and the rendered beam is moved to
-// start at its lens. Reads guard sim state; never writes back. If the GLB is missing, GuardVisuals
+// start at its lens. While he aims, his pistol arm is raised procedurally on top of the clip
+// (guard-aim.ts). Reads guard sim state; never writes back. If the GLB is missing, GuardVisuals
 // keeps its capsules.
 
 import * as THREE from 'three';
@@ -11,7 +12,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import type { Guard } from '../ai/guard';
-import { ASSET_FILES, BODIES, GUARD, GUARD_ANIM as A } from '../config/tunables';
+import { ASSET_FILES, BODIES, GUARD, GUARD_AIM, GUARD_ANIM as A } from '../config/tunables';
 import { lerpAngle } from '../core/angles';
 import type { FlashlightState } from '../lighting/flashlights';
 import {
@@ -23,11 +24,11 @@ import {
   type DeathClip,
   type GuardClip,
 } from './guard-anim';
+import { aimTarget, recoilKick, settleAim } from './guard-aim';
 import { ktx2Loader } from './ktx2';
 
 const DROP_PITCH = THREE.MathUtils.degToRad(BODIES.dropLensPitchDeg);
-/** He counts as aiming this long after a shot (s), so the shoot clip plays through its recoil. */
-const AIM_HOLD_S = 0.5;
+const DEG = Math.PI / 180;
 
 export interface GuardModel {
   /** Bind-pose scene, scaled to GUARD.height with the feet at y = 0, facing −Z. */
@@ -83,10 +84,21 @@ interface Rig {
   current: GuardClip | null;
   leftHand: THREE.Object3D | null;
   rightHand: THREE.Object3D | null;
+  /** Bones the procedural aim turns: chest, then the pistol arm. */
+  spine: THREE.Object3D | null;
+  rightArm: THREE.Object3D | null;
+  rightForeArm: THREE.Object3D | null;
   death: DeathClip;
   /** Mixer time owed since its last update (s), and frames since then. */
   owed: number;
   skipped: number;
+  /** How raised the pistol is (0..1), eased by settleAim. */
+  aim: number;
+  /** The bones hold an aim offset on top of the mixer's last pose. */
+  posed: boolean;
+  /** This frame's pistol muzzle (world), when the pistol was drawn. */
+  muzzle: THREE.Vector3;
+  hasMuzzle: boolean;
 }
 
 function findBone(root: THREE.Object3D, suffix: string): THREE.Object3D | null {
@@ -110,6 +122,12 @@ export class GuardRigs {
   private readonly e = new THREE.Euler(0, 0, 0, 'YXZ');
   private readonly p = new THREE.Vector3();
   private readonly hand = new THREE.Vector3();
+  private readonly dir = new THREE.Vector3();
+  private readonly right = new THREE.Vector3();
+  private readonly qa = new THREE.Quaternion();
+  private readonly qb = new THREE.Quaternion();
+  private readonly qp = new THREE.Quaternion();
+  private readonly qt = new THREE.Quaternion();
   private readonly one = new THREE.Vector3(1, 1, 1);
   private readonly choice: ClipChoice = { clip: 'idle', timeScale: 1 };
 
@@ -133,9 +151,16 @@ export class GuardRigs {
         current: null,
         leftHand: findBone(root, 'LeftHand'),
         rightHand: findBone(root, 'RightHand'),
+        spine: findBone(root, 'Spine2'),
+        rightArm: findBone(root, 'RightArm'),
+        rightForeArm: findBone(root, 'RightForeArm'),
         death: 'deathBack',
         owed: 0,
         skipped: 0,
+        aim: 0,
+        posed: false,
+        muzzle: new THREE.Vector3(),
+        hasMuzzle: false,
       });
       // Visible until the first update culls it, so a compile pass right after loading includes it.
       this.group.add(root);
@@ -177,6 +202,9 @@ export class GuardRigs {
       r.current = null;
       r.death = 'deathBack';
       r.owed = 0;
+      r.aim = 0;
+      r.posed = false;
+      r.hasMuzzle = false;
       r.root.visible = false;
     }
   }
@@ -184,6 +212,14 @@ export class GuardRigs {
   setDeath(i: number, clip: DeathClip): void {
     const r = this.rigs[i];
     if (r) r.death = clip;
+  }
+
+  /** Guard `i`'s pistol muzzle this frame (after update), if his pistol was drawn. */
+  muzzle(i: number, out: THREE.Vector3): boolean {
+    const r = this.rigs[i];
+    if (!r?.hasMuzzle) return false;
+    out.copy(r.muzzle);
+    return true;
   }
 
   /** Poses every guard, and moves `lights[i]` (this frame's beams) to the flashlight in his hand. */
@@ -217,27 +253,35 @@ export class GuardRigs {
       this.sphere.radius = A.cullRadiusM;
       const onScreen = this.frustum.intersectsSphere(this.sphere);
       r.root.visible = onScreen;
+      r.hasMuzzle = false;
 
+      r.aim = g.dead ? 0 : settleAim(r.aim, aimTarget(g.gun), frameDt);
+      const kick = g.dead ? 0 : recoilKick(g.gun.sinceShot);
+      const posing = r.aim > 0 || kick > 0;
       pickClip(
         {
           dead: g.dead,
           death: r.death,
           state: g.state,
           speed: g.speed,
-          aiming: !g.dead && (g.gun.phase === 'windup' || g.gun.sinceShot < AIM_HOLD_S),
+          aiming: r.aim > 0,
         },
         this.choice,
       );
       this.play(r, this.choice.clip, this.choice.timeScale);
 
-      // Far and off-screen guards animate at a lower rate; their time is owed, not lost.
+      // Far and off-screen guards animate at a lower rate; their time is owed, not lost. While he
+      // aims, and the frame after, the mixer runs every frame: the aim is added to the mixer's pose,
+      // and on a frame the mixer skipped it would stack on last frame's.
       r.owed += frameDt;
       const far = Math.hypot(camera.position.x - x, camera.position.z - z) > A.nearM;
       const every = !onScreen ? A.offscreenEveryFrames : far ? A.farEveryFrames : 1;
-      if (++r.skipped >= every) {
+      if (posing || r.posed || ++r.skipped >= every) {
         r.mixer.update(r.owed);
         r.owed = 0;
         r.skipped = 0;
+        r.posed = posing && onScreen;
+        if (r.posed) this.aimPose(r, yaw, r.aim, kick);
       }
       if (!onScreen) continue;
       r.root.updateMatrixWorld(true);
@@ -258,16 +302,57 @@ export class GuardRigs {
       this.torches.setMatrixAt(torches++, this.m.compose(this.p, this.q, this.one));
 
       if (r.rightHand && !g.dead) {
+        // Level with his facing; raised, it points along the aim, and the kick pitches it up.
         r.rightHand.getWorldPosition(this.hand);
-        this.e.set(0, yaw, 0);
+        const kickDeg = (GUARD_AIM.kickForearmDeg + GUARD_AIM.kickHandDeg) * kick;
+        this.e.set((kickDeg - GUARD_AIM.pitchDeg * r.aim) * DEG, yaw, 0);
         this.q.setFromEuler(this.e);
         this.pistols.setMatrixAt(pistols++, this.m.compose(this.hand, this.q, this.one));
+        r.muzzle.set(0, 0, -A.pistolLengthM).applyQuaternion(this.q).add(this.hand);
+        r.hasMuzzle = true;
       }
     }
     this.torches.count = torches;
     this.pistols.count = pistols;
     this.torches.instanceMatrix.needsUpdate = true;
     this.pistols.instanceMatrix.needsUpdate = true;
+  }
+
+  /**
+   * Adds the raised pistol (weight 0..1) and its recoil to the mixer's pose, as world-space turns in
+   * his yaw frame, so no Mixamo bone axes are assumed: the chest leans in, the upper arm swings the
+   * shoulder-to-hand line onto his eye line ahead, and the kick pitches the forearm and hand up.
+   */
+  private aimPose(r: Rig, yaw: number, weight: number, kick: number): void {
+    r.root.updateMatrixWorld(true);
+    const right = this.right.set(Math.cos(yaw), 0, -Math.sin(yaw));
+    if (r.spine) {
+      this.turnWorld(r.spine, this.qa.setFromAxisAngle(right, -GUARD_AIM.leanDeg * DEG * weight));
+    }
+    if (r.rightArm && r.rightHand) {
+      r.rightArm.getWorldPosition(this.p);
+      const from = r.rightHand.getWorldPosition(this.hand).sub(this.p).normalize();
+      const pitch = GUARD_AIM.pitchDeg * DEG;
+      const cp = Math.cos(pitch);
+      this.dir.set(-Math.sin(yaw) * cp, -Math.sin(pitch), -Math.cos(yaw) * cp);
+      this.qa.setFromUnitVectors(from, this.dir);
+      this.turnWorld(r.rightArm, this.qb.identity().slerp(this.qa, weight));
+    }
+    if (kick > 0) {
+      const forearm = GUARD_AIM.kickForearmDeg * DEG * kick;
+      if (r.rightForeArm) this.turnWorld(r.rightForeArm, this.qa.setFromAxisAngle(right, forearm));
+      const hand = GUARD_AIM.kickHandDeg * DEG * kick;
+      if (r.rightHand) this.turnWorld(r.rightHand, this.qa.setFromAxisAngle(right, hand));
+    }
+  }
+
+  /** Turns `bone` by the world-space rotation `q` about its own origin. */
+  private turnWorld(bone: THREE.Object3D, q: THREE.Quaternion): void {
+    if (!bone.parent) return;
+    // local' = parent^-1 * q * parent * local; getWorldQuaternion brings the parent chain up to date.
+    bone.parent.getWorldQuaternion(this.qp);
+    const inv = this.qt.copy(this.qp).invert();
+    bone.quaternion.premultiply(inv.multiply(q).multiply(this.qp));
   }
 
   /** Puts the beam's start at the lens of a torch held at `grip`, within reach of the sim's lens. */

@@ -429,6 +429,26 @@ export const GUARD_ANIM = {
   propColor: 0x1b1d21,
 } as const;
 
+/**
+ * Procedural pistol aim on the skinned guards, on top of whatever clip plays (there is no shoot
+ * clip): the arm rises to his eye line over the wind-up and kicks up on the shot.
+ */
+export const GUARD_AIM = {
+  /** The pistol stays raised this long after a shot (s), then lowers. */
+  holdS: 0.5,
+  /** Lowering from fully raised takes this long (s); a cancelled wind-up lowers the same way. */
+  lowerS: 0.3,
+  /** The recoil kick peaks at the shot and is gone this long after it (s). */
+  kickS: 0.15,
+  /** Recoil pitch (deg) of the forearm and of the hand at the kick's peak; they add up. */
+  kickForearmDeg: 10,
+  kickHandDeg: 15,
+  /** Upper body leaned into the aim at full raise (deg, forward pitch of the chest). */
+  leanDeg: 6,
+  /** The arm points this far below level (deg): shoulder to the player's eye line. */
+  pitchDeg: 0,
+} as const;
+
 /** Guard look: the capsule fallback body, lens glow, state icons, and the gun tell and flash. */
 export const GUARD_VISUALS = {
   bodyColor: 0x2b323c,

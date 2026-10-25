@@ -288,17 +288,24 @@ export class GuardVisuals {
         );
       }
 
-      // The gun, held low on his right: a red glint swelling through the wind-up, then the flash.
+      // The gun: a red glint swelling through the wind-up, then the flash. At the skinned guard's
+      // pistol as he raises it; on a capsule, held low on his right.
       if (!g.dead) {
-        const yaw = l.yaw;
-        const mx = x - Math.sin(yaw) * V.muzzleForward + Math.cos(yaw) * V.muzzleRight;
-        const mz = z - Math.cos(yaw) * V.muzzleForward - Math.sin(yaw) * V.muzzleRight;
+        const m = this.p;
+        if (!this.rigs?.muzzle(i, m)) {
+          const yaw = l.yaw;
+          m.set(
+            x - Math.sin(yaw) * V.muzzleForward + Math.cos(yaw) * V.muzzleRight,
+            V.muzzleHeight,
+            z - Math.cos(yaw) * V.muzzleForward - Math.sin(yaw) * V.muzzleRight,
+          );
+        }
         const w = g.gun.windupFraction;
         if (g.gun.sinceShot < V.muzzleFlashS) {
-          put(mx, V.muzzleHeight, mz, V.muzzleFlashSize, this.colors.flash, 1.5, CELL_GLOW);
+          put(m.x, m.y, m.z, V.muzzleFlashSize, this.colors.flash, 1.5, CELL_GLOW);
         } else if (w > 0) {
           const size = V.tellSizeMin + (V.tellSizeMax - V.tellSizeMin) * w;
-          put(mx, V.muzzleHeight, mz, size, this.colors.alert, 0.6 + 0.9 * w, CELL_GLOW);
+          put(m.x, m.y, m.z, size, this.colors.alert, 0.6 + 0.9 * w, CELL_GLOW);
         }
       }
     }

@@ -26,7 +26,7 @@ export interface ClipInput {
   state: GuardState;
   /** Ground speed (m/s). */
   speed: number;
-  /** Winding up or just fired. */
+  /** Pistol raised: winding up or just fired. */
   aiming: boolean;
 }
 
@@ -36,19 +36,23 @@ export interface ClipChoice {
   timeScale: number;
 }
 
-/** The clip for this frame. There are no turn clips: turning on the spot plays idle or look. */
+/**
+ * The clip for this frame. There are no turn clips: turning on the spot plays idle or look. Aiming
+ * standing still asks for `shoot` (idle stands in while the model has none); aiming on the move
+ * keeps the stride. The raised arm is procedural on top of either (guard-aim.ts).
+ */
 export function pickClip(i: ClipInput, out: ClipChoice): ClipChoice {
   out.timeScale = 1;
   if (i.dead) {
     out.clip = i.death;
-  } else if (i.aiming) {
-    out.clip = 'shoot';
   } else if (i.speed >= A.runFromMps) {
     out.clip = 'run';
     out.timeScale = clampScale(i.speed / A.runClipMps);
   } else if (i.speed >= A.walkFromMps) {
     out.clip = 'walk';
     out.timeScale = clampScale(i.speed / A.walkClipMps);
+  } else if (i.aiming) {
+    out.clip = 'shoot';
   } else if (i.state === 'suspicious' || i.state === 'search') {
     out.clip = 'look';
   } else {
