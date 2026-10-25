@@ -549,6 +549,10 @@ async function boot(): Promise<void> {
 
   /** An ad is up (or being asked for); result-screen buttons wait for it. */
   let adBusy = false;
+  // Leaving the app or tab mid-level comes back to the pause menu, not straight into live play.
+  platform.onPause(() => {
+    if (!adBusy) openPause();
+  });
   /** Leaving the result screen is a natural break: show an interstitial first when one is due. */
   async function afterBreak(go: () => void): Promise<void> {
     if (adBusy) return;
