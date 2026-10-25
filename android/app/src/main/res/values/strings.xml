@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Shadow Hunter</string>
+    <string name="title_activity_main">Shadow Hunter</string>
+    <string name="package_name">com.autobuildstudios.shadowhunter</string>
+    <string name="custom_url_scheme">com.autobuildstudios.shadowhunter</string>
+    <!-- Written by `scripts/android.mjs sync` from src/platform/admob-ids.ts; edit it there. -->
+    <string name="admob_app_id" translatable="false">ca-app-pub-3940256099942544~3347511713</string>
+</resources>
