@@ -42,4 +42,9 @@ export interface Platform {
   onResume(fn: () => void): () => void;
   /** The host muted or unmuted the game (portal audio setting). Returns an unsubscribe. */
   onMuteChange(fn: (muted: boolean) => void): () => void;
+  /** A hardware/system back press (Android). Returns an unsubscribe. */
+  onBack(fn: () => void): () => void;
+  /** The ad consent provider requires a way to revisit consent (shown as a Settings button). */
+  readonly privacyOptionsRequired: boolean;
+  showPrivacyOptions(): Promise<void>;
 }

@@ -42,7 +42,18 @@ async function createAdapter(): Promise<Platform | null> {
       const { PlaygamaPlatform } = await import('./playgama');
       return new PlaygamaPlatform(bridge);
     }
-    // Phase 6c adds the android adapter here.
+    case 'android': {
+      const { Capacitor } = await import('@capacitor/core');
+      // A browser preview of dist-android has no native plugins.
+      if (!Capacitor.isNativePlatform()) return null;
+      const [{ AndroidPlatform }, { AdMob }, { App }, { Preferences }] = await Promise.all([
+        import('./android'),
+        import('@capacitor-community/admob'),
+        import('@capacitor/app'),
+        import('@capacitor/preferences'),
+      ]);
+      return new AndroidPlatform({ admob: AdMob, app: App, preferences: Preferences });
+    }
     default:
       return null;
   }

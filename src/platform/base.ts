@@ -11,6 +11,7 @@ interface HostEvents {
   pause: void;
   resume: void;
   mute: boolean;
+  back: void;
 }
 
 export class PauseHolds {
@@ -36,6 +37,7 @@ export abstract class BasePlatform implements Platform {
   abstract readonly storage: PlatformStorage;
   abstract readonly rewardedAvailable: boolean;
   readonly canQuit: boolean = false;
+  readonly privacyOptionsRequired: boolean = false;
 
   protected readonly events = new Emitter<HostEvents>();
   protected readonly holds = new PauseHolds((paused) =>
@@ -69,6 +71,12 @@ export abstract class BasePlatform implements Platform {
   onMuteChange(fn: (muted: boolean) => void): () => void {
     return this.events.on('mute', fn);
   }
+
+  onBack(fn: () => void): () => void {
+    return this.events.on('back', fn);
+  }
+
+  async showPrivacyOptions(): Promise<void> {}
 
   /**
    * Pause while the tab is hidden and, inside a portal iframe, while focus is elsewhere on the page
