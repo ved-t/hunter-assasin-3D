@@ -57,6 +57,19 @@ export function pickClip(i: ClipInput, out: ClipChoice): ClipChoice {
   return out;
 }
 
+/**
+ * The clip that plays when `wanted` is asked for: itself if the model has it, else idle, else the
+ * first clip it has (null if none). The model may lack clips that weren't downloaded.
+ */
+export function resolveClip(
+  wanted: GuardClip,
+  has: (clip: GuardClip) => boolean,
+): GuardClip | null {
+  if (has(wanted)) return wanted;
+  if (has('idle')) return 'idle';
+  return GUARD_CLIPS.find(has) ?? null;
+}
+
 function clampScale(s: number): number {
   return Math.min(A.maxTimeScale, Math.max(A.minTimeScale, s));
 }

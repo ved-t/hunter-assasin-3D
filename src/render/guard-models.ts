@@ -18,6 +18,7 @@ import {
   GUARD_CLIPS,
   ONE_SHOT,
   pickClip,
+  resolveClip,
   type ClipChoice,
   type DeathClip,
   type GuardClip,
@@ -286,18 +287,19 @@ export class GuardRigs {
   }
 
   private play(r: Rig, clip: GuardClip, timeScale: number): void {
-    const name = r.actions.has(clip) ? clip : r.actions.has('idle') ? 'idle' : null;
-    const next = name ? r.actions.get(name) : r.actions.values().next().value;
-    if (!next) return;
+    // Compare and store the clip that actually plays, so a missing clip doesn't restart its stand-in.
+    const name = resolveClip(clip, (c) => r.actions.has(c));
+    const next = name ? r.actions.get(name) : undefined;
+    if (!name || !next) return;
     next.setEffectiveTimeScale(timeScale);
-    if (r.current === clip) return;
+    if (r.current === name) return;
     const prev = r.current ? r.actions.get(r.current) : undefined;
     next.reset().setEffectiveWeight(1).play();
-    if (prev && prev !== next) {
+    if (prev) {
       next.fadeIn(A.fadeS);
       prev.fadeOut(A.fadeS);
     }
-    r.current = clip;
+    r.current = name;
   }
 
   dispose(): void {

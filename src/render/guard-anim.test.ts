@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { GUARD_ANIM } from '../config/tunables';
-import { deathClipFor, pickClip, type ClipChoice, type ClipInput } from './guard-anim';
+import {
+  deathClipFor,
+  pickClip,
+  resolveClip,
+  type ClipChoice,
+  type ClipInput,
+  type GuardClip,
+} from './guard-anim';
 
 const base: ClipInput = {
   dead: false,
@@ -36,6 +43,28 @@ describe('pickClip', () => {
   it('aims over everything but death', () => {
     expect(pick({ aiming: true, speed: 3, state: 'alert' }).clip).toBe('shoot');
     expect(pick({ aiming: true, dead: true, death: 'deathFront' }).clip).toBe('deathFront');
+  });
+});
+
+describe('resolveClip', () => {
+  const model =
+    (...clips: GuardClip[]) =>
+    (c: GuardClip) =>
+      clips.includes(c);
+
+  it('plays the clip asked for when the model has it', () => {
+    expect(resolveClip('walk', model('idle', 'walk'))).toBe('walk');
+  });
+
+  it('stands in idle for a missing clip, so asking again changes nothing', () => {
+    const has = model('idle', 'walk');
+    expect(resolveClip('shoot', has)).toBe('idle');
+    expect(resolveClip('shoot', has)).toBe(resolveClip('idle', has));
+  });
+
+  it('falls back to any clip without idle, and to none without clips', () => {
+    expect(resolveClip('shoot', model('run', 'walk'))).toBe('walk');
+    expect(resolveClip('idle', model())).toBeNull();
   });
 });
 
