@@ -561,12 +561,15 @@ async function boot(): Promise<void> {
     if (!game || !r || !result) return;
     const level = game.level.data;
     let reward: WinReward | null = null;
+    // Celebrated only the first time a level reaches 3 stars; portals ask for happy time sparingly.
+    const firstThreeStars =
+      r.outcome === 'won' && r.stars === 3 && (progress.levels[level.id]?.stars ?? 0) < 3;
     if (r.outcome === 'won' && CAMPAIGN.some((l) => l.id === level.id)) {
       const won = recordWin(progress, level.id, r.stars, r.stats.timeS);
       setProgress(won.progress);
       reward = won.reward;
     }
-    if (r.outcome === 'won' && r.stars === 3) platform.happyTime();
+    if (firstThreeStars) platform.happyTime();
     kbm?.unlock();
     intro.hide();
     game.setHudVisible(false);
