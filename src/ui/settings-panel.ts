@@ -20,6 +20,8 @@ export interface SettingsPanelOptions {
   requestGyro: () => Promise<boolean>;
   /** Whether to offer the gyro toggle at all (touch devices only). */
   gyroAvailable: boolean;
+  /** Reopens the ad consent choices; the button shows only when given (required by the consent provider). */
+  onPrivacyOptions?: () => void;
 }
 
 const L = SETTINGS_LIMITS;
@@ -33,6 +35,7 @@ export class SettingsPanel {
   private readonly title: HTMLHeadingElement;
   private readonly resume: HTMLButtonElement;
   private readonly pauseButtons: HTMLDivElement;
+  private readonly onResume: () => void;
 
   constructor(root: HTMLElement, initial: Settings, opts: SettingsPanelOptions) {
     this.settings = { ...initial };
@@ -71,6 +74,7 @@ export class SettingsPanel {
         <div class="note gyro-note" hidden>Motion access was denied. Allow it in your browser settings, then try again.</div>
         <label class="row">Minimap <select name="minimap"><option value="rotating">Rotating</option><option value="fixed">Fixed (north up)</option></select></label>
         <label class="row">Quality <select name="quality">${tierOptions}</select></label>
+        <button type="button" class="privacy" hidden>Privacy options</button>
         <div class="note keys">WASD move · Shift run · Q sneak · C crouch · E / click takedown · F / right-click bottle · Esc pause</div>
       </div>`,
     );
@@ -149,10 +153,14 @@ export class SettingsPanel {
     quality.addEventListener('change', () => {
       if (isQualitySetting(quality.value)) commit({ quality: quality.value });
     });
-    this.resume.addEventListener('click', () => {
-      this.close();
-      opts.onResume();
-    });
+    this.onResume = opts.onResume;
+    this.resume.addEventListener('click', () => this.resumeOrBack());
+    const privacy = q<HTMLButtonElement>('.privacy');
+    const onPrivacy = opts.onPrivacyOptions;
+    if (onPrivacy) {
+      privacy.hidden = false;
+      privacy.addEventListener('click', () => onPrivacy());
+    }
     q<HTMLButtonElement>('.restart').addEventListener('click', () => {
       this.close();
       opts.onRestart();
@@ -161,6 +169,12 @@ export class SettingsPanel {
       this.close();
       opts.onQuit();
     });
+  }
+
+  /** Same as pressing Resume / Back (also the Android back button while the panel is open). */
+  resumeOrBack(): void {
+    this.close();
+    this.onResume();
   }
 
   get isOpen(): boolean {

@@ -40,6 +40,7 @@ import {
   type WinReward,
 } from './save/progress';
 import { loadSettings, saveSettings, type Settings } from './save/settings';
+import { backAction } from './ui/back';
 import type { DebugOverlay } from './ui/debug-overlay';
 import { LevelIntro } from './ui/level-intro';
 import { LevelSelect } from './ui/level-select';
@@ -320,6 +321,9 @@ async function boot(): Promise<void> {
   const panel = new SettingsPanel(uiRoot, settings, {
     gyroAvailable: navigator.maxTouchPoints > 0,
     requestGyro: requestGyroPermission,
+    onPrivacyOptions: platform.privacyOptionsRequired
+      ? () => void platform.showPrivacyOptions()
+      : undefined,
     onChange: (next) => {
       applySettingsChange(settings, next);
       settings = next;
@@ -502,19 +506,46 @@ async function boot(): Promise<void> {
     enterLevel(true);
   }
 
+  /** Esc or the Android back button; see ui/back.ts for the routing. */
+  function handleBack(source: 'escape' | 'back'): void {
+    const action = backAction(
+      {
+        busy: pauseReasons.has('loading') || adBusy,
+        inLevel,
+        pauseOpen: panel.isOpen && panelMode === 'pause',
+        resultOpen: !!result?.isOpen,
+        titleSubscreenOpen:
+          levelSelect.isOpen || loadout.isOpen || (panel.isOpen && panelMode === 'menu'),
+      },
+      source,
+    );
+    switch (action) {
+      case 'pause':
+        // With Pointer Lock held, Esc releases it and onUnlock opens the pause panel instead.
+        if (source === 'back' || !kbm?.locked) openPause();
+        break;
+      case 'resume':
+        panel.resumeOrBack();
+        break;
+      case 'menu':
+        void afterBreak(showTitle);
+        break;
+      case 'title':
+        showTitle();
+        break;
+      case 'quit':
+        if (platform.canQuit) platform.quit();
+        break;
+    }
+  }
   window.addEventListener('keydown', (e) => {
-    if (e.code !== 'Escape' && e.code !== 'KeyR') return;
     if (e.code === 'KeyR') {
       if (!e.repeat && result?.isOpen) void afterBreak(retry);
-      return;
-    }
-    // With Pointer Lock held, Esc releases it and onUnlock opens the pause panel; this covers the rest.
-    if (inLevel) {
-      if (!kbm?.locked && !panel.isOpen) openPause();
-    } else if (levelSelect.isOpen || loadout.isOpen || (panel.isOpen && panelMode === 'menu')) {
-      showTitle();
+    } else if (e.code === 'Escape') {
+      handleBack('escape');
     }
   });
+  platform.onBack(() => handleBack('back'));
 
   /** An ad is up (or being asked for); result-screen buttons wait for it. */
   let adBusy = false;
