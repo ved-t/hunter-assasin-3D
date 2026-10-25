@@ -8,7 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "build:crazygames": "tsc --noEmit && vite build --mode crazygames && npm run size -- dist-crazygames && node scripts/zip.mjs crazygames",
     "build:playgama": "tsc --noEmit && vite build --mode playgama && npm run size -- dist-playgama && node scripts/zip.mjs playgama",
-    "build:android": "tsc --noEmit && vite build --mode android && npm run size -- dist-android",
+    "build:android": "tsc --noEmit && vite build --mode android && npm run size -- dist-android && node scripts/android.mjs sync",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -17,7 +17,12 @@
     "size": "node scripts/size-report.mjs",
     "assets:textures": "node scripts/assets/fetch-polyhaven.mjs && node scripts/assets/build-trimsheets.mjs",
     "assets:audio": "node scripts/assets/fetch-audio.mjs && node scripts/assets/build-audio.mjs",
-    "assets:characters": "node scripts/assets/build-characters.mjs"
+    "assets:characters": "node scripts/assets/build-characters.mjs",
+    "android:debug": "node scripts/android.mjs debug",
+    "android:release": "node scripts/android.mjs release",
+    "android:run": "node scripts/android.mjs run",
+    "android:open": "node scripts/android.mjs open",
+    "assets:icons": "node scripts/assets/build-android-icons.mjs"
   },
   "dependencies": {
     "@capacitor-community/admob": "^8.2.1",
