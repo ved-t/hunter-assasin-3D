@@ -406,10 +406,14 @@ export const GUARD_ANIM = {
   /** Ground speed (m/s) from which he walks, and runs. */
   walkFromMps: 0.2,
   runFromMps: 2.5,
-  /** The speed each locomotion clip's stride covers at 1× (m/s); playback is scaled to match. */
-  walkClipMps: 1.5,
-  runClipMps: 4.2,
-  minTimeScale: 0.5,
+  /**
+   * The speed each locomotion clip's stride covers at 1× (m/s); playback is scaled to match.
+   * Measured on the Mixamo Pistol Walk / Pistol Run: how fast a planted foot slides back.
+   */
+  walkClipMps: 2.15,
+  runClipMps: 4.5,
+  /** Lowest rate: suspicious guards walk at 0.9 m/s, 0.42× the walk clip. */
+  minTimeScale: 0.4,
   maxTimeScale: 1.6,
   /** Killed from inside this rear arc (deg) he plays deathBack (thrown forward); else deathFront. */
   backArcDeg: 120,
