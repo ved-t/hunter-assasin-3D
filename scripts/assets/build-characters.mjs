@@ -2,7 +2,8 @@
 //   1. FBX → GLB with FBX2glTF (from the fbx2gltf devDependency), into art-src/build/characters/.
 //   2. Every clip is copied onto the character's own skeleton (bones matched by name), with the hips'
 //      motion trimmed per clip (`keep`), and translation/scale tracks on other bones dropped.
-//   3. Prune, dedup, keyframe resample; meshes simplified down to the triangle budget; textures
+//   3. Skinned meshes merged under one skin and joined by material (one draw call per material).
+//   4. Prune, dedup, keyframe resample; meshes simplified down to the triangle budget; textures
 //      resized and encoded to KTX2 with toktx; meshopt (quantized, reordered, compressed geometry and
 //      animation).
 // Writes public/assets/characters/guard.glb and the characters pack of the asset manifest.
@@ -16,7 +17,15 @@ import { basename, dirname, extname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS, KHRTextureBasisu } from '@gltf-transform/extensions';
-import { dedup, meshopt, prune, resample, simplify, weld } from '@gltf-transform/functions';
+import {
+  dedup,
+  joinPrimitives,
+  meshopt,
+  prune,
+  resample,
+  simplify,
+  weld,
+} from '@gltf-transform/functions';
 import { MeshoptDecoder, MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer';
 import sharp from 'sharp';
 import { updateManifest } from './manifest.mjs';
@@ -157,6 +166,76 @@ for (const [name, clip] of Object.entries(CHARACTER.clips)) {
   );
 }
 
+/**
+ * Moves every skinned mesh into the first one, under one skin (joints merged, JOINTS_0 remapped), so
+ * the primitives can be joined by material: one draw call per material per guard, not per mesh.
+ * Requires the meshes to share a bind pose, which Mixamo exports do; otherwise it leaves them apart.
+ */
+function mergeSkinnedMeshes() {
+  const [base, ...rest] = root.listNodes().filter((n) => n.getMesh() && n.getSkin());
+  if (!base || rest.length === 0) return;
+  const skin = base.getSkin();
+  const joints = skin.listJoints();
+  const ibm = Array.from(skin.getInverseBindMatrices().getArray());
+  for (const node of rest) {
+    const other = node.getSkin();
+    const otherIbm = other.getInverseBindMatrices().getArray();
+    const remap = [];
+    let poseMatches = node.getMatrix().every((v, i) => v === base.getMatrix()[i]);
+    const added = [];
+    other.listJoints().forEach((j, k) => {
+      const at = joints.indexOf(j);
+      const m = Array.from(otherIbm.slice(k * 16, k * 16 + 16));
+      if (at >= 0) {
+        poseMatches &&= m.every((v, e) => Math.abs(v - ibm[at * 16 + e]) < 1e-5);
+        remap.push(at);
+      } else {
+        remap.push(joints.length + added.length);
+        added.push([j, m]);
+      }
+    });
+    if (!poseMatches) {
+      console.warn(`${node.getName()}: different bind pose, left as its own mesh`);
+      continue;
+    }
+    for (const [j, m] of added) {
+      joints.push(j);
+      skin.addJoint(j);
+      ibm.push(...m);
+    }
+    for (const prim of node.getMesh().listPrimitives()) {
+      const src = prim.getAttribute('JOINTS_0');
+      const values = src.getArray().slice();
+      for (let i = 0; i < values.length; i++) values[i] = remap[values[i]];
+      prim.setAttribute(
+        'JOINTS_0',
+        doc.createAccessor().setType('VEC4').setArray(values).setBuffer(buffer),
+      );
+      base.getMesh().addPrimitive(prim);
+    }
+    node.getMesh().dispose();
+    node.dispose();
+  }
+  skin.setInverseBindMatrices(
+    doc.createAccessor().setType('MAT4').setArray(new Float32Array(ibm)).setBuffer(buffer),
+  );
+  // gltf-transform's join() skips skinned nodes; the primitives now share a node and skin, so
+  // joining them directly is safe.
+  const mesh = base.getMesh();
+  const byMaterial = new Map();
+  for (const prim of mesh.listPrimitives()) {
+    const group = byMaterial.get(prim.getMaterial()) ?? [];
+    byMaterial.set(prim.getMaterial(), [...group, prim]);
+  }
+  for (const prims of byMaterial.values()) {
+    if (prims.length < 2) continue;
+    mesh.addPrimitive(joinPrimitives(prims));
+    for (const prim of prims) prim.dispose();
+  }
+}
+
+await doc.transform(dedup());
+mergeSkinnedMeshes();
 await doc.transform(prune(), dedup(), resample());
 
 /** Triangles drawn per guard (every primitive, as triangle lists). */
