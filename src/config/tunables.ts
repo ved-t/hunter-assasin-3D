@@ -411,7 +411,7 @@ export const GUARD_ANIM = {
   runClipMps: 4.2,
   minTimeScale: 0.5,
   maxTimeScale: 1.6,
-  /** Killed from inside this rear arc (deg) he pitches forward; otherwise he falls back. */
+  /** Killed from inside this rear arc (deg) he plays deathBack (thrown forward); else deathFront. */
   backArcDeg: 120,
   /** Mixers update every frame within this distance (m); beyond it, and off screen, less often. */
   nearM: 12,
