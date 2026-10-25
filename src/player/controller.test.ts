@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { INPUT, PLAYER } from '../config/tunables';
+import { GUARD, INPUT, PLAYER } from '../config/tunables';
 import { InputState, type Gait } from '../input/input-state';
 import { Grid } from '../level/grid';
 import { PlayerController } from './controller';
@@ -97,6 +97,18 @@ describe('PlayerController movement', () => {
     settle(p, input(0, 1, 'run'));
     expect(p.pos.x).toBeCloseTo(2 + PLAYER.radius, 6);
     expect(p.speed).toBeCloseTo(0, 6);
+  });
+
+  it('is blocked by a living guard, not by a body', () => {
+    const guard = { pos: { x: 20, z: 17 }, dead: false }; // straight ahead
+    const p = spawn();
+    const s = input(0, 1);
+    for (let i = 0; i < 120; i++) p.step(DT, s, open, [guard]);
+    expect(p.pos.z).toBeCloseTo(17 + PLAYER.radius + GUARD.radius, 6);
+    expect(p.speed).toBeCloseTo(0, 6);
+    guard.dead = true;
+    for (let i = 0; i < 60; i++) p.step(DT, s, open, [guard]);
+    expect(p.pos.z).toBeLessThan(17);
   });
 });
 

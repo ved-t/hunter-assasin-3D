@@ -1,9 +1,9 @@
 // First-person player movement. Pure sim state on the XZ plane, no three.js.
 // Look is applied per rendered frame (lowest latency); movement runs in the fixed 60 Hz step.
 
-import { INPUT, PLAYER } from '../config/tunables';
+import { GUARD, INPUT, PLAYER } from '../config/tunables';
 import type { InputState } from '../input/input-state';
-import { moveCircle, type Vec2 } from '../level/collision';
+import { moveCircle, pushOutOfCircle, resolveCircle, type Vec2 } from '../level/collision';
 import type { Grid } from '../level/grid';
 
 export type PlayerGait = 'still' | 'crouch' | 'sneak' | 'walk' | 'run';
@@ -11,6 +11,14 @@ export type PlayerGait = 'still' | 'crouch' | 'sneak' | 'walk' | 'run';
 const PITCH_LIMIT = (INPUT.pitchLimitDeg * Math.PI) / 180;
 /** Below this speed (m/s) the player counts as standing still. */
 const STILL_SPEED = 0.1;
+/** Closest a living guard's centre can be to the player's. */
+const GUARD_CLEARANCE = PLAYER.radius + GUARD.radius;
+
+/** A body the player can't walk through while it's alive (Guard satisfies this). */
+export interface Blocker {
+  readonly pos: Vec2;
+  readonly dead: boolean;
+}
 
 const SPEED: Record<Exclude<PlayerGait, 'still'>, number> = {
   crouch: PLAYER.crouchSpeed,
@@ -64,7 +72,8 @@ export class PlayerController {
     else if (this.yaw < -Math.PI) this.yaw += 2 * Math.PI;
   }
 
-  step(dt: number, input: InputState, grid: Grid): void {
+  /** `blockers`: living guards push the player out of their circle; bodies don't. */
+  step(dt: number, input: InputState, grid: Grid, blockers: readonly Blocker[] = []): void {
     this.prevPos.x = this.pos.x;
     this.prevPos.z = this.pos.z;
     this.prevEyeHeight = this.eyeHeight;
@@ -95,6 +104,15 @@ export class PlayerController {
     }
 
     moveCircle(grid, this.pos, this.vel.x * dt, this.vel.z * dt, PLAYER.radius);
+    let blocked = false;
+    for (const b of blockers) {
+      if (b.dead) continue;
+      const { x, z } = this.pos;
+      pushOutOfCircle(this.pos, b.pos, GUARD_CLEARANCE);
+      blocked ||= x !== this.pos.x || z !== this.pos.z;
+    }
+    // A guard can shove the player toward a wall; walls win.
+    if (blocked) resolveCircle(grid, this.pos, PLAYER.radius);
     // Use the velocity we actually achieved so pushing into a wall doesn't store up speed.
     this.vel.x = (this.pos.x - this.prevPos.x) / dt;
     this.vel.z = (this.pos.z - this.prevPos.z) / dt;

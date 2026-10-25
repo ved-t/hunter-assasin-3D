@@ -54,6 +54,23 @@ export function resolveCircle(
   }
 }
 
+/** Push `pos` until it is at least `minDist` from `centre` (two circles touching). Mutates pos. */
+export function pushOutOfCircle(pos: Vec2, centre: Vec2, minDist: number): void {
+  const dx = pos.x - centre.x;
+  const dz = pos.z - centre.z;
+  const d2 = dx * dx + dz * dz;
+  if (d2 >= minDist * minDist) return;
+  if (d2 > EPSILON * EPSILON) {
+    const d = Math.sqrt(d2);
+    const push = (minDist - d) / d;
+    pos.x += dx * push;
+    pos.z += dz * push;
+    return;
+  }
+  // Exactly on top of each other: any direction will do.
+  pos.x = centre.x + minDist;
+}
+
 /** Move a circle by delta with wall sliding. Mutates and returns pos. */
 export function moveCircle(
   grid: Grid,

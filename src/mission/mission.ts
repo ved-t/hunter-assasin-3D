@@ -143,7 +143,7 @@ export class Mission {
     else if (input.context && this.knifeTarget >= 0) this.knife(this.knifeTarget);
     else if (input.throw) this.throwBottle();
     if (this.lockTimer > 0) input.moveX = input.moveY = 0;
-    player.step(dt, input, grid);
+    player.step(dt, input, grid, guards.guards);
     if (this.bottle.step(dt, grid)) this.shatter();
     if (player.footstep > 0) guards.noise(player.pos.x, player.pos.z, player.footstep);
     this.time += dt;
