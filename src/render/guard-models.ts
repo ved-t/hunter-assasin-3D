@@ -48,12 +48,21 @@ export async function loadGuardModel(renderer: THREE.WebGLRenderer): Promise<Gua
   const k = GUARD.height / height;
   inner.scale.multiplyScalar(k);
   inner.position.y -= box.min.y * k;
+  inner.updateMatrixWorld(true);
+  const center = new THREE.Vector3(0, GUARD.height / 2, 0);
   inner.traverse((o) => {
     const m = o as THREE.SkinnedMesh;
     if (!m.isMesh) return;
     m.castShadow = m.receiveShadow = true;
-    // Animated bounds wander from the bind pose; GuardRigs culls whole guards itself.
-    m.frustumCulled = false;
+    // Animated bounds wander from the bind pose, so every guard mesh gets the fixed sphere GuardRigs
+    // culls whole guards with (in mesh space). It also lets each shadow-casting light skip the
+    // guards outside its own frustum, instead of drawing every on-screen guard in every shadow pass.
+    if (m.isSkinnedMesh) {
+      const local = center.clone().applyMatrix4(m.matrixWorld.clone().invert());
+      m.boundingSphere = new THREE.Sphere(local, A.cullRadiusM / m.matrixWorld.getMaxScaleOnAxis());
+    } else {
+      m.frustumCulled = false;
+    }
   });
   const scene = new THREE.Group();
   scene.add(inner);
