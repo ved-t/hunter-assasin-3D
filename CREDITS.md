@@ -43,10 +43,12 @@ are packed into one trim sheet per theme by `scripts/assets/build-trimsheets.mjs
 
 ### Characters
 
-- **Guards:** a [Mixamo](https://www.mixamo.com) character and animations (Adobe), used under the
-  Mixamo terms (free in games; raw files are not redistributed). They are downloaded by hand per
-  `art-src/README.md` and built into `public/assets/characters/guard.glb` by
-  `scripts/assets/build-characters.mjs`. Until that file is built, guards are drawn as capsules.
+- **Guards:** the [Mixamo](https://www.mixamo.com) SWAT soldier character (meshes `Soldier_body`,
+  `Soldier_head`) and the animations Pistol Idle, Pistol Walk, Pistol Run, Looking Around, Death
+  From The Back and Death From The Front (Adobe). Used under the Mixamo terms: free in games, and
+  raw files are not redistributed. They are downloaded by hand per `art-src/README.md` and built
+  into `public/assets/characters/guard.glb` by `scripts/assets/build-characters.mjs`. Without that
+  file, guards are drawn as capsules.
 - **First-person hand and knife:** built in code (`src/render/viewmodel-mesh.ts`). No third-party asset.
 
 ## Audio

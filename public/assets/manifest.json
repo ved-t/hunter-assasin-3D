@@ -89,6 +89,13 @@
       ]
     },
     {
+      "id": "characters",
+      "initial": true,
+      "files": [
+        "assets/characters/guard.glb"
+      ]
+    },
+    {
       "id": "theme-mansion",
       "initial": false,
       "files": [
