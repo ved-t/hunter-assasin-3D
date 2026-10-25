@@ -70,12 +70,12 @@ describe('resolveClip', () => {
 
 describe('deathClipFor', () => {
   // Facing −Z (yaw 0): behind him is +Z.
-  it('pitches forward when knifed from behind', () => {
+  it('is thrown forward when knifed from behind', () => {
     expect(deathClipFor(0, 0, 0, 0, 1)).toBe('deathBack');
     expect(deathClipFor(0, 0, 0, 0.3, 1)).toBe('deathBack');
   });
 
-  it('falls the other way when knifed from the side', () => {
+  it('doubles over when knifed from the side', () => {
     expect(deathClipFor(0, 0, 0, 1, 0)).toBe('deathFront');
     expect(deathClipFor(0, 0, 0, -1, 0.2)).toBe('deathFront');
   });

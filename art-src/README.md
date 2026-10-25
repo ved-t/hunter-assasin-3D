@@ -41,8 +41,8 @@ download, saved as `guard.fbx`.
 | `pistol_walk.fbx` | Pistol Walk | In Place |
 | `pistol_run.fbx` | Pistol Run | In Place |
 | `looking_around.fbx` | Looking Around | |
-| `death_from_the_back.fbx` | Death From The Back | he falls forward |
-| `death_from_the_front.fbx` | Death From The Front | he falls backward |
+| `death_from_the_back.fbx` | Death From The Back | thrown forward; built in place |
+| `death_from_the_front.fbx` | Death From The Front | doubles over, falls forward; built in place |
 
 Optional. Not downloaded yet; the game plays `idle` in its place. To use it, save it and add its
 line to `CHARACTER.clips` in `characters.mjs` (the build stops on a file that's listed but
@@ -55,7 +55,7 @@ missing):
 Turn clips (Left Turn / Right Turn, `keep: 'turn'`) are not used: guards turn on the spot without
 one. Using them would also need `turnLeft`/`turnRight` back in `src/render/guard-anim.ts`.
 
-Also in the folder but unused: `dying.fbx` (a possible 3rd death) and `pistol_whip.fbx` (there's
+Also in the folder but unused: `dying.fbx` (a possible 3rd death; it also falls forward) and `pistol_whip.fbx` (there's
 no guard melee in the design).
 
 **3. Build:** `npm run assets:characters`. The script prints the clip list, the size (budget 3 MB),

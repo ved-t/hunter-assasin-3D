@@ -75,8 +75,9 @@ function clampScale(s: number): number {
 }
 
 /**
- * Killed from behind he pitches forward (the "death from the back" clip); from the side, he falls
- * the other way. `yaw` is his facing (three.js: forward = (−sin, −cos)); (px, pz) is the player.
+ * Killed from behind he is thrown forward (the "death from the back" clip); from the side, he
+ * doubles over first (the "death from the front" clip). Both Mixamo falls end face down, in place.
+ * `yaw` is his facing (three.js: forward = (−sin, −cos)); (px, pz) is the player.
  */
 export function deathClipFor(
   yaw: number,

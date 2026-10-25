@@ -5,7 +5,7 @@
 // in their place. Not downloaded yet: shoot ('inPlace'). Turn clips ('turn') would also need
 // turnLeft/turnRight back in GuardClip and pickClip; guards turn on the spot without them.
 //   take: which animation in the file to use (default: the first one with channels)
-//   keep: 'all' keeps the hips' translation and turn (death falls); 'inPlace' removes the hips'
+//   keep: 'all' keeps the hips' translation and turn; 'inPlace' removes the hips'
 //         horizontal drift; 'turn' also removes the hips' yaw, since the game turns the guard itself
 
 export const CHARACTER = {
@@ -15,8 +15,10 @@ export const CHARACTER = {
     walk: { file: 'art-src/anims/pistol_walk.fbx', keep: 'inPlace' },
     run: { file: 'art-src/anims/pistol_run.fbx', keep: 'inPlace' },
     look: { file: 'art-src/anims/looking_around.fbx', keep: 'inPlace' },
-    deathBack: { file: 'art-src/anims/death_from_the_back.fbx', keep: 'all' },
-    deathFront: { file: 'art-src/anims/death_from_the_front.fbx', keep: 'all' },
+    // In place: the falls travel 1.0–1.4 m, which would put bodies inside walls (tiles are 2 m) and
+    // away from where the sim has the body, the dropped torch and the beam-on-body check.
+    deathBack: { file: 'art-src/anims/death_from_the_back.fbx', keep: 'inPlace' },
+    deathFront: { file: 'art-src/anims/death_from_the_front.fbx', keep: 'inPlace' },
   },
   /** Which way the model faces in its file (Mixamo: +z); the build turns it to face −Z. */
   facing: '+z',
