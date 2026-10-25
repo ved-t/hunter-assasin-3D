@@ -226,9 +226,7 @@ export class DebugAi {
       };
       fan(half, VISION.rangeM, ARC_SEGMENTS);
       fan(nearHalf, VISION.nearRangeM, NEAR_ARC_SEGMENTS);
-      if (g.state !== 'alert') {
-        fan(Math.PI, KNIFE.rangeM, KNIFE_ARC_SEGMENTS, this.knifeColor);
-      }
+      fan(Math.PI, KNIFE.rangeM, KNIFE_ARC_SEGMENTS, this.knifeColor);
       // Path from the guard through its remaining waypoints.
       let px = x;
       let pz = z;

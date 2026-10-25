@@ -20,7 +20,7 @@ const grid = Grid.fromRows(
 );
 
 /** A guard at the centre of (3, 1) facing east (+X). */
-type TestGuard = KnifeTarget & { yaw: number };
+type TestGuard = KnifeTarget & { yaw: number; state: GuardState };
 function guard(over: Partial<TestGuard> = {}): TestGuard {
   return {
     pos: { x: c(3), z: c(1) },
@@ -49,12 +49,11 @@ describe('canKnife', () => {
     expect(canKnife(grid, ...at(g, KNIFE.rangeM + 0.01, 180), g)).toBe(false);
   });
 
-  it('never works on an Alert or dead guard', () => {
-    expect(canKnife(grid, ...at(guard(), 1, 180), guard({ state: 'alert' }))).toBe(false);
+  it('works in every guard state, never on a dead guard', () => {
+    for (const state of ['patrol', 'suspicious', 'alert', 'search'] as const) {
+      expect(canKnife(grid, ...at(guard(), 1, 0), guard({ state }))).toBe(true);
+    }
     expect(canKnife(grid, ...at(guard(), 1, 180), guard({ dead: true }))).toBe(false);
-    // Suspicious and searching guards can still be taken from behind.
-    expect(canKnife(grid, ...at(guard(), 1, 180), guard({ state: 'suspicious' }))).toBe(true);
-    expect(canKnife(grid, ...at(guard(), 1, 180), guard({ state: 'search' }))).toBe(true);
   });
 
   it('is blocked by a wall corner between player and guard', () => {
@@ -71,10 +70,10 @@ describe('findKillTarget', () => {
   it('picks the nearest valid guard', () => {
     const near = guard({ pos: { x: c(3), z: c(2) } });
     const far = guard({ pos: { x: c(3) + 0.3, z: c(2) - 0.8 } });
-    const alert = guard({ pos: { x: c(3) - 0.5, z: c(2) }, state: 'alert' });
+    const dead = guard({ pos: { x: c(3) - 0.5, z: c(2) }, dead: true });
     const [x, z] = at(near, 0.9, 180);
-    expect(findKillTarget(grid, x, z, [far, alert, near])).toBe(2);
-    expect(findKillTarget(grid, x, z, [far, alert])).toBe(0);
-    expect(findKillTarget(grid, 50, 50, [far, alert, near])).toBe(-1);
+    expect(findKillTarget(grid, x, z, [far, dead, near])).toBe(2);
+    expect(findKillTarget(grid, x, z, [far, dead])).toBe(0);
+    expect(findKillTarget(grid, 50, 50, [far, dead, near])).toBe(-1);
   });
 });
