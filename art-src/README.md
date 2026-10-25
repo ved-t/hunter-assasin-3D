@@ -9,6 +9,7 @@ the built `guard.glb` is committed.
 | `polyhaven/` | `npm run assets:textures` (downloads automatically) | `build-trimsheets.mjs` |
 | `audio/` | `npm run assets:audio` (downloads automatically) | `build-audio.mjs` |
 | `anims/` | **you, by hand** (checklist below) | `npm run assets:characters` |
+| `icon.png` | **you**: 1024×1024 app icon, full-bleed, key art inside the middle 66% | `npm run assets:icons` (Android launcher + Play icon) |
 | `build/` | intermediate files from the scripts | — |
 
 ## Mixamo checklist (guards)
