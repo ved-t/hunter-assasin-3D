@@ -11,7 +11,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import type { Guard } from '../ai/guard';
-import { ASSET_FILES, BODIES, GUARD, GUARD_ANIM as A, SIM } from '../config/tunables';
+import { ASSET_FILES, BODIES, GUARD, GUARD_ANIM as A } from '../config/tunables';
 import { lerpAngle } from '../core/angles';
 import type { FlashlightState } from '../lighting/flashlights';
 import {
@@ -217,14 +217,12 @@ export class GuardRigs {
       const onScreen = this.frustum.intersectsSphere(this.sphere);
       r.root.visible = onScreen;
 
-      const yawRate = g.dead ? 0 : (g.yaw - g.prevYaw) * SIM.hz;
       pickClip(
         {
           dead: g.dead,
           death: r.death,
           state: g.state,
           speed: g.speed,
-          yawRate: Math.abs(yawRate) > Math.PI * SIM.hz ? 0 : yawRate, // a wrap, not a turn
           aiming: !g.dead && (g.gun.phase === 'windup' || g.gun.sinceShot < AIM_HOLD_S),
         },
         this.choice,

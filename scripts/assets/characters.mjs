@@ -2,7 +2,8 @@
 // art-src/README.md). Read by build-characters.mjs. Clip names must match GuardClip in
 // src/render/guard-anim.ts. A source may be FBX (converted with FBX2glTF) or already GLB.
 // Clips without a file are left out (the build stops on a missing file); the game plays idle
-// in their place. Not downloaded yet: turnLeft/turnRight ('turn'), shoot ('inPlace').
+// in their place. Not downloaded yet: shoot ('inPlace'). Turn clips ('turn') would also need
+// turnLeft/turnRight back in GuardClip and pickClip; guards turn on the spot without them.
 //   take: which animation in the file to use (default: the first one with channels)
 //   keep: 'all' keeps the hips' translation and turn (death falls); 'inPlace' removes the hips'
 //         horizontal drift; 'turn' also removes the hips' yaw, since the game turns the guard itself

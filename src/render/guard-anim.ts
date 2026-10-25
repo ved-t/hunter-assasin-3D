@@ -8,8 +8,6 @@ export const GUARD_CLIPS = [
   'idle',
   'walk',
   'run',
-  'turnLeft',
-  'turnRight',
   'look',
   'shoot',
   'deathBack',
@@ -28,8 +26,6 @@ export interface ClipInput {
   state: GuardState;
   /** Ground speed (m/s). */
   speed: number;
-  /** Turn rate (rad/s), positive = turning left (three.js yaw). */
-  yawRate: number;
   /** Winding up or just fired. */
   aiming: boolean;
 }
@@ -40,7 +36,7 @@ export interface ClipChoice {
   timeScale: number;
 }
 
-/** The clip for this frame. */
+/** The clip for this frame. There are no turn clips: turning on the spot plays idle or look. */
 export function pickClip(i: ClipInput, out: ClipChoice): ClipChoice {
   out.timeScale = 1;
   if (i.dead) {
@@ -53,8 +49,6 @@ export function pickClip(i: ClipInput, out: ClipChoice): ClipChoice {
   } else if (i.speed >= A.walkFromMps) {
     out.clip = 'walk';
     out.timeScale = clampScale(i.speed / A.walkClipMps);
-  } else if (Math.abs(i.yawRate) >= A.turnFromRadPerS) {
-    out.clip = i.yawRate > 0 ? 'turnLeft' : 'turnRight';
   } else if (i.state === 'suspicious' || i.state === 'search') {
     out.clip = 'look';
   } else {

@@ -7,7 +7,6 @@ const base: ClipInput = {
   death: 'deathBack',
   state: 'patrol',
   speed: 0,
-  yawRate: 0,
   aiming: false,
 };
 const pick = (i: Partial<ClipInput>) =>
@@ -32,12 +31,6 @@ describe('pickClip', () => {
   it('clamps playback for very slow or fast movement', () => {
     expect(pick({ speed: GUARD_ANIM.walkFromMps }).timeScale).toBe(GUARD_ANIM.minTimeScale);
     expect(pick({ speed: 50 }).timeScale).toBe(GUARD_ANIM.maxTimeScale);
-  });
-
-  it('turns on the spot in the direction of the turn', () => {
-    expect(pick({ yawRate: 2 }).clip).toBe('turnLeft');
-    expect(pick({ yawRate: -2 }).clip).toBe('turnRight');
-    expect(pick({ yawRate: 2, speed: 1 }).clip).toBe('walk');
   });
 
   it('aims over everything but death', () => {

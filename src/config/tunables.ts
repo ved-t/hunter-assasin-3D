@@ -411,8 +411,6 @@ export const GUARD_ANIM = {
   runClipMps: 4.2,
   minTimeScale: 0.5,
   maxTimeScale: 1.6,
-  /** Standing still but turning faster than this (rad/s) plays a turn clip. */
-  turnFromRadPerS: 0.9,
   /** Killed from inside this rear arc (deg) he pitches forward; otherwise he falls back. */
   backArcDeg: 120,
   /** Mixers update every frame within this distance (m); beyond it, and off screen, less often. */

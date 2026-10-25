@@ -44,15 +44,16 @@ download, saved as `guard.fbx`.
 | `death_from_the_back.fbx` | Death From The Back | he falls forward |
 | `death_from_the_front.fbx` | Death From The Front | he falls backward |
 
-Optional. Not downloaded yet; the game plays `idle` in their place. To use one, save it and add
-its line back to `CHARACTER.clips` in `characters.mjs` (the build stops on a file that's listed but
+Optional. Not downloaded yet; the game plays `idle` in its place. To use it, save it and add its
+line to `CHARACTER.clips` in `characters.mjs` (the build stops on a file that's listed but
 missing):
 
 | Save as | Mixamo search | Clip | `keep` |
 | --- | --- | --- | --- |
-| `turn_left.fbx` | Left Turn (the pistol version if listed) | `turnLeft` | `'turn'` |
-| `turn_right.fbx` | Right Turn (the pistol version if listed) | `turnRight` | `'turn'` |
 | `shooting.fbx` | a pistol shoot or aim clip | `shoot` | `'inPlace'` |
+
+Turn clips (Left Turn / Right Turn, `keep: 'turn'`) are not used: guards turn on the spot without
+one. Using them would also need `turnLeft`/`turnRight` back in `src/render/guard-anim.ts`.
 
 Also in the folder but unused: `dying.fbx` (a possible 3rd death) and `pistol_whip.fbx` (there's
 no guard melee in the design).
