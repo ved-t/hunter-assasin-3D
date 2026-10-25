@@ -80,7 +80,6 @@ async function boot(): Promise<void> {
   const flags = parseDebugFlags(window.location.search);
 
   const platform = await createPlatform({ verbose: flags.debug, fakeAds: flags.ads });
-  await platform.init();
   /** Wall-clock seconds, for ad pacing. */
   const now = () => performance.now() / 1000;
   const ads = new AdPolicy(now());
