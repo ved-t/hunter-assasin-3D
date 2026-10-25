@@ -550,6 +550,8 @@ export const ADS = {
   interstitialMinGapS: 180,
   /** ?ads=1 dev build: how long the fake ad stays up (s). */
   devFakeAdS: 2,
+  /** Give up waiting for a portal ad that never reports an end state and resume the game (s). */
+  sdkAdTimeoutS: 90,
 } as const;
 
 /** Gems: earned by beating your best on a level, spent in the loadout (config/unlocks.ts). */
