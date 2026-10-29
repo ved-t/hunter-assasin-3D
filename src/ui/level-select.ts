@@ -3,7 +3,7 @@
 
 import { CAMPAIGN, THEME_NAMES } from '../config/campaign';
 import type { Theme } from '../level/types';
-import { isUnlocked, nextToPlay, type Progress } from '../save/progress';
+import { isUnlocked, levelRecord, nextToPlay, type Progress } from '../save/progress';
 import { createOverlay, type Overlay } from './overlay';
 
 export interface LevelSelectOptions {
@@ -85,7 +85,7 @@ export class LevelSelect {
         .map(({ level, index }) => {
           const open = this.allOpen || isUnlocked(progress, index);
           anyOpen ||= open;
-          const stars = progress.levels[level.id]?.stars ?? 0;
+          const stars = levelRecord(progress, level.id)?.stars ?? 0;
           const b = document.createElement('button');
           b.type = 'button';
           b.className = `level-card${open ? '' : ' locked'}`;

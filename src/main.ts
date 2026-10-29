@@ -30,6 +30,7 @@ import {
 import { createTestScene } from './render/test-scene';
 import { FpsProbe, guessTier, tierAfterProbe } from './render/tier-detect';
 import {
+  levelRecord,
   loadProgress,
   modifiersFor,
   nextToPlay,
@@ -598,7 +599,7 @@ async function boot(): Promise<void> {
     let reward: WinReward | null = null;
     // Celebrated only the first time a level reaches 3 stars; portals ask for happy time sparingly.
     const firstThreeStars =
-      r.outcome === 'won' && r.stars === 3 && (progress.levels[level.id]?.stars ?? 0) < 3;
+      r.outcome === 'won' && r.stars === 3 && (levelRecord(progress, level.id)?.stars ?? 0) < 3;
     if (r.outcome === 'won' && CAMPAIGN.some((l) => l.id === level.id)) {
       const won = recordWin(progress, level.id, r.stars, r.stats.timeS);
       setProgress(won.progress);

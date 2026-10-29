@@ -6,8 +6,11 @@ import { NO_MODIFIERS } from '../mission/modifiers';
 import type { PlatformStorage } from '../platform/platform';
 import {
   buy,
+  canPlayDifficulty,
   equip,
+  hardcoreUnlocked,
   isUnlocked,
+  levelRecord,
   loadProgress,
   modifiersFor,
   newProgress,
@@ -15,6 +18,7 @@ import {
   parseProgress,
   recordWin,
   saveProgress,
+  setDifficulty,
   totalStars,
   type Progress,
 } from './progress';
@@ -61,7 +65,7 @@ describe('progress storage', () => {
       equipped: { knife: 'knife-damascus', glove: 'knife-brass', perk: 'perk-quiet' },
     });
     expect(p.gems).toBe(0);
-    expect(p.levels).toEqual({ a: { stars: 3, bestTimeS: 40 } });
+    expect(p.records.medium).toEqual({ a: { stars: 3, bestTimeS: 40 } });
     expect(p.owned).toEqual(['knife-brass']);
     // Not owned, or the wrong slot, falls back to the defaults.
     expect(p.equipped).toEqual({ knife: DEFAULT_KNIFE, glove: DEFAULT_GLOVE, perk: null });
@@ -78,17 +82,17 @@ describe('recordWin', () => {
       bestTime: true,
     });
     expect(progress.gems).toBe(reward.gems);
-    expect(progress.levels.a).toEqual({ stars: 2, bestTimeS: 60 });
+    expect(levelRecord(progress, 'a')).toEqual({ stars: 2, bestTimeS: 60 });
   });
 
   it('pays only for stars above the best, and keeps the best time', () => {
     const first = recordWin(newProgress(), 'a', 2, 60).progress;
     const worse = recordWin(first, 'a', 1, 70);
     expect(worse.reward.gems).toBe(0);
-    expect(worse.progress.levels.a).toEqual({ stars: 2, bestTimeS: 60 });
+    expect(levelRecord(worse.progress, 'a')).toEqual({ stars: 2, bestTimeS: 60 });
     const better = recordWin(first, 'a', 3, 50);
     expect(better.reward).toMatchObject({ gems: PROGRESSION.gemsPerNewStar, newStars: 1 });
-    expect(better.progress.levels.a).toEqual({ stars: 3, bestTimeS: 50 });
+    expect(levelRecord(better.progress, 'a')).toEqual({ stars: 3, bestTimeS: 50 });
   });
 
   it('does not change the progress it was given', () => {
@@ -121,6 +125,71 @@ describe('campaign flow', () => {
     const earned =
       FULL_CAMPAIGN.length * (3 * PROGRESSION.gemsPerNewStar + PROGRESSION.gemsFirstClear);
     expect(UNLOCKS.reduce((sum, u) => sum + u.cost, 0)).toBeLessThanOrEqual(earned);
+  });
+});
+
+describe('difficulty', () => {
+  const winAll = (p: Progress, d: Parameters<typeof recordWin>[4]) =>
+    CAMPAIGN.reduce((q, l) => recordWin(q, l.id, 1, 30, d).progress, p);
+
+  it('starts on Medium and reads a save from before difficulties as Medium', () => {
+    expect(newProgress().difficulty).toBe('medium');
+    const p = parseProgress({ gems: 5, levels: { a: { stars: 2, bestTimeS: 40 } } });
+    expect(p.records.medium).toEqual({ a: { stars: 2, bestTimeS: 40 } });
+    expect(p.records.hard).toEqual({});
+    expect(p.difficulty).toBe('medium');
+  });
+
+  it('keeps a record per difficulty, each paying for its own stars', () => {
+    let p = recordWin(newProgress(), 'a', 3, 40).progress;
+    const hard = recordWin(p, 'a', 2, 55, 'hard');
+    expect(hard.reward.firstClear).toBe(true);
+    expect(hard.reward.newStars).toBe(2);
+    p = hard.progress;
+    expect(levelRecord(p, 'a', 'medium')).toEqual({ stars: 3, bestTimeS: 40 });
+    expect(levelRecord(p, 'a', 'hard')).toEqual({ stars: 2, bestTimeS: 55 });
+    expect(totalStars(p, CAMPAIGN, 'medium')).toBe(3);
+    expect(totalStars(p, CAMPAIGN, 'hard')).toBe(2);
+    expect(totalStars(p, CAMPAIGN, 'easy')).toBe(0);
+  });
+
+  it('opens a level on every difficulty once the one before is won on any', () => {
+    let p = recordWin(newProgress(), 'a', 1, 30, 'easy').progress;
+    expect(isUnlocked(p, 1, CAMPAIGN)).toBe(true);
+    p = setDifficulty(p, 'hard');
+    expect(isUnlocked(p, 1, CAMPAIGN)).toBe(true);
+    expect(nextToPlay(p, CAMPAIGN)).toBe('a'); // not yet won on Hard
+  });
+
+  it('opens Hardcore once the whole campaign is won on Hard', () => {
+    let p = winAll(newProgress(), 'medium');
+    expect(hardcoreUnlocked(p, CAMPAIGN)).toBe(false);
+    p = recordWin(recordWin(p, 'a', 1, 30, 'hard').progress, 'b', 1, 30, 'hard').progress;
+    expect(hardcoreUnlocked(p, CAMPAIGN)).toBe(false);
+    p = recordWin(p, 'c', 1, 30, 'hard').progress;
+    expect(hardcoreUnlocked(p, CAMPAIGN)).toBe(true);
+  });
+
+  it('refuses a locked Hardcore, both picked and loaded', () => {
+    const p = newProgress();
+    expect(canPlayDifficulty(p, 'hardcore')).toBe(false);
+    expect(setDifficulty(p, 'hardcore')).toBe(p);
+    expect(setDifficulty(p, 'easy').difficulty).toBe('easy');
+    expect(parseProgress({ difficulty: 'hardcore' }).difficulty).toBe('medium');
+    expect(parseProgress({ difficulty: 'nightmare' }).difficulty).toBe('medium');
+    expect(parseProgress({ difficulty: 'hard' }).difficulty).toBe('hard');
+  });
+
+  it('turns the difficulty into mission modifiers, perk on top', () => {
+    const p = equip(buy(rich(), 'perk-regen').progress, 'perk-regen');
+    const easy = modifiersFor(p, 'easy');
+    expect(easy.maxHp).toBe(5);
+    expect(easy.visionMult).toBeLessThan(1);
+    expect(easy.regenDelayS).toBe(PERKS.fastRegenDelayS);
+    const hc = modifiersFor(p, 'hardcore');
+    expect(hc.maxHp).toBe(1);
+    expect(hc.knifeHits).toBe(2);
+    expect(modifiersFor(setDifficulty(p, 'hard')).maxHp).toBe(2);
   });
 });
 
