@@ -31,6 +31,7 @@ export const CAMPAIGN: readonly CampaignLevel[] = [
   { id: 'office-2', name: 'Corner Offices', theme: 'office' },
   { id: 'office-3', name: 'Cross Traffic', theme: 'office' },
   { id: 'office-4', name: 'Server Room', theme: 'office' },
+  { id: 'office-5', name: 'Cubicle Farm', theme: 'office' },
   { id: 'mansion-1', name: 'The Long Gallery', theme: 'mansion' },
   { id: 'mansion-2', name: 'Ballroom', theme: 'mansion' },
   { id: 'mansion-3', name: 'The Study', theme: 'mansion' },
