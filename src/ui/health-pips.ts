@@ -5,24 +5,33 @@ import { HEALTH } from '../config/tunables';
 
 export class HealthPips {
   private readonly root: HTMLDivElement;
-  private readonly pips: HTMLDivElement[];
+  private pips: HTMLDivElement[] = [];
   private shown = -1;
 
   constructor(parent: HTMLElement) {
     this.root = document.createElement('div');
     this.root.className = 'health-pips';
     this.root.setAttribute('aria-label', 'Health');
-    this.pips = Array.from({ length: HEALTH.maxHp }, () => {
-      const pip = document.createElement('div');
-      pip.className = 'health-pip';
-      this.root.appendChild(pip);
-      return pip;
-    });
+    this.setMax(HEALTH.maxHp);
     parent.appendChild(this.root);
   }
 
   set visible(v: boolean) {
     this.root.hidden = !v;
+  }
+
+  /** How many pips to show (the difficulty sets the player's hit points). */
+  setMax(maxHp: number): void {
+    if (maxHp === this.pips.length) return;
+    for (const pip of this.pips) pip.remove();
+    this.pips = Array.from({ length: maxHp }, () => {
+      const pip = document.createElement('div');
+      pip.className = 'health-pip';
+      this.root.appendChild(pip);
+      return pip;
+    });
+    this.root.setAttribute('aria-valuemax', String(maxHp));
+    this.shown = -1;
   }
 
   update(hp: number): void {

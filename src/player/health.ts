@@ -1,10 +1,10 @@
-// Player health: a few hit points, lost one per guard hit, and won back one at a time after a calm spell
+// Player health: a few hit points (how many depends on the difficulty), lost one per guard hit, and won back one at a time after a calm spell
 // with no damage and no guard seeing the player. Pure state.
 
 import { HEALTH } from '../config/tunables';
 
 export class Health {
-  hp: number = HEALTH.maxHp;
+  hp: number;
   /** Seconds since the last hit or the last moment a guard had eyes on the player. */
   calm = 0;
   /** Took at least one hit this mission. */
@@ -13,14 +13,19 @@ export class Health {
   invulnerable = 0;
 
   /** `regenDelayS`: seconds of calm per hit point back (the faster-regen perk shortens it). */
-  constructor(private readonly regenDelayS: number = HEALTH.regenDelayS) {}
+  constructor(
+    readonly maxHp: number = HEALTH.maxHp,
+    private readonly regenDelayS: number = HEALTH.regenDelayS,
+  ) {
+    this.hp = maxHp;
+  }
 
   get dead(): boolean {
     return this.hp <= 0;
   }
 
   get full(): boolean {
-    return this.hp >= HEALTH.maxHp;
+    return this.hp >= this.maxHp;
   }
 
   /** Lose `amount` HP. Returns false if already dead or invulnerable. */
@@ -34,7 +39,7 @@ export class Health {
 
   /** Back from 0 HP with `hp` hit points and `invulnS` seconds of invulnerability. */
   revive(hp: number, invulnS: number): void {
-    this.hp = Math.min(HEALTH.maxHp, Math.max(1, hp));
+    this.hp = Math.min(this.maxHp, Math.max(1, hp));
     this.calm = 0;
     this.invulnerable = invulnS;
   }

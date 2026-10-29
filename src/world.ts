@@ -166,7 +166,7 @@ export function createGameWorld(first: LoadedLevel, opts: GameWorldOptions): Gam
     mission.godMode = godMode;
     if (settings) mission.player.invertY = settings.invertY;
     input.releaseAll();
-    hud.reset();
+    hud.reset(mission.health.maxHp);
     audio.attach(mission.guards, mission.events);
     mission.events.on('hit', ({ guard }) => hud.hit(guard.pos.x, guard.pos.z));
     mission.events.on('throw', () => (threw = true));

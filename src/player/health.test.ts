@@ -65,4 +65,23 @@ describe('Health', () => {
     expect(h.damage()).toBe(true);
     expect(h.dead).toBe(true);
   });
+
+  it('takes its hit points from the difficulty', () => {
+    const h = new Health(5);
+    expect(h.hp).toBe(5);
+    for (let i = 0; i < 4; i++) h.damage();
+    expect(h.dead).toBe(false);
+    expect(calm(h, HEALTH.regenDelayS * 4 + 0.5)).toBe(4);
+    expect(h.full).toBe(true);
+    h.revive(9, 0);
+    expect(h.hp).toBe(5);
+  });
+
+  it('with one hit point there is nothing to regenerate', () => {
+    const h = new Health(1);
+    expect(h.full).toBe(true);
+    expect(calm(h, HEALTH.regenDelayS * 2)).toBe(0);
+    expect(h.damage()).toBe(true);
+    expect(h.dead).toBe(true);
+  });
 });

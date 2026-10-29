@@ -61,8 +61,10 @@ export class Hud {
     this.minimap.setGrid(grid);
   }
 
-  /** A restart: drop everything that belonged to the previous attempt. */
-  reset(): void {
+  /** A restart: drop everything that belonged to the previous attempt. `maxHp` sizes the health pips. */
+  reset(maxHp: number): void {
+    this.pips.setMax(maxHp);
+    this.vignette.maxHp = maxHp;
     this.minimap.reset();
     this.arcs.reset();
     this.hits.reset();

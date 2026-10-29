@@ -6,6 +6,7 @@ import { Rng } from '../core/rng';
 import { InputState } from '../input/input-state';
 import { levelFromJson as loadJson } from '../level/loader';
 import { Mission, type ViewLens } from './mission';
+import { NO_MODIFIERS } from './modifiers';
 
 const DT = 1 / 60;
 const LENS: ViewLens = { vFov: (70 * Math.PI) / 180, aspect: 16 / 9 };
@@ -228,7 +229,7 @@ describe('Mission', () => {
   });
 
   it('applies perk modifiers: quieter steps, faster regen, extra bottles', () => {
-    const mods = { noiseScale: 0.5, regenDelayS: 2, bonusBottles: 2 };
+    const mods = { ...NO_MODIFIERS, noiseScale: 0.5, regenDelayS: 2, bonusBottles: 2 };
     const plain = new Mission(loadJson(small), new Rng(1));
     const perk = new Mission(loadJson(small), new Rng(1), mods);
     expect(perk.bottles).toBe(plain.bottles + 2);
@@ -248,5 +249,11 @@ describe('Mission', () => {
     }
     expect(healedAt).toBeGreaterThan(1.9);
     expect(healedAt).toBeLessThan(2.1);
+  });
+
+  it('takes the hit points from the modifiers', () => {
+    const m = new Mission(loadJson(small), new Rng(1), { ...NO_MODIFIERS, maxHp: 1 });
+    expect(m.health.hp).toBe(1);
+    expect(m.health.full).toBe(true);
   });
 });
