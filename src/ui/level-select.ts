@@ -1,5 +1,6 @@
 // Level select: the difficulty picker, one tab per theme, and a card per level with its best stars on the
-// picked difficulty, locked until the level before it is won on any difficulty (everything is open with
+// picked difficulty, locked until the level before it is won on any difficulty, or on Hardcore until that
+// level itself is won on Hard (everything is open with
 // ?debug=1, Hardcore included).
 
 import { CAMPAIGN, THEME_NAMES } from '../config/campaign';
@@ -43,7 +44,7 @@ export class LevelSelect {
       `<div class="menu-panel wide" role="dialog" aria-label="Levels">
         <h2>Levels</h2>
         <div class="difficulty-picker" role="radiogroup" aria-label="Difficulty"></div>
-        <div class="diff-hint" hidden>Clear every level on Hard to unlock Hardcore</div>
+        <div class="diff-hint" hidden>Win a level on Hard to unlock it on Hardcore</div>
         <div class="tabs" role="tablist"></div>
         <div class="level-cards"></div>
         <button type="button" class="menu-btn back">Back</button>

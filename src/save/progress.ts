@@ -177,25 +177,33 @@ function wonAnywhere(p: Progress, levelId: string): boolean {
  * The first level is always open; every other one opens when the one before it is won, on any
  * difficulty (so a level cleared on Easy can be tried on Hard straight away).
  */
+/** On Hardcore a level opens once that level itself is won on Hard (or Hardcore); otherwise once the one before is won anywhere. */
 export function isUnlocked(
   p: Progress,
   index: number,
   campaign: readonly CampaignLevel[] = CAMPAIGN,
+  d: Difficulty = p.difficulty,
 ): boolean {
+  if (d === 'hardcore') {
+    const level = campaign[index];
+    return !!level && hardcoreLevelOpen(p, level.id);
+  }
   if (index <= 0) return index === 0 && campaign.length > 0;
   const before = campaign[index - 1];
   return !!before && wonAnywhere(p, before.id);
 }
 
-/** Hardcore opens once every campaign level has been won on Hard (or on Hardcore itself). */
+/** A level is playable on Hardcore once it has been won on Hard (or on Hardcore itself). */
+export function hardcoreLevelOpen(p: Progress, id: string): boolean {
+  return !!p.records.hard[id] || !!p.records.hardcore[id];
+}
+
+/** Hardcore can be picked once any campaign level is open on it. */
 export function hardcoreUnlocked(
   p: Progress,
   campaign: readonly CampaignLevel[] = CAMPAIGN,
 ): boolean {
-  return (
-    campaign.length > 0 &&
-    campaign.every((l) => !!p.records.hard[l.id] || !!p.records.hardcore[l.id])
-  );
+  return campaign.some((l) => hardcoreLevelOpen(p, l.id));
 }
 
 export function canPlayDifficulty(p: Progress, d: Difficulty): boolean {
@@ -213,8 +221,10 @@ export function nextToPlay(
   campaign: readonly CampaignLevel[] = CAMPAIGN,
   d: Difficulty = p.difficulty,
 ): string {
-  const open = campaign.find((l) => !p.records[d][l.id]);
-  return (open ?? campaign[campaign.length - 1])?.id ?? '';
+  const playable = d === 'hardcore' ? campaign.filter((l) => hardcoreLevelOpen(p, l.id)) : campaign;
+  const list = playable.length > 0 ? playable : campaign;
+  const open = list.find((l) => !p.records[d][l.id]);
+  return (open ?? list[list.length - 1])?.id ?? '';
 }
 
 export function totalStars(

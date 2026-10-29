@@ -59,7 +59,7 @@ public/levels/*.json   hand-authored levels
 - `?debug=1` URL flag shows: fps, draw calls, triangles, guard cones, awareness values, LKP markers, nav grid, and a light-sampling overlay.
 
 ## Gameplay rules (source of truth; details in PLAN.md)
-- **Difficulty:** Easy / Medium / Hard / Hardcore. Hardcore unlocks once every campaign level is cleared on Hard. The rules below are Medium's. The other difficulties change HP, guard sight, hearing and awareness drain, and guard count (`DIFFICULTY` in tunables.ts). Stars are kept per difficulty.
+- **Difficulty:** Easy / Medium / Hard / Hardcore. Hardcore opens per level: a level is playable on Hardcore once it is cleared on Hard. The rules below are Medium's. The other difficulties change HP, guard sight, hearing and awareness drain, and guard count (`DIFFICULTY` in tunables.ts). Stars are kept per difficulty.
 - Player has **3 HP** (Easy 5, Hard 2, Hardcore 1). Each guard hit = 1 HP. Regenerate 1 HP after 8 s without taking damage or being detected. 0 HP = mission failed.
 - Knife kill = instant, from any angle and in any guard state (Alert included), within 1.6 m. **On Hardcore it takes two stabs:** the first wounds, and the guard staggers 0.8 s (can't move or shoot), goes Alert and shouts. Living guards block the player; bodies don't.
 - Level files are templates. A guard tagged `minDifficulty` appears only from that difficulty up, and `level/difficulty-variant.ts` builds the level each difficulty plays. Procedural levels must plug into the same seam.

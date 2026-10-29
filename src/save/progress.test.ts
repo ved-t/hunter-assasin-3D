@@ -161,13 +161,17 @@ describe('difficulty', () => {
     expect(nextToPlay(p, CAMPAIGN)).toBe('a'); // not yet won on Hard
   });
 
-  it('opens Hardcore once the whole campaign is won on Hard', () => {
+  it('opens each level on Hardcore once that level is won on Hard', () => {
     let p = winAll(newProgress(), 'medium');
     expect(hardcoreUnlocked(p, CAMPAIGN)).toBe(false);
-    p = recordWin(recordWin(p, 'a', 1, 30, 'hard').progress, 'b', 1, 30, 'hard').progress;
-    expect(hardcoreUnlocked(p, CAMPAIGN)).toBe(false);
-    p = recordWin(p, 'c', 1, 30, 'hard').progress;
+    p = recordWin(p, 'b', 1, 30, 'hard').progress;
     expect(hardcoreUnlocked(p, CAMPAIGN)).toBe(true);
+    expect(isUnlocked(p, 0, CAMPAIGN, 'hardcore')).toBe(false);
+    expect(isUnlocked(p, 1, CAMPAIGN, 'hardcore')).toBe(true);
+    expect(isUnlocked(p, 2, CAMPAIGN, 'hardcore')).toBe(false);
+    expect(nextToPlay(p, CAMPAIGN, 'hardcore')).toBe('b');
+    p = recordWin(p, 'b', 1, 30, 'hardcore').progress;
+    expect(nextToPlay(p, CAMPAIGN, 'hardcore')).toBe('b'); // only one open, all won
   });
 
   it('refuses a locked Hardcore, both picked and loaded', () => {

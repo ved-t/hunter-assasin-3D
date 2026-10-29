@@ -106,7 +106,7 @@ Built in four sub-phases, each with its own build, size report and playtest stop
 **Acceptance:** builds pass each portal's preview/QA tool, and the Android release APK/AAB installs and plays on two physical devices.
 
 ## Difficulty (added 2026-10-29)
-Easy / Medium / Hard / Hardcore, picked on level select. Hardcore unlocks once every campaign level is cleared on Hard.
+Easy / Medium / Hard / Hardcore, picked on level select. Hardcore opens per level: a level is playable on Hardcore once it is cleared on Hard.
 
 | | Easy | Medium | Hard | Hardcore |
 |---|---|---|---|---|

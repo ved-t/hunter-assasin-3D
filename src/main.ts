@@ -32,7 +32,7 @@ import {
 import { createTestScene } from './render/test-scene';
 import { FpsProbe, guessTier, tierAfterProbe } from './render/tier-detect';
 import {
-  hardcoreUnlocked,
+  hardcoreLevelOpen,
   levelRecord,
   loadProgress,
   modifiersFor,
@@ -634,12 +634,12 @@ async function boot(): Promise<void> {
       r.stars === 3 &&
       (levelRecord(progress, level.id, played)?.stars ?? 0) < 3;
     if (r.outcome === 'won' && CAMPAIGN.some((l) => l.id === level.id)) {
-      const hadHardcore = hardcoreUnlocked(progress);
+      const hadHardcore = hardcoreLevelOpen(progress, level.id);
       const won = recordWin(progress, level.id, r.stars, r.stats.timeS, played);
       setProgress(won.progress);
       reward = won.reward;
-      if (!hadHardcore && hardcoreUnlocked(progress)) {
-        notice = 'Hardcore unlocked: pick it in Levels';
+      if (!hadHardcore && hardcoreLevelOpen(progress, level.id)) {
+        notice = 'Hardcore unlocked for this level: pick it in Levels';
       }
     }
     if (firstThreeStars) platform.happyTime();
