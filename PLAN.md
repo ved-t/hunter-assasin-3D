@@ -86,7 +86,9 @@ Built in four sub-phases, each with its own build, size report and playtest stop
 5a menus, progression and in-app level flow · 5b the 12 levels in greybox · 5c environment art · 5d characters, viewmodel and audio.
 - Apply the "graphic noir" art direction from CLAUDE.md: modular environment kit (warehouse, office, mansion), Mixamo guards with walk/run/idle/turn/shoot/death animations (GPU-skinned, shared skeleton), and a code-built first-person hand and knife viewmodel.
 - Baked AO/lightmaps for static props; asset pipeline script with `gltf-transform` (meshopt + KTX2) and a size report.
-- 12 hand-made levels across 3 themes with a difficulty curve. Introduce mechanics one at a time: light, sound, bodies, distraction, more guards.
+- 30 hand-made levels, 10 per theme (12 built in 5b, 18 added before release). Each theme starts a little easier than the last one
+  ended (a breather on new art), then climbs. Introduce mechanics one at a time: light, sound, bodies, distraction, more guards.
+  Later levels add variety with layout, patrol patterns, lamps and item placement, not new mechanics.
 - Progression: gems from levels → unlock skins and a few perks (quieter steps, faster regen). Main menu, level select, settings, pause.
 - Audio pass: ambience per theme, music low in the mix, all SFX compressed.
 
@@ -120,8 +122,11 @@ Starting values, to be tuned in playtest. They live in `DIFFICULTY` in tunables.
 - **Levels are templates.** Guards carry an optional `minDifficulty`. `levelForDifficulty()` (level/difficulty-variant.ts) builds the
   concrete level: it filters the guards and moves par by 5 s per guard, rounded up to 15 s.
   Mission, the scene and the HUD only ever see the concrete level.
-- Hand-made levels: Easy drops n − ⌊n/4⌋, Hard adds max(1, round(n/5)), and Hardcore adds the same again. A campaign test keeps each
-  variant within ±1 of n × `guardFactor` and runs the 20 s safe-spawn check with each difficulty's senses.
+- Hand-made levels: Easy drops ⌊n/4⌋, Hard adds max(1, round(n/5)), and Hardcore adds the same again, moved by one where the
+  curve needs it. A campaign test keeps each variant within ±1 of n × `guardFactor` and runs the 20 s safe-spawn check with each
+  difficulty's senses.
+- The curve, checked on every difficulty: guard counts never drop within a theme, and each theme's first and last levels have
+  more guards than the previous theme's first and last.
 - Stars, best time and gems are kept per difficulty. A level unlocked on any difficulty is unlocked on all. The rewarded revive is offered on every difficulty.
 - **Procedural levels (planned):** a generator should emit a level template (or a concrete level) and take its guard count from
   `guardFactor`. It then gets validation per difficulty (validate.ts), the variants, and the headless campaign checks for free.
