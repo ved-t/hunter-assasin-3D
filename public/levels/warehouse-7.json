@@ -1,0 +1,110 @@
+{
+  "$schema": "../../src/level/level.schema.json",
+  "id": "warehouse-7",
+  "name": "Pallet Rows",
+  "theme": "warehouse",
+  "tip": "Guards here walk in pairs. Take the one at the back first, or slip through the gap between them.",
+  "version": 1,
+  "tileSize": 2,
+  "width": 26,
+  "height": 18,
+  "tiles": [
+    "##########################",
+    "#....#...................#",
+    "#....#..ccc..ccc..ccc....#",
+    "#....D...................#",
+    "######..ccc..ccc..ccc....#",
+    "#........................#",
+    "#..ccc..ccc..ccc..ccc....#",
+    "#........................#",
+    "#..ccc..ccc..ccc..ccc....#",
+    "#........................#",
+    "#..ccc..ccc..ccc..ccc....#",
+    "#........................#",
+    "##############D######D####",
+    "#.........#.......#......#",
+    "#..c......#...c...#......E",
+    "#.........D.......D......#",
+    "#.........#.......#......#",
+    "##########################"
+  ],
+  "playerSpawn": { "x": 1.5, "y": 1.5, "yawDeg": 90 },
+  "guards": [
+    {
+      "spawn": { "x": 8.5, "y": 1.5 },
+      "yawDeg": 90,
+      "waypoints": [
+        { "x": 23.5, "y": 1.5 },
+        { "x": 23.5, "y": 11.5, "waitS": 1 },
+        { "x": 6.5, "y": 11.5 },
+        { "x": 6.5, "y": 1.5, "waitS": 1 }
+      ]
+    },
+    {
+      "spawn": { "x": 6.5, "y": 1.5 },
+      "yawDeg": 90,
+      "waypoints": [
+        { "x": 23.5, "y": 1.5 },
+        { "x": 23.5, "y": 11.5, "waitS": 1 },
+        { "x": 6.5, "y": 11.5 },
+        { "x": 6.5, "y": 1.5, "waitS": 1 }
+      ]
+    },
+    {
+      "spawn": { "x": 4.5, "y": 7.5 },
+      "yawDeg": 90,
+      "waypoints": [
+        { "x": 16.5, "y": 7.5 },
+        { "x": 16.5, "y": 9.5, "waitS": 1 },
+        { "x": 2.5, "y": 9.5 },
+        { "x": 2.5, "y": 7.5, "waitS": 1 }
+      ]
+    },
+    {
+      "spawn": { "x": 2.5, "y": 7.5 },
+      "yawDeg": 90,
+      "waypoints": [
+        { "x": 16.5, "y": 7.5 },
+        { "x": 16.5, "y": 9.5, "waitS": 1 },
+        { "x": 2.5, "y": 9.5 },
+        { "x": 2.5, "y": 7.5, "waitS": 1 }
+      ]
+    },
+    {
+      "minDifficulty": "medium",
+      "spawn": { "x": 11.5, "y": 13.5 },
+      "yawDeg": 90,
+      "waypoints": [
+        { "x": 17.5, "y": 13.5, "waitS": 1 },
+        { "x": 17.5, "y": 16.5 },
+        { "x": 11.5, "y": 16.5, "waitS": 1 },
+        { "x": 11.5, "y": 13.5 }
+      ]
+    },
+    {
+      "minDifficulty": "hard",
+      "spawn": { "x": 1.5, "y": 13.5 },
+      "yawDeg": 90,
+      "waypoints": [
+        { "x": 8.5, "y": 13.5, "waitS": 1 },
+        { "x": 8.5, "y": 16.5 },
+        { "x": 1.5, "y": 16.5, "waitS": 1 },
+        { "x": 1.5, "y": 13.5 }
+      ]
+    },
+    {
+      "minDifficulty": "hardcore",
+      "spawn": { "x": 23.5, "y": 15.5 },
+      "yawDeg": -45,
+      "waypoints": [{ "x": 23.5, "y": 15.5 }]
+    }
+  ],
+  "lamps": [
+    { "x": 20, "y": 7.5 },
+    { "x": 14.5, "y": 14.5, "color": "#ffd9a0", "intensity": 0.6 },
+    { "x": 4, "y": 14.5, "color": "#ffd9a0", "intensity": 0.4 }
+  ],
+  "objective": { "type": "reachExit", "item": { "x": 2.5, "y": 15.5 } },
+  "bottles": 2,
+  "parTimeS": 135
+}
