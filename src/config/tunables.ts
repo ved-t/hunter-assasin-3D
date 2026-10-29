@@ -194,10 +194,10 @@ export const ASSET_FILES = {
 /** Limits every level must respect, so one long-lived scene can host any of them. */
 export const LEVEL_LIMITS = {
   /**
-   * Most guards in a level. Flashlight and guard meshes are sized for this once, so switching levels
-   * never resizes buffers or changes the scene's light count.
+   * Most guards in a level on any difficulty (mansion-4 on Hardcore has 14). Flashlight and guard meshes
+   * are sized for this once, so switching levels never resizes buffers or changes the scene's light count.
    */
-  maxGuards: 10,
+  maxGuards: 14,
 } as const;
 
 export const PLAYER = {
