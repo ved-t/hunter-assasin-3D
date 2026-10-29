@@ -105,6 +105,29 @@ Built in four sub-phases, each with its own build, size report and playtest stop
 
 **Acceptance:** builds pass each portal's preview/QA tool, and the Android release APK/AAB installs and plays on two physical devices.
 
+## Difficulty (added 2026-10-29)
+Easy / Medium / Hard / Hardcore, picked on level select. Hardcore unlocks once every campaign level is cleared on Hard.
+
+| | Easy | Medium | Hard | Hardcore |
+|---|---|---|---|---|
+| HP | 5 | 3 | 2 | 1 |
+| Guard vision / hearing | ×0.6 / ×0.6 | ×1 | ×1.3 / ×1.25 | ×1.6 / ×1.5 |
+| Awareness drain | ×1.5 | ×1 | ×0.8 | ×0.6 |
+| Knife stabs per guard | 1 | 1 | 1 | 2 (first one wounds: 0.8 s stagger, Alert, shout) |
+| Guards vs Medium (`guardFactor`) | ~0.75× | 1× | ~1.2× | ~1.4× |
+
+Starting values, to be tuned in playtest. They live in `DIFFICULTY` in tunables.ts.
+- **Levels are templates.** Guards carry an optional `minDifficulty`. `levelForDifficulty()` (level/difficulty-variant.ts) builds the
+  concrete level: it filters the guards and moves par by 8 s (eliminateAll) or 5 s (reachExit) per guard, rounded up to 15 s.
+  Mission, the scene and the HUD only ever see the concrete level.
+- Hand-made levels: Easy drops n − ⌊n/4⌋, Hard adds max(1, round(n/5)), and Hardcore adds the same again. A campaign test keeps each
+  variant within ±1 of n × `guardFactor` and runs the 20 s safe-spawn check with each difficulty's senses.
+- Stars, best time and gems are kept per difficulty. A level unlocked on any difficulty is unlocked on all. The rewarded revive is offered on every difficulty.
+- **Procedural levels (planned):** a generator should emit a level template (or a concrete level) and take its guard count from
+  `guardFactor`. It then gets validation per difficulty (validate.ts), the variants, and the headless campaign checks for free.
+  How records and stars work for generated levels is still to be decided.
+- `?difficulty=<easy|medium|hard|hardcore>` plays that difficulty for the session, ignoring the Hardcore lock.
+
 ## Later (v1.1+)
 - Hunter Sense: occupancy-map overlay showing where guards plan to search.
 - Flashlight disguise (pick up a guard's light), breaker boxes, dying-battery guards.
