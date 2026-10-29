@@ -74,12 +74,13 @@ export interface LampDef extends GridPoint {
 export const THEMES = ['warehouse', 'office', 'mansion'] as const;
 export type Theme = (typeof THEMES)[number];
 
-export type ObjectiveType = 'eliminateAll' | 'reachExit';
+/** The one way to finish a level: collect the item, then leave through an exit door. */
+export type ObjectiveType = 'reachExit';
 
 export interface Objective {
   type: ObjectiveType;
-  /** Item to collect before the exit counts (reachExit only). */
-  item?: GridPoint;
+  /** Item to collect before the exit counts. */
+  item: GridPoint;
 }
 
 export interface LevelData {

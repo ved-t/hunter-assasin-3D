@@ -12,7 +12,7 @@ const guard = (x: number, minDifficulty?: GuardDef['minDifficulty']): GuardDef =
   ...(minDifficulty ? { minDifficulty } : {}),
 });
 
-function template(objective: LevelData['objective']['type'], parTimeS?: number): LevelData {
+function template(parTimeS?: number): LevelData {
   return {
     id: 'variant',
     name: 'Variant',
@@ -31,19 +31,19 @@ function template(objective: LevelData['objective']['type'], parTimeS?: number):
       guard(7.5, 'hardcore'),
     ],
     lamps: [],
-    objective: { type: objective },
+    objective: { type: 'reachExit', item: { x: 2.5, y: 1.5 } },
     ...(parTimeS !== undefined ? { parTimeS } : {}),
   };
 }
 
 describe('difficulty variants', () => {
   it('puts each tagged guard on its difficulty and up', () => {
-    const counts = DIFFICULTIES.map((d) => guardsFor(template('reachExit').guards, d).length);
+    const counts = DIFFICULTIES.map((d) => guardsFor(template().guards, d).length);
     expect(counts).toEqual([2, 3, 4, 5]);
   });
 
   it('keeps the id and shares the grid', () => {
-    const level = levelFromJson(template('reachExit', 90));
+    const level = levelFromJson(template(90));
     for (const d of DIFFICULTIES) {
       const v = levelForDifficulty(level, d);
       expect(v.data.id).toBe(level.data.id);
@@ -54,22 +54,22 @@ describe('difficulty variants', () => {
   });
 
   it('Medium plays the level as authored, par included', () => {
-    const level = levelFromJson(template('eliminateAll', 90));
+    const level = levelFromJson(template(90));
     const v = levelForDifficulty(level, 'medium');
     expect(v.data.guards.map((g) => g.spawn.x)).toEqual([3.5, 4.5, 5.5]);
     expect(v.data.parTimeS).toBe(90);
   });
 
   it('moves par with the guard count, rounded up', () => {
-    const level = levelFromJson(template('eliminateAll', 90));
-    const per = DIFFICULTY_PAR.secondsPerGuard.eliminateAll;
+    const level = levelFromJson(template(90));
+    const per = DIFFICULTY_PAR.secondsPerGuard;
     const round = (t: number) => Math.ceil(t / DIFFICULTY_PAR.roundToS) * DIFFICULTY_PAR.roundToS;
     expect(levelForDifficulty(level, 'easy').data.parTimeS).toBe(round(90 - per));
     expect(levelForDifficulty(level, 'hardcore').data.parTimeS).toBe(round(90 + 2 * per));
   });
 
   it('leaves a level without par without one', () => {
-    const level = levelFromJson(template('reachExit'));
+    const level = levelFromJson(template());
     expect(levelForDifficulty(level, 'hard').data.parTimeS).toBeUndefined();
   });
 });

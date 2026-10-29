@@ -26,7 +26,7 @@ function base(): LevelData {
     playerSpawn: { x: 1.5, y: 1.5, yawDeg: 0 },
     guards: [{ spawn: { x: 5.5, y: 1.5 }, yawDeg: 0, waypoints: [{ x: 5.5, y: 3.5, waitS: 1 }] }],
     lamps: [{ x: 2, y: 2, color: '#ffaa00' }],
-    objective: { type: 'reachExit' },
+    objective: { type: 'reachExit', item: { x: 4.5, y: 2.5 } },
   };
 }
 
@@ -79,12 +79,10 @@ describe('validateLevel', () => {
     expectBoth(l, true, true);
   });
 
-  it('accepts bottles, par time and an eliminateAll level without an exit', () => {
+  it('accepts bottles and par time', () => {
     const l = base();
     l.bottles = 0;
     l.parTimeS = 45;
-    l.objective = { type: 'eliminateAll' };
-    l.tiles[2] = '#..D..#';
     expectBoth(l, true, true);
   });
 
@@ -109,6 +107,7 @@ describe('validateLevel', () => {
       (l) => ((l.guards as Record<string, unknown>[])[0]!.minDifficulty = 'nightmare'),
     ],
     ['bad objective type', (l) => (l.objective = { type: 'win' })],
+    ['no item', (l) => (l.objective = { type: 'reachExit' })],
     ['negative bottles', (l) => (l.bottles = -1)],
     ['fractional bottles', (l) => (l.bottles = 1.5)],
     ['zero par time', (l) => (l.parTimeS = 0)],
@@ -132,25 +131,15 @@ describe('validateLevel', () => {
     ['spawn off grid', (l) => (l.playerSpawn = { x: 40, y: 1, yawDeg: 0 }), /outside/],
     ['spawn in wall', (l) => (l.playerSpawn = { x: 0.5, y: 0.5, yawDeg: 0 }), /solid/],
     ['unreachable waypoint', (l) => (l.tiles[2] = '#..#..E'), /not reachable/],
-    ['reachExit without exit', (l) => (l.tiles[2] = '#..D..#'), /E tile/],
+    ['no exit', (l) => (l.tiles[2] = '#..D..#'), /E tile/],
     ['exit inside a room', (l) => (l.tiles[2] = '#..D.E#'), /outer wall/],
     ['exit in a corner', (l) => (l.tiles[4] = '######E'), /outer wall/],
     ['two-wide exit', (l) => ((l.tiles[2] = '#..D..E'), (l.tiles[3] = '#..#..E')), /outer wall/],
     ['exit blocked by cover', (l) => (l.tiles[2] = '#..D.cE'), /outer wall/],
     [
-      'eliminateAll without guards',
-      (l) => ((l.objective = { type: 'eliminateAll' }), (l.guards = [])),
-      /at least one guard/,
-    ],
-    [
       'more guards than one scene can host',
       (l) => (l.guards = Array.from({ length: LEVEL_LIMITS.maxGuards + 1 }, () => l.guards[0]!)),
       /at most/,
-    ],
-    [
-      'eliminateAll with no guards on Easy',
-      (l) => ((l.objective = { type: 'eliminateAll' }), (l.guards[0]!.minDifficulty = 'medium')),
-      /easy has none/,
     ],
     [
       'a difficulty with more guards than one scene can host',

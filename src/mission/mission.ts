@@ -81,8 +81,8 @@ export class Mission {
   /** Distraction bottles left, and the one in flight (only one at a time). */
   bottles: number;
   readonly bottle = new Bottle();
-  /** The objective item's position, if the level has one. */
-  readonly item: Vec2 | null;
+  /** The objective item's position. */
+  readonly item: Vec2;
   itemTaken = false;
   /** A guard went Alert with the player in sight at some point (costs the stealth star). */
   detected = false;
@@ -110,8 +110,7 @@ export class Mission {
     this.beams = this.guards.guards.map(() => ({ x: 0, z: 0, height: 0, yaw: 0, intensity: 0 }));
     this.perception = new PlayerPerception(grid, this.guards.guards.length);
     this.bottles = (data.bottles ?? BOTTLE.defaultCount) + mods.bonusBottles;
-    const item = data.objective.type === 'reachExit' ? data.objective.item : undefined;
-    this.item = item ? grid.gridToWorld(item.x, item.y) : null;
+    this.item = grid.gridToWorld(data.objective.item.x, data.objective.item.y);
     this.guards.events.on('stateChange', ({ guard, to }) => {
       if (to === 'alert' && guard.seesPlayer) this.detected = true;
     });
@@ -159,18 +158,15 @@ export class Mission {
     this.perception.step(dt, v, guards.guards, this.beams);
 
     const { item } = this;
-    if (item && !this.itemTaken) {
+    if (!this.itemTaken) {
       if (Math.hypot(player.pos.x - item.x, player.pos.z - item.z) <= MISSION.itemPickupM) {
         this.itemTaken = true;
         this.events.emit('pickup', {});
       }
     }
     const outcome = checkOutcome({
-      type: this.level.data.objective.type,
-      hasItem: item !== null,
       itemTaken: this.itemTaken,
       onExit: onExitTile(grid, player.pos),
-      aliveGuards: guards.aliveCount,
       playerDead: this.health.dead,
     });
     if (outcome) this.end(outcome);
@@ -216,14 +212,7 @@ export class Mission {
 
   /** What to do next, for the HUD. */
   get objectiveLabel(): string {
-    const total = this.guards.guards.length;
-    return objectiveLabel(
-      this.level.data.objective.type,
-      this.item !== null,
-      this.itemTaken,
-      this.guards.aliveCount,
-      total,
-    );
+    return objectiveLabel(this.itemTaken);
   }
 
   private end(outcome: Outcome): void {

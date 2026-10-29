@@ -9,7 +9,7 @@
   "width": 22,
   "height": 14,
   "tiles": [
-    "######################",
+    "##E###################",
     "#........#...........#",
     "#..c.....#...c...c...#",
     "#........D...........#",
@@ -79,7 +79,7 @@
     { "x": 6, "y": 9.5, "color": "#ffd9a0", "intensity": 0.5 },
     { "x": 16.5, "y": 2.5 }
   ],
-  "objective": { "type": "eliminateAll" },
+  "objective": { "type": "reachExit", "item": { "x": 17.5, "y": 8.5 } },
   "bottles": 0,
-  "parTimeS": 135
+  "parTimeS": 105
 }

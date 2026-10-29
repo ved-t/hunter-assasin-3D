@@ -82,9 +82,9 @@
     "objective": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type"],
+      "required": ["type", "item"],
       "properties": {
-        "type": { "enum": ["eliminateAll", "reachExit"] },
+        "type": { "enum": ["reachExit"] },
         "item": { "$ref": "#/definitions/point" }
       }
     },

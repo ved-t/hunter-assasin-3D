@@ -20,7 +20,7 @@
     "#..cc......c.....#",
     "#................#",
     "#.....cc.........#",
-    "##################"
+    "##E###############"
   ],
   "playerSpawn": { "x": 1.5, "y": 1.5, "yawDeg": 135 },
   "guards": [
@@ -69,7 +69,7 @@
     { "x": 12, "y": 3 },
     { "x": 9, "y": 8.5, "color": "#ffd9a0", "intensity": 0.6 }
   ],
-  "objective": { "type": "eliminateAll" },
+  "objective": { "type": "reachExit", "item": { "x": 16.5, "y": 1.5 } },
   "bottles": 0,
-  "parTimeS": 75
+  "parTimeS": 90
 }

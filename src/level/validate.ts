@@ -183,10 +183,8 @@ function checkStructure(c: Checker, json: unknown): json is LevelData {
     c.fail('objective', 'must be an object');
   } else {
     c.noExtra(json.objective, ['type', 'item'], 'objective');
-    if (json.objective.type !== 'eliminateAll' && json.objective.type !== 'reachExit') {
-      c.fail('objective.type', 'must be "eliminateAll" or "reachExit"');
-    }
-    if ('item' in json.objective) c.point(json.objective.item, 'objective.item');
+    if (json.objective.type !== 'reachExit') c.fail('objective.type', 'must be "reachExit"');
+    c.point(json.objective.item, 'objective.item');
   }
 
   return c.errors.length === 0;
@@ -307,7 +305,7 @@ function checkSemantics(c: Checker, level: LevelData): void {
     if (!grid.inBounds(Math.floor(l.x), Math.floor(l.y)))
       c.fail(`lamps[${i}]`, 'is outside the grid');
   });
-  if (level.objective.item) reachable(level.objective.item, 'objective.item');
+  reachable(level.objective.item, 'objective.item');
 
   let exits = 0;
   for (let y = 0; y < height; y++) {
@@ -318,15 +316,10 @@ function checkSemantics(c: Checker, level: LevelData): void {
         c.fail(`tiles[${y}][${x}]`, 'exit is not reachable from the player spawn');
     }
   }
-  if (level.objective.type === 'reachExit' && exits === 0) {
-    c.fail('objective', 'reachExit needs at least one E tile');
-  }
+  if (exits === 0) c.fail('objective', 'a level needs at least one E tile');
   // Every difficulty must make a playable level of its own.
   for (const d of DIFFICULTIES) {
     const n = guardsFor(level.guards, d).length;
-    if (level.objective.type === 'eliminateAll' && n === 0) {
-      c.fail('objective', `eliminateAll needs at least one guard (${d} has none)`);
-    }
     if (n > LEVEL_LIMITS.maxGuards) {
       c.fail('guards', `at most ${LEVEL_LIMITS.maxGuards} guards per level (${d} has ${n})`);
     }

@@ -556,7 +556,7 @@ export const DIFFICULTY = {
 /** Par time grows (or shrinks) with the guards a difficulty adds (or removes), like the 5b formula. */
 export const DIFFICULTY_PAR = {
   /** Seconds per guard above or below the level's Medium count. */
-  secondsPerGuard: { eliminateAll: 8, reachExit: 5 },
+  secondsPerGuard: 5,
   /** Adjusted par times are rounded up to a multiple of this (s). */
   roundToS: 15,
 } as const;

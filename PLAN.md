@@ -76,7 +76,7 @@ All numbers below are **starting values** for `config/tunables.ts`, not final ba
 - Health: 3 HP, damage vignette and directional hit marker; regenerate 1 HP after 8 s without damage or detection.
 - Dropped flashlight: stays on at the body. Other guards' perception treats a stray beam as a weak stimulus; a beam landing on a body sets awareness to 100 and starts a search around the body.
 - Throwable distraction (bottle): limited count per level; noise radius 10 m; guards become Suspicious toward it.
-- Objectives: eliminate all targets, or reach the exit after collecting an item. Win/fail screens with time and kill count. 1–3 star rating: no detection, no damage, under par time.
+- Objective: collect the item, then leave through the exit door. (Eliminate-all was dropped on 2026-10-29.) Win/fail screens with time and kill count. 1–3 star rating: no detection, no damage, under par time.
 
 **Acceptance:** both greybox levels are completable start to finish on desktop and phone. Failing and restarting takes < 2 s.
 
@@ -118,7 +118,7 @@ Easy / Medium / Hard / Hardcore, picked on level select. Hardcore opens per leve
 
 Starting values, to be tuned in playtest. They live in `DIFFICULTY` in tunables.ts.
 - **Levels are templates.** Guards carry an optional `minDifficulty`. `levelForDifficulty()` (level/difficulty-variant.ts) builds the
-  concrete level: it filters the guards and moves par by 8 s (eliminateAll) or 5 s (reachExit) per guard, rounded up to 15 s.
+  concrete level: it filters the guards and moves par by 5 s per guard, rounded up to 15 s.
   Mission, the scene and the HUD only ever see the concrete level.
 - Hand-made levels: Easy drops n − ⌊n/4⌋, Hard adds max(1, round(n/5)), and Hardcore adds the same again. A campaign test keeps each
   variant within ±1 of n × `guardFactor` and runs the 20 s safe-spawn check with each difficulty's senses.

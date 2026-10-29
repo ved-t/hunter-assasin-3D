@@ -19,7 +19,7 @@ export function variantParTimeS(data: LevelData, guards: number): number | undef
   if (par === undefined) return undefined;
   const delta = guards - guardsFor(data.guards, DEFAULT_DIFFICULTY).length;
   if (delta === 0) return par;
-  const raw = par + delta * DIFFICULTY_PAR.secondsPerGuard[data.objective.type];
+  const raw = par + delta * DIFFICULTY_PAR.secondsPerGuard;
   return Math.max(
     DIFFICULTY_PAR.roundToS,
     Math.ceil(raw / DIFFICULTY_PAR.roundToS) * DIFFICULTY_PAR.roundToS,

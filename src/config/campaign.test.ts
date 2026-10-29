@@ -52,8 +52,8 @@ function exits(level: LoadedLevel): Vec2[] {
 }
 
 /**
- * The shortest walk that could finish the level (m): spawn → item → nearest exit, or for eliminateAll
- * a nearest-first tour of the guard spawns. Throws if any leg has no path for the player.
+ * The shortest walk that could finish the level (m): spawn → item → nearest exit. Throws if any leg has
+ * no path for the player.
  */
 function routeLength(level: LoadedLevel): number {
   const { grid, data } = level;
@@ -63,24 +63,9 @@ function routeLength(level: LoadedLevel): number {
     if (d === null) throw new Error(`no path (${a.x}, ${a.z}) → (${b.x}, ${b.z})`);
     return d;
   };
-  let at = grid.gridToWorld(data.playerSpawn.x, data.playerSpawn.y);
-  let total = 0;
-  if (data.objective.type === 'reachExit') {
-    if (data.objective.item) {
-      const item = grid.gridToWorld(data.objective.item.x, data.objective.item.y);
-      total += leg(at, item);
-      at = item;
-    }
-    return total + Math.min(...exits(level).map((e) => leg(at, e)));
-  }
-  const left = data.guards.map((g) => grid.gridToWorld(g.spawn.x, g.spawn.y));
-  while (left.length > 0) {
-    const d = left.map((g) => leg(at, g));
-    const i = d.indexOf(Math.min(...d));
-    total += d[i]!;
-    at = left.splice(i, 1)[0]!;
-  }
-  return total;
+  const spawn = grid.gridToWorld(data.playerSpawn.x, data.playerSpawn.y);
+  const item = grid.gridToWorld(data.objective.item.x, data.objective.item.y);
+  return leg(spawn, item) + Math.min(...exits(level).map((e) => leg(item, e)));
 }
 
 describe('campaign', () => {

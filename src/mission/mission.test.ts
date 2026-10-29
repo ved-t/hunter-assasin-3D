@@ -149,12 +149,12 @@ describe('Mission', () => {
     expect(shatters).toHaveLength(small.bottles);
   });
 
-  it('small: two silent takedowns win with three stars', () => {
-    const m = new Mission(loadJson(small), new Rng(1));
+  it('small: two silent takedowns, then the intel and the exit, win with three stars', () => {
+    const level = loadJson(small);
+    const m = new Mission(level, new Rng(1));
     const input = new InputState();
     const ends: string[] = [];
     m.events.on('end', (e) => ends.push(e.outcome));
-    expect(m.objectiveLabel).toMatch(/0\/2/);
     for (const g of m.guards.guards) {
       teleport(m, g.pos.x + Math.sin(g.yaw) * 1, g.pos.z + Math.cos(g.yaw) * 1);
       input.context = true;
@@ -162,6 +162,13 @@ describe('Mission', () => {
       expect(g.dead).toBe(true);
       run(m, input, 0.5);
     }
+    expect(ends).toEqual([]); // killing everyone is not the objective
+    teleport(m, m.item.x, m.item.z);
+    run(m, input, 0.2);
+    const row = level.data.tiles.findIndex((r) => r.includes('E'));
+    const exit = level.grid.cellCenter(level.data.tiles[row]!.indexOf('E'), row);
+    teleport(m, exit.x, exit.z);
+    run(m, input, 0.2);
     expect(ends).toEqual(['won']);
     expect(m.result).toMatchObject({
       outcome: 'won',
@@ -189,7 +196,7 @@ describe('Mission', () => {
 
     let picked = 0;
     m.events.on('pickup', () => picked++);
-    teleport(m, m.item!.x, m.item!.z);
+    teleport(m, m.item.x, m.item.z);
     run(m, input, 0.2);
     expect(picked).toBe(1);
     expect(m.objectiveLabel).toMatch(/exit/);

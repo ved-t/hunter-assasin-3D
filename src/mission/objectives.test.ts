@@ -5,39 +5,23 @@ import { starCriteria, starRating, type RunStats } from './stars';
 
 function input(over: Partial<ObjectiveInput> = {}): ObjectiveInput {
   return {
-    type: 'reachExit',
-    hasItem: false,
     itemTaken: false,
     onExit: false,
-    aliveGuards: 2,
     playerDead: false,
     ...over,
   };
 }
 
 describe('checkOutcome', () => {
-  it('reachExit without an item: won on the exit', () => {
+  it('the exit only counts once the item is collected', () => {
     expect(checkOutcome(input())).toBeNull();
-    expect(checkOutcome(input({ onExit: true }))).toBe('won');
-  });
-
-  it('reachExit with an item: the exit only counts once it is collected', () => {
-    expect(checkOutcome(input({ hasItem: true, onExit: true }))).toBeNull();
-    expect(checkOutcome(input({ hasItem: true, itemTaken: true }))).toBeNull();
-    expect(checkOutcome(input({ hasItem: true, itemTaken: true, onExit: true }))).toBe('won');
-  });
-
-  it('eliminateAll: won when the last guard dies, exits mean nothing', () => {
-    expect(checkOutcome(input({ type: 'eliminateAll', onExit: true }))).toBeNull();
-    expect(checkOutcome(input({ type: 'eliminateAll', aliveGuards: 1 }))).toBeNull();
-    expect(checkOutcome(input({ type: 'eliminateAll', aliveGuards: 0 }))).toBe('won');
+    expect(checkOutcome(input({ onExit: true }))).toBeNull();
+    expect(checkOutcome(input({ itemTaken: true }))).toBeNull();
+    expect(checkOutcome(input({ itemTaken: true, onExit: true }))).toBe('won');
   });
 
   it('dying fails, even on the winning step', () => {
-    expect(checkOutcome(input({ playerDead: true, onExit: true }))).toBe('failed');
-    expect(checkOutcome(input({ type: 'eliminateAll', aliveGuards: 0, playerDead: true }))).toBe(
-      'failed',
-    );
+    expect(checkOutcome(input({ playerDead: true, itemTaken: true, onExit: true }))).toBe('failed');
   });
 });
 
@@ -51,10 +35,8 @@ describe('onExitTile', () => {
 
 describe('objectiveLabel', () => {
   it('says what to do next', () => {
-    expect(objectiveLabel('eliminateAll', false, false, 1, 3)).toMatch(/2\/3/);
-    expect(objectiveLabel('reachExit', true, false, 3, 3)).toMatch(/intel/);
-    expect(objectiveLabel('reachExit', true, true, 3, 3)).toMatch(/exit/);
-    expect(objectiveLabel('reachExit', false, false, 3, 3)).toMatch(/exit/);
+    expect(objectiveLabel(false)).toMatch(/intel/);
+    expect(objectiveLabel(true)).toMatch(/exit/);
   });
 });
 

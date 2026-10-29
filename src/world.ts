@@ -177,7 +177,7 @@ export function createGameWorld(first: LoadedLevel, opts: GameWorldOptions): Gam
     });
     guardVisuals.reset();
     applyCameraRig(camera, mission.player, 1);
-    exitOpen = !mission.item;
+    exitOpen = false;
     levelMesh?.setExitOpen(exitOpen, true);
   };
 
@@ -265,7 +265,7 @@ export function createGameWorld(first: LoadedLevel, opts: GameWorldOptions): Gam
       // Guards first: skinned guards move each beam's start to the flashlight in their hand.
       guardVisuals.update(guards.guards, lights, alpha, frameDt, camera);
       flashlights.update(lights, camera, frameDt, mission.time, opts.pixelRatio());
-      const itemLeft = mission.item && !mission.itemTaken ? mission.item : null;
+      const itemLeft = mission.itemTaken ? null : mission.item;
       props.update(frameDt, alpha, mission.bottle, itemLeft);
       if (exitOpen !== !itemLeft) levelMesh?.setExitOpen((exitOpen = !itemLeft));
       levelMesh?.update(frameDt);
