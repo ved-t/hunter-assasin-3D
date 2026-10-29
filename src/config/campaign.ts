@@ -43,6 +43,7 @@ export const CAMPAIGN: readonly CampaignLevel[] = [
   { id: 'mansion-6', name: 'Wine Cellar', theme: 'mansion' },
   { id: 'mansion-3', name: 'The Study', theme: 'mansion' },
   { id: 'mansion-7', name: 'Conservatory', theme: 'mansion' },
+  { id: 'mansion-8', name: 'Portrait Hall', theme: 'mansion' },
   { id: 'mansion-4', name: 'Clean Sweep', theme: 'mansion' },
 ];
 
