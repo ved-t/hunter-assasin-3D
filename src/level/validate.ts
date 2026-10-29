@@ -1,9 +1,11 @@
 // Runtime level validator. Structural checks mirror level.schema.json (tests keep the two in step via ajv);
-// semantic checks cover what a schema can't express: closed borders, walkable spawns, reachability.
+// semantic checks cover what a schema can't express: closed borders (exit doors aside), walkable spawns,
+// reachability.
 
 import { LEVEL_LIMITS } from '../config/tunables';
 import { Grid } from './grid';
 import { THEMES, Tile, isTileChar, type GridPoint, type LevelData } from './types';
+import { exitOutward } from './wall-faces';
 
 export type ValidationResult = { ok: true; level: LevelData } | { ok: false; errors: string[] };
 
@@ -229,7 +231,28 @@ function checkSemantics(c: Checker, level: LevelData): void {
     for (let x = 0; x < width; x++) {
       const t = grid.get(x, y);
       const onBorder = x === 0 || y === 0 || x === width - 1 || y === height - 1;
-      if (onBorder && t !== Tile.Wall) c.fail(`tiles[${y}][${x}]`, 'border must be wall');
+      if (t === Tile.Exit) {
+        // An exit is a door in the outer wall: wall either side of it, open floor in front.
+        const out = exitOutward(grid, x, y);
+        if (!out) {
+          c.fail(`tiles[${y}][${x}]`, 'exit must be a door in the outer wall');
+        } else {
+          const sx = out.oz;
+          const sy = out.ox;
+          const ok =
+            grid.get(x + sx, y + sy) === Tile.Wall &&
+            grid.get(x - sx, y - sy) === Tile.Wall &&
+            grid.get(x - out.ox, y - out.oz) === Tile.Floor;
+          if (!ok) {
+            c.fail(
+              `tiles[${y}][${x}]`,
+              'exit door must sit in the outer wall between two walls, with floor in front of it',
+            );
+          }
+        }
+      } else if (onBorder && t !== Tile.Wall) {
+        c.fail(`tiles[${y}][${x}]`, 'border must be wall');
+      }
       if (t === Tile.Door) {
         // Walls on one axis, walkable cells on the other, so the doorway leads somewhere.
         const wallsX = grid.get(x - 1, y) === Tile.Wall && grid.get(x + 1, y) === Tile.Wall;

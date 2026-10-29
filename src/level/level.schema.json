@@ -27,7 +27,7 @@
     "width": { "type": "integer", "minimum": 3, "maximum": 128 },
     "height": { "type": "integer", "minimum": 3, "maximum": 128 },
     "tiles": {
-      "description": "Rows of tiles: # wall, . floor, c low cover, D door, E exit.",
+      "description": "Rows of tiles: # wall, . floor, c low cover, D door, E exit door (in the outer wall).",
       "type": "array",
       "minItems": 3,
       "maxItems": 128,

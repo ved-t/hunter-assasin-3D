@@ -20,6 +20,7 @@ function blocked(grid: Grid, x: number, y: number, z: number): boolean {
     case Tile.Cover:
       return y < LEVEL.coverHeight;
     case Tile.Door:
+    case Tile.Exit:
       return y > LEVEL.doorHeight;
     default:
       return false;

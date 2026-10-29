@@ -30,6 +30,11 @@ export const TILE_FROM_CHAR: Record<TileChar, Tile> = {
   E: Tile.Exit,
 };
 
+/** Openings in a wall with a lintel above: interior doorways and exit doors (set in the outer wall). */
+export function isDoorway(tile: Tile): boolean {
+  return tile === Tile.Door || tile === Tile.Exit;
+}
+
 export function isTileChar(ch: string): ch is TileChar {
   return Object.prototype.hasOwnProperty.call(TILE_CHARS, ch);
 }

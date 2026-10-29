@@ -72,6 +72,7 @@ function blocksSight(grid: Grid, cx: number, cy: number, ya: number, yb: number)
     case Tile.Cover:
       return Math.min(ya, yb) < LEVEL.coverHeight;
     case Tile.Door:
+    case Tile.Exit:
       return Math.max(ya, yb) > LEVEL.doorHeight;
     default:
       return false;

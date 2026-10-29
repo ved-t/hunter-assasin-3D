@@ -4,10 +4,11 @@
 // A face is the boundary between a wall cell and an open neighbour, seen from the open side. Walking
 // along the face's tangent t = (−nz, nx), each end meets either more of the same wall (straight), a wall
 // turning toward the viewer (inner corner) or the wall's end (outer corner). Door cells are openings
-// below the lintel and solid wall above it, so corners are classified for both heights.
+// below the lintel and solid wall above it, so corners are classified for both heights. Exit doors are
+// doorways too, set in the outer wall.
 
 import type { Grid } from './grid';
-import { Tile } from './types';
+import { isDoorway, Tile } from './types';
 
 export type CornerKind = 'straight' | 'inner' | 'outer';
 
@@ -49,7 +50,7 @@ const DIRS = [
 
 function isWall(grid: Grid, cx: number, cy: number, high: boolean): boolean {
   const t = grid.get(cx, cy);
-  return t === Tile.Wall || (high && t === Tile.Door);
+  return t === Tile.Wall || (high && isDoorway(t));
 }
 
 function corner(
@@ -96,11 +97,11 @@ export function wallFaces(grid: Grid): WallFace[] {
   for (let cy = 0; cy < grid.height; cy++) {
     for (let cx = 0; cx < grid.width; cx++) {
       const tile = grid.get(cx, cy);
-      if (tile !== Tile.Wall && tile !== Tile.Door) continue;
+      if (tile !== Tile.Wall && !isDoorway(tile)) continue;
       for (const [nx, nz] of DIRS) {
         const next = grid.get(cx + nx, cy + nz);
-        if (next === Tile.Wall || (tile === Tile.Door && next === Tile.Door)) continue;
-        faces.push(face(grid, cx, cy, nx, nz, tile === Tile.Door));
+        if (next === Tile.Wall || (isDoorway(tile) && isDoorway(next))) continue;
+        faces.push(face(grid, cx, cy, nx, nz, isDoorway(tile)));
       }
     }
   }
@@ -122,7 +123,7 @@ export function outerCorners(grid: Grid): OuterCorner[] {
           const side = grid.get(cx + ox, cy);
           const front = grid.get(cx, cy + oz);
           if (side === Tile.Wall || front === Tile.Wall) continue;
-          if (side === Tile.Door || front === Tile.Door) continue;
+          if (isDoorway(side) || isDoorway(front)) continue;
           // Two walls touching only at this corner: one piece would poke into the other.
           if (grid.get(cx + ox, cy + oz) === Tile.Wall) continue;
           corners.push({ vx: cx + (ox > 0 ? 1 : 0), vy: cy + (oz > 0 ? 1 : 0), ox, oz });
@@ -133,8 +134,17 @@ export function outerCorners(grid: Grid): OuterCorner[] {
   return corners;
 }
 
-/** Axis a door cell's passage runs along: 'z' when walls flank it east and west, else 'x'. */
+/** Axis a doorway's passage runs along: 'z' when walls flank it east and west, else 'x'. */
 export function doorAxis(grid: Grid, cx: number, cy: number): 'x' | 'z' {
   const solid = (x: number, y: number) => grid.get(x, y) === Tile.Wall;
-  return solid(cx - 1, cy) || solid(cx + 1, cy) ? 'z' : 'x';
+  return solid(cx - 1, cy) && solid(cx + 1, cy) ? 'z' : 'x';
+}
+
+/** Which way an exit door in the outer wall leads out of the level: one grid step, or null if inside. */
+export function exitOutward(grid: Grid, cx: number, cy: number): { ox: number; oz: number } | null {
+  if (cx === 0) return { ox: -1, oz: 0 };
+  if (cx === grid.width - 1) return { ox: 1, oz: 0 };
+  if (cy === 0) return { ox: 0, oz: -1 };
+  if (cy === grid.height - 1) return { ox: 0, oz: 1 };
+  return null;
 }

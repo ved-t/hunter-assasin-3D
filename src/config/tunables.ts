@@ -73,11 +73,24 @@ export const LEVEL = {
   doorHeight: 2.2,
   /** Floor brightness next to walls/cover (vertex-colour AO), 0..1. */
   floorAo: 0.45,
+  /** Exit door glow: its sign and the lit space outside it (unlit, so it reads in the dark). */
   exitColor: 0xbff4ff,
   exitEmissiveIntensity: 1.2,
-  /** Exit marker colour while the objective item is still to be collected. */
+  /** Exit sign colour while the objective item is still to be collected (the door stays shut). */
   exitLockedColor: 0x2a3236,
-  /** Exit marker floats this far above the floor to avoid z-fighting (m). */
+  /** Seconds for the exit door to swing open once the exit counts. */
+  exitDoorOpenS: 1.4,
+  /** How far each leaf swings outward (degrees). */
+  exitDoorOpenDeg: 86,
+  /** Depth of the lit space outside an exit door (m). */
+  exitOutsideDepthM: 1.4,
+  /** Exit sign over the door: width, height, depth (m), and the gap above the door head (m). */
+  exitSignSize: [0.62, 0.2, 0.05] as const,
+  exitSignGapM: 0.28,
+  /** Light spilling from an open exit door across the floor: reach into the room (m) and opacity. */
+  exitSpillLengthM: 3.2,
+  exitSpillOpacity: 0.55,
+  /** Floor decals float this far above the floor to avoid z-fighting (m). */
   decalLift: 0.02,
   /** Blue-grey haze, a step above black, so dark walls read as silhouettes against it. */
   fogColor: 0x141b26,
@@ -279,6 +292,8 @@ export const FLASHLIGHT = {
   spotDecay: 1.5,
   spotPenumbra: 0.45,
   spotShadowBias: -0.0005,
+  /** Offsets shadow lookups along the surface normal; removes acne stripes at grazing angles. */
+  spotShadowNormalBias: 0.04,
   spotShadowNear: 0.3,
   /** A real light only switches to another guard if it is this much closer to the camera (m). */
   spotSwitchMarginM: 2,

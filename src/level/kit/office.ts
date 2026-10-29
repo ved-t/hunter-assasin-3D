@@ -1,7 +1,15 @@
 // Office: painted walls with a bumper rail, carpet, a suspended ceiling grid, linear pendant lights,
 // and desk pods, filing cabinets and print stations for cover.
 
-import { box, cornerAngle, doorCasing, rbox, type PartList, type ThemeKit } from './kit-common';
+import {
+  box,
+  cornerAngle,
+  doorCasing,
+  doorLeaf,
+  rbox,
+  type PartList,
+  type ThemeKit,
+} from './kit-common';
 
 const FRAME = 0x9ca4ac;
 const CHROME = 0xc0c4c8;
@@ -59,6 +67,15 @@ export const OFFICE: ThemeKit = {
       slot: 'metal',
       tint: FRAME,
       lining: { slot: 'metal', tint: FRAME },
+    }),
+  // Aluminium-framed glass door with a lever handle.
+  exitDoor: (p, d) =>
+    doorLeaf(p, d, {
+      thickness: 0.045,
+      slot: 'metal',
+      tint: FRAME,
+      glass: { y: [0.12, 0.93], margin: 0.08, tint: 0x0e1418 },
+      handle: { kind: 'lever', slot: 'metal', tint: CHROME },
     }),
   // Suspended ceiling: T-bars on a 1 m grid (at ±0.5 m in every 2 m cell). Bars along z sit a hair
   // higher so the crossings don't z-fight.

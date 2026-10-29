@@ -6,6 +6,7 @@ import {
   cornerAngle,
   cyl,
   doorCasing,
+  doorLeaf,
   flipped,
   pallet,
   rbox,
@@ -87,6 +88,16 @@ export const WAREHOUSE: ThemeKit = {
       slot: 'metal',
       tint: 0x6a6e70,
       lining: { slot: 'metal', tint: 0x6a6e70 },
+    }),
+  // Steel fire door: wired-glass vision panel, push bar, kick plate.
+  exitDoor: (p, d) =>
+    doorLeaf(p, d, {
+      thickness: 0.05,
+      slot: 'metal',
+      tint: 0x5a6670,
+      glass: { y: [0.62, 0.86], margin: 0.32, tint: 0x141a1e },
+      handle: { kind: 'bar', slot: 'metal', tint: STEEL },
+      kick: { height: 0.25, slot: 'metal', tint: STEEL },
     }),
   // I-beams across every other row of cells.
   ceilingDetail: {

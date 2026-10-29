@@ -5,7 +5,7 @@
 import { KIT, LEVEL } from '../config/tunables';
 import { hasLineOfSight } from '../nav/los';
 import type { Grid } from './grid';
-import { Tile, type LevelData } from './types';
+import { isDoorway, Tile, type LevelData } from './types';
 
 /** A lamp for baking: world position and linear RGB already scaled by intensity and bake gain. */
 export interface BakeLamp {
@@ -127,7 +127,7 @@ function nearestOccluder(
 }
 
 const floorOccluder = (tile: Tile) => tile === Tile.Wall || tile === Tile.Cover;
-const ceilingOccluder = (tile: Tile) => tile === Tile.Wall || tile === Tile.Door;
+const ceilingOccluder = (tile: Tile) => tile === Tile.Wall || isDoorway(tile);
 const wallOccluder = (tile: Tile) => tile === Tile.Wall;
 
 /** Ambient occlusion (1 = fully open) at a static surface point with unit normal n. */

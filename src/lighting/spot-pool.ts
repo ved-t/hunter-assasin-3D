@@ -109,6 +109,7 @@ export class SpotPool {
         light.castShadow = true;
         light.shadow.mapSize.set(t.shadowMapSize, t.shadowMapSize);
         light.shadow.bias = FLASHLIGHT.spotShadowBias;
+        light.shadow.normalBias = FLASHLIGHT.spotShadowNormalBias;
         light.shadow.camera.near = FLASHLIGHT.spotShadowNear;
         light.shadow.camera.far = FLASHLIGHT.rangeM;
       }

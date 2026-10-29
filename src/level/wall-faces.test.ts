@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Grid } from './grid';
 import { Tile } from './types';
-import { doorAxis, outerCorners, wallFaces, type WallFace } from './wall-faces';
+import { doorAxis, exitOutward, outerCorners, wallFaces, type WallFace } from './wall-faces';
 
 const grid = (rows: string[]) => Grid.fromRows(rows, 2);
 const faceAt = (faces: WallFace[], cx: number, cy: number, nx: number, nz: number) =>
@@ -47,6 +47,14 @@ describe('wallFaces', () => {
     expect(lintels).toHaveLength(2);
     expect(lintels.every((x) => x.nx === 0)).toBe(true);
   });
+
+  it('gives an exit door in the outer wall one lintel face, toward the room', () => {
+    const g = grid(['####', '#..E', '####']);
+    const lintels = wallFaces(g).filter((x) => x.lintel);
+    expect(lintels).toEqual([expect.objectContaining({ cx: 3, cy: 1, nx: -1, nz: 0 })]);
+    // The jamb walls face into the doorway and are cut at the door height.
+    expect(faceAt(wallFaces(g), 3, 0, 0, 1)?.facing).toBe(Tile.Exit);
+  });
 });
 
 describe('outerCorners', () => {
@@ -69,5 +77,22 @@ describe('doorAxis', () => {
   it('runs the passage between the jamb walls', () => {
     expect(doorAxis(grid(['...', '#D#', '...']), 1, 1)).toBe('z');
     expect(doorAxis(grid(['.#.', '.D.', '.#.']), 1, 1)).toBe('x');
+  });
+
+  it('runs an exit door in the east or west wall along x', () => {
+    expect(doorAxis(grid(['###', '#.E', '###']), 2, 1)).toBe('x');
+    expect(doorAxis(grid(['###', 'E.#', '###']), 0, 1)).toBe('x');
+    expect(doorAxis(grid(['#E#', '#.#', '###']), 1, 0)).toBe('z');
+  });
+});
+
+describe('exitOutward', () => {
+  it('points out through the border the exit sits in', () => {
+    const g = grid(['#E###', '#...#', 'E...E', '#...#', '##E##']);
+    expect(exitOutward(g, 1, 0)).toEqual({ ox: 0, oz: -1 });
+    expect(exitOutward(g, 0, 2)).toEqual({ ox: -1, oz: 0 });
+    expect(exitOutward(g, 4, 2)).toEqual({ ox: 1, oz: 0 });
+    expect(exitOutward(g, 2, 4)).toEqual({ ox: 0, oz: 1 });
+    expect(exitOutward(g, 2, 2)).toBeNull();
   });
 });

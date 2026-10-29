@@ -2,7 +2,7 @@
 // brass chandeliers, and sofas, dressed tables, planters and sideboards for cover.
 
 import * as THREE from 'three';
-import { ball, box, cyl, doorCasing, rbox, type ThemeKit } from './kit-common';
+import { ball, box, cyl, doorCasing, doorLeaf, rbox, type ThemeKit } from './kit-common';
 
 const BRASS = 0xc8a050;
 const PLASTER = 0xe0d8c8;
@@ -42,6 +42,22 @@ export const MANSION: ThemeKit = {
       lining: { slot: 'trim', tint: 0x907060 },
       plinth: [0.19, 0.28, 0.06],
       cornice: [0.07, 0.03],
+    }),
+  // Panelled wooden door with a brass knob.
+  exitDoor: (p, d) =>
+    doorLeaf(p, d, {
+      thickness: 0.055,
+      slot: 'trim',
+      panels: {
+        rows: [
+          [0.07, 0.44],
+          [0.52, 0.93],
+        ],
+        margin: 0.12,
+        tint: 0xc0a088,
+      },
+      handle: { kind: 'knob', slot: 'metal', tint: BRASS },
+      kick: { height: 0.18, slot: 'metal', tint: BRASS },
     }),
   // Coffers: each cell carries the beams on its +x and +z edges, so neighbours join into a grid (beams
   // over a wall sink into it; the crown hides the missing ones along −x and −z walls). Beams along z are

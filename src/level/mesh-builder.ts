@@ -1,13 +1,14 @@
 // Builds a level's visuals from its grid and its theme's kit. Static surfaces are merged into three
 // meshes (floor, walls with their trim, ceiling) and lit at load by a vertex bake: AO from the grid and
 // each lamp's light masked by grid LOS. Repeated pieces (cover props, door frames, ceiling detail, lamp
-// fixtures) are one InstancedMesh per variant, each instance carrying its baked lamp light.
-// About 10–14 draw calls. No THREE.Light objects are created here (CLAUDE.md lighting rule): lamps are
+// fixtures) are one InstancedMesh per variant, each instance carrying its baked lamp light. Exit doors
+// are built in exit-doors.ts. About 12–16 draw calls. No THREE.Light objects are created here (CLAUDE.md lighting rule): lamps are
 // the bake plus additive glow meshes.
 
 import * as THREE from 'three';
 import { KIT, LEVEL } from '../config/tunables';
 import { bakeLamps, lampLight, staticAo, type BakeLamp } from './bake';
+import { buildExitDoors } from './exit-doors';
 import type { Grid } from './grid';
 import { DEFAULT_THEME, THEME_KITS } from './kit';
 import {
@@ -19,13 +20,18 @@ import {
   type ThemeKit,
 } from './kit/kit-common';
 import { levelSeed, placeProps } from './props';
-import { Tile, type LevelData } from './types';
+import { isDoorway, Tile, type LevelData } from './types';
 import { doorAxis, outerCorners, wallFaces, type CornerKind } from './wall-faces';
 
 export interface LevelMesh {
   group: THREE.Group;
-  /** Exit markers glow when the exit counts, and sit dim and grey while it is still locked. */
-  setExitOpen(open: boolean): void;
+  /**
+   * Exit doors swing open when the exit counts and stay shut, under a dim sign, while it is locked.
+   * `instant` poses them without the swing (a fresh attempt).
+   */
+  setExitOpen(open: boolean, instant?: boolean): void;
+  /** Animates the exit doors. */
+  update(dt: number): void;
   dispose(): void;
 }
 
@@ -47,7 +53,7 @@ export function radialTexture(size = 64): THREE.Texture {
 
 const isOpen = (grid: Grid, cx: number, cy: number) => {
   const t = grid.get(cx, cy);
-  return t !== Tile.Wall && t !== Tile.Door;
+  return t !== Tile.Wall && !isDoorway(t);
 };
 
 function forCells(grid: Grid, fn: (cx: number, cy: number, tile: Tile) => void): void {
@@ -118,7 +124,7 @@ function wallParts(grid: Grid, kit: ThemeKit, d: KitDims): PartList {
   const half = d.t / 2;
   const lower = kit.wall.lower;
   for (const f of wallFaces(grid)) {
-    const toDoor = f.facing === Tile.Door;
+    const toDoor = isDoorway(f.facing);
     const y0 = f.lintel ? d.doorHeight : 0;
     const y1 = toDoor ? d.doorHeight : d.wallHeight;
     const angle = Math.atan2(f.nx, f.nz);
@@ -153,7 +159,7 @@ function wallParts(grid: Grid, kit: ThemeKit, d: KitDims): PartList {
     }
   }
   forCells(grid, (cx, cy, tile) => {
-    if (tile !== Tile.Door) return;
+    if (!isDoorway(tile)) return;
     const c = grid.cellCenter(cx, cy);
     const under = new THREE.PlaneGeometry(d.t, d.t)
       .rotateX(Math.PI / 2)
@@ -287,7 +293,7 @@ export function buildLevelMesh(
   const detail: Placement[] = [];
   forCells(grid, (cx, cy, tile) => {
     const c = grid.cellCenter(cx, cy);
-    if (tile === Tile.Door) {
+    if (isDoorway(tile)) {
       const rotY = doorAxis(grid, cx, cy) === 'z' ? 0 : Math.PI / 2;
       doors.push({ x: c.x, y: 0, z: c.z, rotY, bake: pointLight(c.x, d.doorHeight / 2, c.z, 1) });
     } else if (tile !== Tile.Wall && kit.ceilingDetail?.at(cx, cy)) {
@@ -315,27 +321,11 @@ export function buildLevelMesh(
     false,
   );
 
-  // Exit: cyan-white floor marker (player-relevant colour), unlit so it reads in the dark.
-  const t = grid.tileSize;
-  const exitGeo = own(new THREE.PlaneGeometry(t * 0.8, t * 0.8))
-    .rotateX(-Math.PI / 2)
-    .translate(0, LEVEL.decalLift, 0);
-  const openColor = new THREE.Color(LEVEL.exitColor).multiplyScalar(LEVEL.exitEmissiveIntensity);
-  const lockedColor = new THREE.Color(LEVEL.exitLockedColor);
-  const exitMaterial = own(new THREE.MeshBasicMaterial({ color: openColor }));
-  const exitCells: [number, number][] = [];
-  forCells(grid, (cx, cy, tile) => {
-    if (tile === Tile.Exit) exitCells.push([cx, cy]);
-  });
-  if (exitCells.length > 0) {
-    const exits = new THREE.InstancedMesh(exitGeo, exitMaterial, exitCells.length);
-    exitCells.forEach(([cx, cy], i) => {
-      const c = grid.cellCenter(cx, cy);
-      exits.setMatrixAt(i, m.makeTranslation(c.x, 0, c.z));
-    });
-    exits.instanceMatrix.needsUpdate = true;
-    exits.computeBoundingSphere();
-    group.add(exits);
+  // Exit doors in the outer wall (their frames and lintels are among the doorways above).
+  const exitDoors = buildExitDoors(grid, kit, d, material, (x, y, z) => pointLight(x, y, z, 1));
+  if (exitDoors) {
+    disposables.push(exitDoors);
+    group.add(exitDoors.group);
   }
 
   // Lamp bulbs: an additive glow per lamp (the bake lights the room around it).
@@ -368,8 +358,11 @@ export function buildLevelMesh(
 
   return {
     group,
-    setExitOpen(open) {
-      exitMaterial.color.copy(open ? openColor : lockedColor);
+    setExitOpen(open, instant = false) {
+      exitDoors?.setOpen(open, instant);
+    },
+    update(dt) {
+      exitDoors?.update(dt);
     },
     dispose() {
       for (const x of disposables) x.dispose();

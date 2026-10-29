@@ -177,6 +177,8 @@ export function createGameWorld(first: LoadedLevel, opts: GameWorldOptions): Gam
     });
     guardVisuals.reset();
     applyCameraRig(camera, mission.player, 1);
+    exitOpen = !mission.item;
+    levelMesh?.setExitOpen(exitOpen, true);
   };
 
   const load = (next: LoadedLevel, nextMods: Readonly<MissionModifiers>) => {
@@ -188,7 +190,6 @@ export function createGameWorld(first: LoadedLevel, opts: GameWorldOptions): Gam
     const material = opts.themes.material(next.data.theme ?? DEFAULT_THEME);
     levelMesh = buildLevelMesh(next.data, next.grid, material, opts.debug);
     scene.add(levelMesh.group);
-    exitOpen = true;
     flashlights.setGrid(next.grid);
     hud.setGrid(next.grid);
     audio.setGrid(next.grid);
@@ -267,6 +268,7 @@ export function createGameWorld(first: LoadedLevel, opts: GameWorldOptions): Gam
       const itemLeft = mission.item && !mission.itemTaken ? mission.item : null;
       props.update(frameDt, alpha, mission.bottle, itemLeft);
       if (exitOpen !== !itemLeft) levelMesh?.setExitOpen((exitOpen = !itemLeft));
+      levelMesh?.update(frameDt);
 
       const touch = input.isTouchMode;
       frame.pose.x = listener.x = camera.position.x;

@@ -21,7 +21,7 @@ function base(): LevelData {
     tileSize: 2,
     width: 7,
     height: 5,
-    tiles: ['#######', '#..#..#', '#..D.E#', '#..#..#', '#######'],
+    tiles: ['#######', '#..#..#', '#..D..E', '#..#..#', '#######'],
     playerSpawn: { x: 1.5, y: 1.5, yawDeg: 0 },
     guards: [{ spawn: { x: 5.5, y: 1.5 }, yawDeg: 0, waypoints: [{ x: 5.5, y: 3.5, waitS: 1 }] }],
     lamps: [{ x: 2, y: 2, color: '#ffaa00' }],
@@ -121,13 +121,17 @@ describe('validateLevel', () => {
 
   // Semantic failures: schema-valid, but the runtime validator must reject.
   const semantic: [string, (l: LevelData) => void, RegExp][] = [
-    ['open border', (l) => (l.tiles[2] = '...D.E#'), /border/],
+    ['open border', (l) => (l.tiles[2] = '...D..E'), /border/],
     ['row length mismatch', (l) => (l.tiles[1] = '#..#.#'), /columns/],
     ['row count mismatch', (l) => (l.height = 6), /rows/],
     ['spawn off grid', (l) => (l.playerSpawn = { x: 40, y: 1, yawDeg: 0 }), /outside/],
     ['spawn in wall', (l) => (l.playerSpawn = { x: 0.5, y: 0.5, yawDeg: 0 }), /solid/],
-    ['unreachable waypoint', (l) => (l.tiles[2] = '#..#.E#'), /not reachable/],
+    ['unreachable waypoint', (l) => (l.tiles[2] = '#..#..E'), /not reachable/],
     ['reachExit without exit', (l) => (l.tiles[2] = '#..D..#'), /E tile/],
+    ['exit inside a room', (l) => (l.tiles[2] = '#..D.E#'), /outer wall/],
+    ['exit in a corner', (l) => (l.tiles[4] = '######E'), /outer wall/],
+    ['two-wide exit', (l) => ((l.tiles[2] = '#..D..E'), (l.tiles[3] = '#..#..E')), /outer wall/],
+    ['exit blocked by cover', (l) => (l.tiles[2] = '#..D.cE'), /outer wall/],
     [
       'eliminateAll without guards',
       (l) => ((l.objective = { type: 'eliminateAll' }), (l.guards = [])),

@@ -72,6 +72,11 @@ export interface ThemeKit {
   corner?: PieceBuilder;
   /** Doorway trim, for a door cell centred at the origin whose passage runs along z. */
   doorFrame: PieceBuilder;
+  /**
+   * One leaf of the double exit door: hinge edge on the y axis, spanning x from 0 to exitLeafWidth(d)
+   * and y from 0 to exitLeafHeight(d), centred on z = 0. Both faces show (it swings to either side).
+   */
+  exitDoor: PieceBuilder;
   /** Ceiling detail for one open cell centred at the origin (heights from the floor). */
   ceilingDetail?: { build: PieceBuilder; at: (cx: number, cy: number) => boolean };
   /** Lamp fixture with its origin at the bulb. */
@@ -316,11 +321,81 @@ export function doorCasing(p: PartList, d: KitDims, o: CasingOptions): void {
     }
   }
   const lining = { tint: o.lining.tint, baseAo: true } as const;
-  const lt = 0.02;
+  const lt = LINING;
   for (const side of [-1, 1]) {
     p.add(box(lt, d.doorHeight, d.t, side * (half - lt / 2), 0, 0), o.lining.slot, lining);
   }
   p.add(box(d.t, lt, d.t, 0, d.doorHeight - lt, 0), o.lining.slot, lining);
+}
+
+/** Thickness of doorCasing's lining boards (m); exit door leaves hang just inside them. */
+export const LINING = 0.02;
+/** Clearance around an exit door leaf: at the meeting edge and at the head (m). */
+const LEAF_GAP = 0.006;
+
+export const exitLeafWidth = (d: KitDims): number => d.t / 2 - LINING - LEAF_GAP;
+export const exitLeafHeight = (d: KitDims): number => d.doorHeight - LINING - LEAF_GAP;
+
+export interface LeafOptions {
+  thickness: number;
+  slot: SlotName;
+  tint?: number;
+  /** Raised panels on both faces, as [bottom, top] fractions of the leaf height. */
+  panels?: { rows: readonly (readonly [number, number])[]; margin: number; tint?: number };
+  /** Dark glazing through the leaf, as [bottom, top] fractions of the leaf height. */
+  glass?: { y: readonly [number, number]; margin: number; tint: number };
+  /** Hardware on both faces at the leaf's free edge: a push bar, a lever or a round knob. */
+  handle: { kind: 'bar' | 'lever' | 'knob'; slot: SlotName; tint?: number };
+  /** Kick plate on both faces (m). */
+  kick?: { height: number; slot: SlotName; tint?: number };
+}
+
+/** An exit door leaf in the frame described by ThemeKit.exitDoor. */
+export function doorLeaf(p: PartList, d: KitDims, o: LeafOptions): void {
+  const w = exitLeafWidth(d);
+  const h = exitLeafHeight(d);
+  const th = o.thickness;
+  const part = { tint: o.tint } as const;
+  p.add(rbox(w, h, th, 0.006, w / 2, 0, 0), o.slot, part);
+  for (const s of [-1, 1]) {
+    const face = s * (th / 2);
+    for (const [a, b] of o.panels?.rows ?? []) {
+      const m = o.panels?.margin ?? 0;
+      p.add(rbox(w - 2 * m, (b - a) * h, 0.016, 0.005, w / 2, a * h, face), o.slot, {
+        tint: o.panels?.tint ?? o.tint,
+      });
+    }
+    if (o.kick) {
+      p.add(box(w - 0.04, o.kick.height, 0.004, w / 2, 0.02, face + s * 0.002), o.kick.slot, {
+        tint: o.kick.tint,
+      });
+    }
+    const hw = { tint: o.handle.tint } as const;
+    const hy = 1.0;
+    const out = face + s * 0.045;
+    if (o.handle.kind === 'bar') {
+      p.add(box(w * 0.72, 0.05, 0.04, w * 0.52, hy - 0.025, out), o.handle.slot, hw);
+      for (const x of [w * 0.2, w * 0.84]) {
+        p.add(box(0.05, 0.09, 0.045, x, hy - 0.045, face + s * 0.022), o.handle.slot, hw);
+      }
+    } else {
+      const x = w - 0.09;
+      const rose = new THREE.CylinderGeometry(0.03, 0.03, 0.05, 16).rotateX(Math.PI / 2);
+      p.add(rose.translate(x, hy, face + s * 0.025), o.handle.slot, hw);
+      if (o.handle.kind === 'lever') {
+        p.add(rbox(0.14, 0.022, 0.022, 0.008, x - 0.06, hy - 0.011, out), o.handle.slot, hw);
+      } else {
+        p.add(ball(0.032, x, hy, out, 2), o.handle.slot, hw);
+      }
+    }
+  }
+  if (o.glass) {
+    const [a, b] = o.glass.y;
+    const m = o.glass.margin;
+    p.add(box(w - 2 * m, (b - a) * h, th + 0.006, w / 2, a * h, 0), 'metal', {
+      tint: o.glass.tint,
+    });
+  }
 }
 
 /** An L-shaped corner guard (legs of `leg` m, `thick` m thick) from y0 up `height` m. */
