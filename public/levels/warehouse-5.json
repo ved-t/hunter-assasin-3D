@@ -1,0 +1,96 @@
+{
+  "$schema": "../../src/level/level.schema.json",
+  "id": "warehouse-5",
+  "name": "Loading Bay",
+  "theme": "warehouse",
+  "tip": "Crouch behind crates and they hide you. Move from one row to the next while the beams point away.",
+  "version": 1,
+  "tileSize": 2,
+  "width": 24,
+  "height": 16,
+  "tiles": [
+    "########################",
+    "#.....#................#",
+    "#.....#..cc...cc...cc..#",
+    "#.....D................#",
+    "#.....#..cc...cc...cc..#",
+    "###D###................#",
+    "#......................#",
+    "#..cc...cc...cc...cc...#",
+    "#......................#",
+    "#..cc...cc...cc...cc...#",
+    "#......................#",
+    "#.........#####D########",
+    "#..c..c...#............#",
+    "#.........D.....c......E",
+    "#..c..c...#............#",
+    "########################"
+  ],
+  "playerSpawn": { "x": 1.5, "y": 1.5, "yawDeg": 180 },
+  "guards": [
+    {
+      "spawn": { "x": 16.5, "y": 8.5 },
+      "yawDeg": -90,
+      "waypoints": [
+        { "x": 11.5, "y": 8.5, "waitS": 6 },
+        { "x": 16.5, "y": 8.5, "waitS": 6 }
+      ]
+    },
+    {
+      "spawn": { "x": 7.5, "y": 1.5 },
+      "yawDeg": 90,
+      "waypoints": [
+        { "x": 22.5, "y": 1.5, "waitS": 1 },
+        { "x": 22.5, "y": 10.5 },
+        { "x": 7.5, "y": 10.5, "waitS": 1 },
+        { "x": 7.5, "y": 1.5 }
+      ]
+    },
+    {
+      "spawn": { "x": 11.5, "y": 12.5 },
+      "yawDeg": 90,
+      "waypoints": [
+        { "x": 21.5, "y": 12.5, "waitS": 1 },
+        { "x": 21.5, "y": 14.5 },
+        { "x": 11.5, "y": 14.5, "waitS": 1 },
+        { "x": 11.5, "y": 12.5 }
+      ]
+    },
+    {
+      "minDifficulty": "medium",
+      "spawn": { "x": 1.5, "y": 6.5 },
+      "yawDeg": 90,
+      "waypoints": [
+        { "x": 6.5, "y": 6.5, "waitS": 1 },
+        { "x": 6.5, "y": 10.5 },
+        { "x": 1.5, "y": 10.5, "waitS": 1 },
+        { "x": 1.5, "y": 6.5 }
+      ]
+    },
+    {
+      "minDifficulty": "hard",
+      "spawn": { "x": 11.5, "y": 3.5 },
+      "yawDeg": 90,
+      "waypoints": [
+        { "x": 21.5, "y": 3.5, "waitS": 1 },
+        { "x": 21.5, "y": 5.5 },
+        { "x": 11.5, "y": 5.5, "waitS": 1 },
+        { "x": 11.5, "y": 3.5 }
+      ]
+    },
+    {
+      "minDifficulty": "hardcore",
+      "spawn": { "x": 19.5, "y": 13.5 },
+      "yawDeg": -90,
+      "waypoints": [{ "x": 19.5, "y": 13.5 }]
+    }
+  ],
+  "lamps": [
+    { "x": 13.5, "y": 8.5 },
+    { "x": 19, "y": 12.5, "color": "#ffd9a0", "intensity": 0.6 },
+    { "x": 4.5, "y": 13.5, "color": "#ffd9a0", "intensity": 0.4 }
+  ],
+  "objective": { "type": "reachExit", "item": { "x": 4.5, "y": 13.5 } },
+  "bottles": 2,
+  "parTimeS": 90
+}
