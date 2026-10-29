@@ -29,6 +29,7 @@
   "playerSpawn": { "x": 1.5, "y": 1.5, "yawDeg": 180 },
   "guards": [
     {
+      "minDifficulty": "medium",
       "spawn": { "x": 14.5, "y": 3.5 },
       "yawDeg": -90,
       "waypoints": [{ "x": 14.5, "y": 3.5 }]
@@ -53,6 +54,28 @@
       "spawn": { "x": 19.5, "y": 13.5 },
       "yawDeg": -90,
       "waypoints": [{ "x": 19.5, "y": 13.5 }]
+    },
+    {
+      "minDifficulty": "hard",
+      "spawn": { "x": 10.5, "y": 12.5 },
+      "yawDeg": 90,
+      "waypoints": [
+        { "x": 17.5, "y": 12.5, "waitS": 2 },
+        { "x": 17.5, "y": 14.5 },
+        { "x": 10.5, "y": 14.5, "waitS": 2 },
+        { "x": 10.5, "y": 12.5 }
+      ]
+    },
+    {
+      "minDifficulty": "hardcore",
+      "spawn": { "x": 12.5, "y": 5.5 },
+      "yawDeg": 90,
+      "waypoints": [
+        { "x": 22.5, "y": 5.5, "waitS": 2 },
+        { "x": 22.5, "y": 1.5 },
+        { "x": 16.5, "y": 1.5, "waitS": 2 },
+        { "x": 12.5, "y": 5.5 }
+      ]
     }
   ],
   "lamps": [
