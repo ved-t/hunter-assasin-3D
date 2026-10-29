@@ -56,6 +56,7 @@
       ]
     },
     {
+      "minDifficulty": "medium",
       "spawn": { "x": 2.5, "y": 2.5 },
       "yawDeg": 90,
       "waypoints": [
@@ -69,6 +70,26 @@
       "waypoints": [
         { "x": 18.5, "y": 13.5, "waitS": 3 },
         { "x": 21.5, "y": 15.5, "waitS": 3 }
+      ]
+    },
+    {
+      "minDifficulty": "hard",
+      "spawn": { "x": 15.5, "y": 12.5 },
+      "yawDeg": -90,
+      "waypoints": [
+        { "x": 10.5, "y": 12.5, "waitS": 2 },
+        { "x": 15.5, "y": 15.5, "waitS": 2 }
+      ]
+    },
+    {
+      "minDifficulty": "hardcore",
+      "spawn": { "x": 7.5, "y": 1.5 },
+      "yawDeg": 90,
+      "waypoints": [
+        { "x": 11.5, "y": 1.5, "waitS": 2 },
+        { "x": 11.5, "y": 4.5 },
+        { "x": 7.5, "y": 4.5, "waitS": 2 },
+        { "x": 7.5, "y": 1.5 }
       ]
     }
   ],
