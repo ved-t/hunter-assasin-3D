@@ -103,7 +103,7 @@ export class Mission {
     this.player = new PlayerController({ ...spawn, yawDeg: data.playerSpawn.yawDeg });
     this.player.noiseScale = mods.noiseScale;
     this.health = new Health(mods.maxHp, mods.regenDelayS);
-    this.guards = new GuardSystem(grid, data.guards, rng.fork());
+    this.guards = new GuardSystem(grid, data.guards, rng.fork(), mods);
     this.lamps = data.lamps.map((l) => grid.gridToWorld(l.x, l.y));
     this.beams = this.guards.guards.map(() => ({ x: 0, z: 0, height: 0, yaw: 0, intensity: 0 }));
     this.perception = new PlayerPerception(grid, this.guards.guards.length);

@@ -47,6 +47,14 @@ describe('Awareness', () => {
     expect(a.value).toBe(0);
   });
 
+  it('drains at decayScale × decayPerS', () => {
+    const a = new Awareness();
+    a.decayScale = 0.5;
+    a.stimulus(60, 0, 0);
+    tick(a, AWARENESS.holdS + 2);
+    expect(a.value).toBeCloseTo(60 - AWARENESS.decayPerS * 0.5 * 2, 0);
+  });
+
   it('a new stimulus restarts the hold', () => {
     const a = new Awareness();
     a.stimulus(60, 0, 0);

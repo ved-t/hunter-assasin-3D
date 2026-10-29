@@ -84,6 +84,29 @@ describe('GuardSystem', () => {
     expect(dark.guards[0]!.awareness.value).toBeLessThan(lit.guards[0]!.awareness.value / 5);
   });
 
+  it('difficulty scales sight and hearing', () => {
+    const senses = { visionMult: 1.5, hearingMult: 2, decayMult: 1 };
+    const normal = new GuardSystem(grid, [posted(1, 2, 90)], new Rng(1));
+    const sharp = new GuardSystem(grid, [posted(1, 2, 90)], new Rng(1), senses);
+    const p = player(c(5), c(2));
+    run(normal, p, 0.2);
+    run(sharp, p, 0.2);
+    const seen = normal.guards[0]!.awareness.value;
+    expect(seen).toBeGreaterThan(0);
+    expect(sharp.guards[0]!.awareness.value).toBeCloseTo(seen * 1.5);
+
+    // Behind the guard, out of sight: only the noise counts.
+    const deaf = new GuardSystem(grid, [posted(5, 2, 90)], new Rng(1));
+    const keen = new GuardSystem(grid, [posted(5, 2, 90)], new Rng(1), senses);
+    for (const sys of [deaf, keen]) {
+      sys.noise(c(3), c(2), 6);
+      sys.step(DT, player(-50, -50), 1);
+    }
+    const heard = deaf.guards[0]!.awareness.value;
+    expect(heard).toBeGreaterThan(0);
+    expect(keen.guards[0]!.awareness.value).toBeCloseTo(heard * 2);
+  });
+
   it('hears footsteps through the doorway but not through the wall', () => {
     const radius = 6;
     // Guard just inside room A, facing away from the door.

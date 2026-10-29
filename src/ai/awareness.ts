@@ -15,6 +15,8 @@ export class Awareness {
   /** Lower bound for decay, and how long it lasts (s). */
   floor = 0;
   floorTimer = 0;
+  /** Multiplies the drain rate (difficulty: sharper guards forget more slowly). */
+  decayScale = 1;
 
   /**
    * Adds `amount` and moves the LKP to (x, z). A heading of zero length keeps the previous heading,
@@ -56,7 +58,7 @@ export class Awareness {
       if (this.floorTimer <= 0) this.floor = 0;
     }
     if (this.sinceStimulus > AWARENESS.holdS) {
-      this.value = Math.max(this.floor, this.value - AWARENESS.decayPerS * dt);
+      this.value = Math.max(this.floor, this.value - AWARENESS.decayPerS * this.decayScale * dt);
     }
   }
 }

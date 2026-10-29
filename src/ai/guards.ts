@@ -48,6 +48,15 @@ export interface GuardEvents {
   bodyFound: { guard: Guard; body: Guard };
 }
 
+/** How sharp the guards are (difficulty): multipliers on sight, hearing and how fast awareness drains. */
+export interface GuardSenses {
+  visionMult: number;
+  hearingMult: number;
+  decayMult: number;
+}
+
+export const NORMAL_SENSES: Readonly<GuardSenses> = { visionMult: 1, hearingMult: 1, decayMult: 1 };
+
 /** Sim steps between two body/stray-light checks of the same guard. */
 const BODY_BUCKETS = Math.max(1, Math.round(SIM.hz / BODIES.checkHz));
 const DROP_PITCH = (BODIES.dropLensPitchDeg * Math.PI) / 180;
@@ -87,7 +96,12 @@ export class GuardSystem {
   };
   private bodyStep = 0;
 
-  constructor(grid: Grid, defs: readonly GuardDef[], rng: Rng) {
+  constructor(
+    grid: Grid,
+    defs: readonly GuardDef[],
+    rng: Rng,
+    private readonly senses: Readonly<GuardSenses> = NORMAL_SENSES,
+  ) {
     this.ctx = {
       grid,
       paths: new Pathfinder(grid, GUARD.radius),
@@ -98,7 +112,10 @@ export class GuardSystem {
     this.guards = defs.map((def, i) => Guard.fromDef(i, grid, def));
     this.dropRays = this.guards.map(() => null);
     this.found = new Uint8Array(this.guards.length * this.guards.length);
-    for (const g of this.guards) g.enter('patrol', this.ctx);
+    for (const g of this.guards) {
+      g.awareness.decayScale = senses.decayMult;
+      g.enter('patrol', this.ctx);
+    }
   }
 
   /** Queue a noise (footstep, impact) for the next step. */
@@ -169,7 +186,8 @@ export class GuardSystem {
       const seen = visionFill(grid, this.viewer, t, this.vision);
       g.seesPlayer = seen.fillPerS > 0;
       if (g.seesPlayer) {
-        g.awareness.stimulus(seen.fillPerS * dt, t.x, t.z, player.vel.x, player.vel.z);
+        const fill = seen.fillPerS * this.senses.visionMult * dt;
+        g.awareness.stimulus(fill, t.x, t.z, player.vel.x, player.vel.z);
       }
     }
 
@@ -177,7 +195,8 @@ export class GuardSystem {
       this.sound.flood(n.x, n.z, n.radius);
       for (const g of this.guards) {
         if (g.dead) continue;
-        g.awareness.stimulus(hearingGain(this.sound.at(g.pos.x, g.pos.z), n.radius), n.x, n.z);
+        const gain = hearingGain(this.sound.at(g.pos.x, g.pos.z), n.radius);
+        g.awareness.stimulus(gain * this.senses.hearingMult, n.x, n.z);
       }
     }
     this.noises.length = 0;
