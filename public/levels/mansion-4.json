@@ -3,7 +3,7 @@
   "id": "mansion-4",
   "name": "Clean Sweep",
   "theme": "mansion",
-  "tip": "Ten guards, no help. Take them one at a time and keep every body out of the light.",
+  "tip": "The whole house is on watch, and no help is coming. Take them one at a time and keep every body out of the light.",
   "version": 1,
   "tileSize": 2,
   "width": 32,
@@ -42,6 +42,7 @@
       ]
     },
     {
+      "minDifficulty": "medium",
       "spawn": { "x": 30.5, "y": 13.5 },
       "yawDeg": -90,
       "waypoints": [
@@ -57,6 +58,7 @@
       "waypoints": [{ "x": 15.5, "y": 8.5 }]
     },
     {
+      "minDifficulty": "medium",
       "spawn": { "x": 16.5, "y": 12.5 },
       "yawDeg": 180,
       "waypoints": [{ "x": 16.5, "y": 12.5 }]
@@ -104,6 +106,48 @@
       "waypoints": [
         { "x": 5.5, "y": 10.5, "waitS": 2 },
         { "x": 26.5, "y": 10.5, "waitS": 2 }
+      ]
+    },
+    {
+      "minDifficulty": "hard",
+      "spawn": { "x": 24.5, "y": 1.5 },
+      "yawDeg": 90,
+      "waypoints": [
+        { "x": 30.5, "y": 1.5, "waitS": 2 },
+        { "x": 30.5, "y": 4.5 },
+        { "x": 24.5, "y": 4.5, "waitS": 2 },
+        { "x": 24.5, "y": 1.5 }
+      ]
+    },
+    {
+      "minDifficulty": "hard",
+      "spawn": { "x": 8.5, "y": 1.5 },
+      "yawDeg": 90,
+      "waypoints": [
+        { "x": 14.5, "y": 1.5, "waitS": 2 },
+        { "x": 14.5, "y": 4.5 },
+        { "x": 8.5, "y": 4.5, "waitS": 2 },
+        { "x": 8.5, "y": 1.5 }
+      ]
+    },
+    {
+      "minDifficulty": "hardcore",
+      "spawn": { "x": 17.5, "y": 17.5 },
+      "yawDeg": 90,
+      "waypoints": [
+        { "x": 23.5, "y": 17.5, "waitS": 2 },
+        { "x": 23.5, "y": 15.5 },
+        { "x": 17.5, "y": 15.5, "waitS": 2 },
+        { "x": 17.5, "y": 17.5 }
+      ]
+    },
+    {
+      "minDifficulty": "hardcore",
+      "spawn": { "x": 1.5, "y": 11.5 },
+      "yawDeg": 90,
+      "waypoints": [
+        { "x": 12.5, "y": 11.5, "waitS": 2 },
+        { "x": 1.5, "y": 11.5, "waitS": 2 }
       ]
     }
   ],
