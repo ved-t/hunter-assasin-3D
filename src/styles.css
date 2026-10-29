@@ -3,6 +3,7 @@
   --fg: #c9d2dc;
   --accent-danger: #ffb347;
   --accent-player: #bff4ff;
+  --accent-alert: #ff3b30;
   /* iPhone Safari home indicator area: keep interactive UI above this. */
   --ui-bottom-safe: max(24px, env(safe-area-inset-bottom));
   --ui-left-safe: env(safe-area-inset-left);
@@ -541,6 +542,29 @@ body {
   display: none;
 }
 
+.level-intro .difficulty,
+.result-overlay .difficulty {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.level-intro .difficulty.hardcore,
+.result-overlay .difficulty.hardcore {
+  color: var(--accent-alert);
+  opacity: 1;
+}
+
+.result-overlay .notice {
+  color: var(--accent-alert);
+  font-weight: 600;
+}
+
+.result-overlay .notice[hidden] {
+  display: none;
+}
+
 /* Win / fail screen. */
 .result-overlay .panel {
   display: flex;
@@ -763,6 +787,51 @@ body {
   align-self: center;
   min-width: 160px;
   margin-top: 4px;
+}
+
+/* Difficulty picker (level select): four segments; Hardcore reads red and stays locked until earned. */
+.difficulty-picker {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.diff-btn {
+  min-height: 40px;
+  padding: 8px 4px;
+  border-radius: 6px;
+  border: 1px solid rgba(191, 244, 255, 0.25);
+  background: #0d1218;
+  color: var(--fg);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.diff-btn.active {
+  border-color: var(--accent-danger);
+  color: var(--accent-danger);
+}
+
+.diff-btn.hardcore.active {
+  border-color: var(--accent-alert);
+  color: var(--accent-alert);
+}
+
+.diff-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.diff-hint {
+  margin-top: -4px;
+  font-size: 12px;
+  text-align: center;
+  opacity: 0.7;
+}
+
+.diff-hint[hidden] {
+  display: none;
 }
 
 /* Level select. */

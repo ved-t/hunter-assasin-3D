@@ -1,5 +1,5 @@
-// Title screen: Play (the next level to beat), Levels, Loadout and Settings, with the star and gem
-// totals. Drawn over the paused level behind it. Buttons are real clicks, so Play may take Pointer Lock.
+// Title screen: Play (the next level to beat on the picked difficulty), Levels, Loadout and Settings,
+// with the star total for that difficulty and the gem total. Drawn over the paused level behind it. Buttons are real clicks, so Play may take Pointer Lock.
 
 import { createOverlay, type Overlay } from './overlay';
 
@@ -11,8 +11,9 @@ export interface MainMenuOptions {
 }
 
 export interface MainMenuInfo {
-  /** Name of the level Play starts. */
+  /** Name of the level Play starts, and the difficulty it is played on. */
   playName: string;
+  difficultyName: string;
   stars: number;
   maxStars: number;
   gems: number;
@@ -53,7 +54,7 @@ export class MainMenu {
   }
 
   show(info: MainMenuInfo): void {
-    this.playName.textContent = info.playName;
+    this.playName.textContent = `${info.playName} · ${info.difficultyName}`;
     this.totals.innerHTML = `<span class="star">★</span> ${info.stars}/${info.maxStars}<span class="gem">◆</span> ${info.gems}`;
     this.overlay.show();
     this.play.focus({ preventScroll: true });

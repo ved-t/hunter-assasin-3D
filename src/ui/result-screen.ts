@@ -1,7 +1,9 @@
-// End-of-mission screen: success or failure, time, kills, the star rating with the three criteria, gems
-// earned, and Retry / Next level / Menu, plus Revive (a rewarded ad) on a fail. Buttons are real clicks,
+// End-of-mission screen: success or failure on which difficulty, time, kills, the star rating with the
+// three criteria, gems earned, a notice when the win opened Hardcore, and Retry / Next level / Menu, plus
+// Revive (a rewarded ad) on a fail. Buttons are real clicks,
 // so Retry may take Pointer Lock back.
 
+import { DIFFICULTY_NAMES, type Difficulty } from '../config/difficulty';
 import type { MissionResult } from '../mission/mission';
 import type { WinReward } from '../save/progress';
 import { createOverlay, type Overlay } from './overlay';
@@ -22,11 +24,13 @@ export function formatTime(seconds: number): string {
 
 export class ResultScreen {
   private readonly overlay: Overlay;
+  private readonly difficulty: HTMLDivElement;
   private readonly title: HTMLHeadingElement;
   private readonly stars: HTMLDivElement;
   private readonly stats: HTMLDivElement;
   private readonly criteria: HTMLUListElement;
   private readonly reward: HTMLDivElement;
+  private readonly notice: HTMLDivElement;
   private readonly next: HTMLButtonElement;
   private readonly revive: HTMLButtonElement;
   private readonly reviveNote: HTMLDivElement;
@@ -36,11 +40,13 @@ export class ResultScreen {
       root,
       'result-overlay',
       `<div class="panel" role="dialog" aria-live="polite">
+        <div class="difficulty"></div>
         <h2></h2>
         <div class="stars" aria-hidden="true"></div>
         <div class="stats"></div>
         <ul class="criteria"></ul>
         <div class="reward"></div>
+        <div class="notice" hidden></div>
         <button type="button" class="revive">Revive <span class="ad-tag">watch ad</span></button>
         <div class="revive-note" hidden>Ad not available right now</div>
         <div class="buttons">
@@ -52,11 +58,13 @@ export class ResultScreen {
     );
     const el = this.overlay.element;
     const q = <T extends Element>(sel: string) => el.querySelector(sel) as T;
+    this.difficulty = q('.difficulty');
     this.title = q('h2');
     this.stars = q('.stars');
     this.stats = q('.stats');
     this.criteria = q('.criteria');
     this.reward = q('.reward');
+    this.notice = q('.notice');
     this.next = q('.next');
     this.revive = q('.revive');
     this.reviveNote = q('.revive-note');
@@ -73,17 +81,23 @@ export class ResultScreen {
   /**
    * `totalGuards` for the kill count; `parTimeS` for the time criterion; `hasNext` shows Next;
    * `reward` is what a win paid (null for development levels outside the campaign); `canRevive` offers
-   * the rewarded revive on a fail.
+   * the rewarded revive on a fail; `notice` is a line to call out (Hardcore just opened), or null.
    */
   show(
     r: MissionResult,
+    difficulty: Difficulty,
     totalGuards: number,
     parTimeS: number | undefined,
     hasNext: boolean,
     reward: WinReward | null,
     canRevive = false,
+    notice: string | null = null,
   ): void {
     const won = r.outcome === 'won';
+    this.difficulty.className = `difficulty ${difficulty}`;
+    this.difficulty.textContent = DIFFICULTY_NAMES[difficulty];
+    this.notice.hidden = !notice;
+    this.notice.textContent = notice ?? '';
     this.overlay.element.classList.toggle('failed', !won);
     this.title.textContent = won ? 'Mission complete' : 'Mission failed';
     this.stars.hidden = !won;

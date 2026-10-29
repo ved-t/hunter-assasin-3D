@@ -3,11 +3,13 @@
 
 import './styles.css';
 import { CAMPAIGN, nextLevelId } from './config/campaign';
+import { DIFFICULTY_NAMES, type Difficulty } from './config/difficulty';
 import { TIER_SETTINGS, type QualityTier } from './config/quality';
 import { MISSION } from './config/tunables';
 import { requestGyroPermission } from './input/gyro';
 import { DEFAULT_THEME } from './level/kit';
-import { LevelLoadError, loadLevel } from './level/loader';
+import { levelForDifficulty } from './level/difficulty-variant';
+import { LevelLoadError, loadLevel, type LoadedLevel } from './level/loader';
 import type { LevelData, Theme } from './level/types';
 import { parseDebugFlags } from './core/debug-flags';
 import { GameLoop } from './core/loop';
@@ -30,12 +32,14 @@ import {
 import { createTestScene } from './render/test-scene';
 import { FpsProbe, guessTier, tierAfterProbe } from './render/tier-detect';
 import {
+  hardcoreUnlocked,
   levelRecord,
   loadProgress,
   modifiersFor,
   nextToPlay,
   recordWin,
   saveProgress,
+  setDifficulty,
   totalStars,
   type Progress,
   type WinReward,
@@ -88,6 +92,12 @@ async function boot(): Promise<void> {
   platform.loadingStart();
   let settings = await loadSettings(platform.storage);
   let progress = await loadProgress(platform.storage);
+  /** ?difficulty= wins over the saved pick until the player picks one in level select. */
+  let difficultyOverride = flags.difficulty;
+  const difficulty = (): Difficulty => difficultyOverride ?? progress.difficulty;
+  /** The level file now on stage, before its difficulty is applied, and the difficulty it is played on. */
+  let template: LoadedLevel | null = null;
+  let played: Difficulty = difficulty();
 
   // Tier: URL flag > saved override > hardware guess (then refined by the fps probe).
   const gpuInfo = queryGpu();
@@ -125,9 +135,10 @@ async function boot(): Promise<void> {
     world = { ...perf, render: (alpha) => perf.render(alpha), debugLines: () => [] };
   } else {
     // The level asked for, or behind the menu the one Play would start.
-    let level;
+    let level: LoadedLevel;
     try {
-      level = await loadLevel(flags.level ?? nextToPlay(progress));
+      template = await loadLevel(flags.level ?? nextToPlay(progress, CAMPAIGN, played));
+      level = levelForDifficulty(template, played);
       // The first theme is part of the initial download; a failed load leaves it flat, not broken.
       await themes.load(themeOf(level.data));
     } catch (err) {
@@ -147,7 +158,7 @@ async function boot(): Promise<void> {
     });
     game.applySettings(settings);
     game.setLoadout(progress.equipped.knife, progress.equipped.glove);
-    game.restart(modifiersFor(progress));
+    game.restart(modifiersFor(progress, played));
     world = game;
     // Skinned guards replace the capsules once their model arrives (or never, if it is missing). The
     // loader code is its own chunk, fetched alongside.
@@ -248,7 +259,7 @@ async function boot(): Promise<void> {
         gpu,
         platform: platform.name,
         simPaused: loop.simPaused,
-        extra: world.debugLines(),
+        extra: game ? [`difficulty ${played}`, ...world.debugLines()] : world.debugLines(),
       });
     },
   });
@@ -415,6 +426,11 @@ async function boot(): Promise<void> {
   const levelSelect = new LevelSelect(uiRoot, {
     onPick: (id) => void play(id),
     onBack: () => showTitle(),
+    onDifficulty: (d) => {
+      difficultyOverride = null;
+      setProgress(setDifficulty(progress, d));
+      levelSelect.update(progress);
+    },
     onTheme: (theme) => {
       themes.prefetch(theme);
       game?.audio.prefetchTheme(theme);
@@ -440,9 +456,11 @@ async function boot(): Promise<void> {
     setPaused('title', true);
     setPaused('menu', false);
     setPaused('result', false);
+    const d = difficulty();
     menu.show({
-      playName: levelName(nextToPlay(progress)),
-      stars: totalStars(progress),
+      playName: levelName(nextToPlay(progress, CAMPAIGN, d)),
+      difficultyName: DIFFICULTY_NAMES[d],
+      stars: totalStars(progress, CAMPAIGN, d),
       maxStars: CAMPAIGN.length * 3,
       gems: progress.gems,
     });
@@ -452,7 +470,7 @@ async function boot(): Promise<void> {
   function enterLevel(fresh: boolean): void {
     if (!game) return;
     inLevel = true;
-    if (fresh) intro.show(game.level.data.name, game.level.data.tip);
+    if (fresh) intro.show(game.level.data.name, game.level.data.tip, played);
     // Fetch the next level's theme while this one is played.
     const next = CAMPAIGN.find((l) => l.id === nextLevelId(game?.level.data.id ?? ''));
     if (next) {
@@ -471,12 +489,22 @@ async function boot(): Promise<void> {
     capture();
   }
 
-  /** Play a level from the start: the one on stage restarts in place, any other is loaded first. */
+  /**
+   * Play a level from the start on the current difficulty: the one on stage restarts in place, the same
+   * file on another difficulty is rebuilt from its template, and any other is loaded first.
+   */
   async function play(id: string): Promise<void> {
     if (!game) return;
-    const mods = modifiersFor(progress);
-    if (id === game.level.data.id) {
+    const d = difficulty();
+    const mods = modifiersFor(progress, d);
+    if (id === game.level.data.id && d === played) {
       game.restart(mods);
+      enterLevel(true);
+      return;
+    }
+    if (template && id === template.data.id) {
+      played = d;
+      game.loadLevel(levelForDifficulty(template, d), mods);
       enterLevel(true);
       return;
     }
@@ -490,9 +518,11 @@ async function boot(): Promise<void> {
     loading.show(levelName(id));
     setPaused('loading', true);
     try {
-      const level = await loadLevel(id);
-      await themes.load(themeOf(level.data));
-      game.loadLevel(level, mods);
+      const loaded = await loadLevel(id);
+      await themes.load(themeOf(loaded.data));
+      template = loaded;
+      played = d;
+      game.loadLevel(levelForDifficulty(loaded, d), mods);
       // Compile the new level's materials now rather than as a hitch on its first frames.
       await ctx.renderer.compileAsync(world.scene, world.camera);
     } catch (err) {
@@ -597,13 +627,20 @@ async function boot(): Promise<void> {
     if (!game || !r || !result) return;
     const level = game.level.data;
     let reward: WinReward | null = null;
+    let notice: string | null = null;
     // Celebrated only the first time a level reaches 3 stars; portals ask for happy time sparingly.
     const firstThreeStars =
-      r.outcome === 'won' && r.stars === 3 && (levelRecord(progress, level.id)?.stars ?? 0) < 3;
+      r.outcome === 'won' &&
+      r.stars === 3 &&
+      (levelRecord(progress, level.id, played)?.stars ?? 0) < 3;
     if (r.outcome === 'won' && CAMPAIGN.some((l) => l.id === level.id)) {
-      const won = recordWin(progress, level.id, r.stars, r.stats.timeS);
+      const hadHardcore = hardcoreUnlocked(progress);
+      const won = recordWin(progress, level.id, r.stars, r.stats.timeS, played);
       setProgress(won.progress);
       reward = won.reward;
+      if (!hadHardcore && hardcoreUnlocked(progress)) {
+        notice = 'Hardcore unlocked: pick it in Levels';
+      }
     }
     if (firstThreeStars) platform.happyTime();
     kbm?.unlock();
@@ -613,18 +650,20 @@ async function boot(): Promise<void> {
     const canRevive = game.mission.canRevive && platform.rewardedAvailable;
     result.show(
       r,
+      played,
       level.guards.length,
       level.parTimeS,
       nextLevelId(level.id) !== null,
       reward,
       canRevive,
+      notice,
     );
     setPaused('result', true); // after show(), so the play hint sees the screen open
   }
   /** From a click or key press, so Pointer Lock can be taken straight back. */
   function retry(): void {
     if (!game) return;
-    game.restart(modifiersFor(progress));
+    game.restart(modifiersFor(progress, played));
     enterLevel(false);
   }
 
