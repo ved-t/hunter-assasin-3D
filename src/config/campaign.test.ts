@@ -18,7 +18,6 @@ const FILES = import.meta.glob<unknown>('../../public/levels/*.json', {
   import: 'default',
 });
 
-const LEVELS_PER_THEME = 4;
 /** Standing still at the spawn must stay unnoticed this long (s): no level opens on a detection. */
 const SAFE_SPAWN_S = 20;
 const DT = 1 / 60;
@@ -73,10 +72,10 @@ describe('campaign', () => {
     expect(new Set(CAMPAIGN.map((l) => l.id)).size).toBe(CAMPAIGN.length);
   });
 
-  it(`runs ${LEVELS_PER_THEME} levels per theme, in theme order`, () => {
-    expect(CAMPAIGN.map((l) => l.theme)).toEqual(
-      THEMES.flatMap((t) => Array<string>(LEVELS_PER_THEME).fill(t)),
-    );
+  it('runs the themes in order, each in one block', () => {
+    const order = CAMPAIGN.map((l) => THEMES.indexOf(l.theme));
+    expect(new Set(order).size).toBe(THEMES.length);
+    for (let i = 1; i < order.length; i++) expect(order[i]).toBeGreaterThanOrEqual(order[i - 1]!);
   });
 
   for (const entry of CAMPAIGN) {
@@ -112,12 +111,27 @@ describe('campaign', () => {
   }
 
   for (const d of DIFFICULTIES) {
-    it(`never gets easier on ${d}: guard counts rise or hold through the campaign`, () => {
-      const counts = CAMPAIGN.map(
+    const countsByTheme = THEMES.map((t) =>
+      CAMPAIGN.filter((l) => l.theme === t).map(
         (l) => guardsFor((load(l.id).data as LevelData).guards, d).length,
-      );
-      for (let i = 1; i < counts.length; i++)
-        expect(counts[i]).toBeGreaterThanOrEqual(counts[i - 1]!);
+      ),
+    );
+
+    it(`never gets easier within a theme on ${d}: guard counts rise or hold`, () => {
+      for (const [ti, counts] of countsByTheme.entries())
+        for (let i = 1; i < counts.length; i++)
+          expect(counts[i], `${THEMES[ti]} level ${i + 1}`).toBeGreaterThanOrEqual(counts[i - 1]!);
+    });
+
+    it(`each theme opens and closes above the one before on ${d}`, () => {
+      // A new theme starts a little easier than the last one ended (a breather on new art), but still
+      // harder than the last one started.
+      for (let ti = 1; ti < countsByTheme.length; ti++) {
+        const prev = countsByTheme[ti - 1]!;
+        const cur = countsByTheme[ti]!;
+        expect(cur[0], `${THEMES[ti]} first`).toBeGreaterThan(prev[0]!);
+        expect(cur[cur.length - 1], `${THEMES[ti]} last`).toBeGreaterThan(prev[prev.length - 1]!);
+      }
     });
   }
 
