@@ -2,7 +2,7 @@
 // Pure, so it is tested without three.js; render/guard-models.ts turns it into bone rotations.
 
 import type { GunPhase } from '../ai/weapon';
-import { GUARD_AIM as A } from '../config/tunables';
+import { GUARD_AIM as A, KNIFE } from '../config/tunables';
 
 /** What the aim reads from ai/weapon's Gun. */
 export interface GunView {
@@ -32,4 +32,13 @@ export function recoilKick(sinceShot: number): number {
   if (!(sinceShot >= 0) || sinceShot >= A.kickS) return 0;
   const t = 1 - sinceShot / A.kickS;
   return t * t;
+}
+
+/** Wound flinch, 0..1, from the seconds of stagger left: a fast snap back, then an ease out. */
+export function woundFlinch(staggerLeft: number): number {
+  if (!(staggerLeft > 0)) return 0;
+  const t = Math.min(1, 1 - staggerLeft / KNIFE.woundStaggerS);
+  if (t < A.flinchPeakFraction) return t / A.flinchPeakFraction;
+  const k = 1 - (t - A.flinchPeakFraction) / (1 - A.flinchPeakFraction);
+  return k * k;
 }

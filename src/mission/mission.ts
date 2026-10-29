@@ -32,6 +32,8 @@ export interface ViewLens {
 export interface MissionEvents {
   /** The player knifed a guard. */
   kill: { guard: Guard };
+  /** A stab only wounded him (Hardcore); one more kills. */
+  wound: { guard: Guard };
   /** A hit point came back. */
   heal: { hp: number };
   /** A guard's shot struck the player. */
@@ -247,10 +249,15 @@ export class Mission {
 
   private knife(i: number): void {
     const g = this.guards.guards[i] as Guard;
-    if (!this.guards.kill(g)) return;
-    this.kills++;
+    const result = this.guards.stab(g, this.player.pos);
+    if (!result) return;
     this.lockTimer = KNIFE.lockS;
     this.knifeTarget = -1;
+    if (result === 'wound') {
+      this.events.emit('wound', { guard: g });
+      return;
+    }
+    this.kills++;
     this.guards.noise(g.pos.x, g.pos.z, KNIFE.noiseRadiusM);
     this.events.emit('kill', { guard: g });
   }

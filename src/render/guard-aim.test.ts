@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { GUARD_AIM } from '../config/tunables';
-import { aimTarget, recoilKick, settleAim } from './guard-aim';
+import { GUARD_AIM, KNIFE } from '../config/tunables';
+import { aimTarget, recoilKick, settleAim, woundFlinch } from './guard-aim';
 
 const idle = { phase: 'idle' as const, windupFraction: 0, sinceShot: Infinity };
 const windup = (f: number) => ({ phase: 'windup' as const, windupFraction: f, sinceShot: 9 });
@@ -54,5 +54,17 @@ describe('recoilKick', () => {
     expect(recoilKick(GUARD_AIM.kickS / 2)).toBeCloseTo(0.25);
     expect(recoilKick(GUARD_AIM.kickS)).toBe(0);
     expect(recoilKick(Infinity)).toBe(0);
+  });
+});
+
+describe('woundFlinch', () => {
+  it('snaps back fast, then recovers by the end of the stagger', () => {
+    const S = KNIFE.woundStaggerS;
+    expect(woundFlinch(0)).toBe(0);
+    expect(woundFlinch(S)).toBe(0);
+    expect(woundFlinch(S * (1 - GUARD_AIM.flinchPeakFraction))).toBeCloseTo(1);
+    expect(woundFlinch(S * 0.5)).toBeGreaterThan(0);
+    expect(woundFlinch(S * 0.5)).toBeLessThan(1);
+    expect(woundFlinch(1e-6)).toBeCloseTo(0, 3);
   });
 });

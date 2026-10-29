@@ -73,6 +73,29 @@ describe('Mission', () => {
     expect(m.player.pos).not.toEqual(locked);
   });
 
+  it('on Hardcore it takes two stabs, and only the second counts as a kill', () => {
+    const m = new Mission(loadJson(small), new Rng(1), { ...NO_MODIFIERS, knifeHits: 2 });
+    const g = m.guards.guards[0]!;
+    teleport(m, g.pos.x + Math.sin(g.yaw) * 1, g.pos.z + Math.cos(g.yaw) * 1);
+    const events: string[] = [];
+    m.events.on('wound', () => events.push('wound'));
+    m.events.on('kill', () => events.push('kill'));
+    const input = new InputState();
+    input.context = true;
+    m.step(DT, input, LENS);
+    expect(events).toEqual(['wound']);
+    expect(g.dead).toBe(false);
+    expect(m.kills).toBe(0);
+    // Pressing again during the movement lock does nothing; once it lifts, the second stab lands.
+    for (let t = 0; t < KNIFE.lockS + 2 * DT && !g.dead; t += DT) {
+      input.context = true;
+      m.step(DT, input, LENS);
+    }
+    expect(events).toEqual(['wound', 'kill']);
+    expect(g.dead).toBe(true);
+    expect(m.kills).toBe(1);
+  });
+
   it('does nothing on a knife press with no valid target', () => {
     const m = new Mission(loadJson(small), new Rng(1));
     const input = new InputState();

@@ -24,7 +24,7 @@ import {
   type DeathClip,
   type GuardClip,
 } from './guard-anim';
-import { aimTarget, recoilKick, settleAim } from './guard-aim';
+import { aimTarget, recoilKick, settleAim, woundFlinch } from './guard-aim';
 import { ktx2Loader } from './ktx2';
 
 const DROP_PITCH = THREE.MathUtils.degToRad(BODIES.dropLensPitchDeg);
@@ -257,7 +257,8 @@ export class GuardRigs {
 
       r.aim = g.dead ? 0 : settleAim(r.aim, aimTarget(g.gun), frameDt);
       const kick = g.dead ? 0 : recoilKick(g.gun.sinceShot);
-      const posing = r.aim > 0 || kick > 0;
+      const flinch = g.dead ? 0 : woundFlinch(g.stagger);
+      const posing = r.aim > 0 || kick > 0 || flinch > 0;
       pickClip(
         {
           dead: g.dead,
@@ -281,7 +282,7 @@ export class GuardRigs {
         r.owed = 0;
         r.skipped = 0;
         r.posed = posing && onScreen;
-        if (r.posed) this.aimPose(r, yaw, r.aim, kick);
+        if (r.posed) this.aimPose(r, yaw, r.aim, kick, flinch);
       }
       if (!onScreen) continue;
       r.root.updateMatrixWorld(true);
@@ -321,13 +322,15 @@ export class GuardRigs {
   /**
    * Adds the raised pistol (weight 0..1) and its recoil to the mixer's pose, as world-space turns in
    * his yaw frame, so no Mixamo bone axes are assumed: the chest leans in, the upper arm swings the
-   * shoulder-to-hand line onto his eye line ahead, and the kick pitches the forearm and hand up.
+   * shoulder-to-hand line onto his eye line ahead, and the kick pitches the forearm and hand up. A
+   * wound's flinch (0..1) throws the chest back against the lean.
    */
-  private aimPose(r: Rig, yaw: number, weight: number, kick: number): void {
+  private aimPose(r: Rig, yaw: number, weight: number, kick: number, flinch: number): void {
     r.root.updateMatrixWorld(true);
     const right = this.right.set(Math.cos(yaw), 0, -Math.sin(yaw));
     if (r.spine) {
-      this.turnWorld(r.spine, this.qa.setFromAxisAngle(right, -GUARD_AIM.leanDeg * DEG * weight));
+      const lean = GUARD_AIM.flinchDeg * flinch - GUARD_AIM.leanDeg * weight;
+      this.turnWorld(r.spine, this.qa.setFromAxisAngle(right, lean * DEG));
     }
     if (r.rightArm && r.rightHand) {
       r.rightArm.getWorldPosition(this.p);

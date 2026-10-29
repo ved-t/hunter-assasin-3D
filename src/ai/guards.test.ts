@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AWARENESS, BODIES, BOTTLE, GUARD, SEARCH, WEAPON } from '../config/tunables';
+import { AWARENESS, BODIES, BOTTLE, GUARD, KNIFE, SEARCH, WEAPON } from '../config/tunables';
 import { Rng } from '../core/rng';
 import { Grid } from '../level/grid';
 import type { GuardDef } from '../level/types';
@@ -85,7 +85,7 @@ describe('GuardSystem', () => {
   });
 
   it('difficulty scales sight and hearing', () => {
-    const senses = { visionMult: 1.5, hearingMult: 2, decayMult: 1 };
+    const senses = { visionMult: 1.5, hearingMult: 2, decayMult: 1, knifeHits: 1 };
     const normal = new GuardSystem(grid, [posted(1, 2, 90)], new Rng(1));
     const sharp = new GuardSystem(grid, [posted(1, 2, 90)], new Rng(1), senses);
     const p = player(c(5), c(2));
@@ -255,6 +255,54 @@ describe('guard shooting', () => {
     sys.kill(g);
     run(sys, p, 3);
     expect(shots).toBe(0);
+  });
+
+  it('on Hardcore a first stab wounds: he staggers, holds fire, goes Alert and shouts', () => {
+    const rules = { visionMult: 1, hearingMult: 1, decayMult: 1, knifeHits: 2 };
+    // Guard 0 faces away from the player; guard 1 is close enough to hear the shout.
+    const sys = new GuardSystem(grid, [posted(4, 2, 90), posted(1, 4, 0)], new Rng(1), rules);
+    const [g, friend] = [sys.guards[0]!, sys.guards[1]!];
+    const p = player(c(3), c(2));
+    const events: string[] = [];
+    sys.events.on('wound', () => events.push('wound'));
+    sys.events.on('alert', (e) => e.guard === g && events.push(`alert ${e.alerted.length}`));
+    // Only his own shouts and gun: the friend runs over and may well shoot (and shout) too.
+    sys.events.on('shot', (e) => e.guard === g && events.push('shot'));
+    sys.events.on('windup', (e) => e.guard === g && events.push('windup'));
+
+    expect(sys.stab(g, p.pos)).toBe('wound');
+    expect(g.dead).toBe(false);
+    expect(g.awareness.value).toBe(AWARENESS.alert);
+    const before = { ...g.pos };
+    const yaw = g.yaw;
+    run(sys, p, KNIFE.woundStaggerS - 2 * DT);
+    expect(g.state).toBe('alert');
+    expect(friend.state).toBe('alert');
+    expect(g.pos).toEqual(before);
+    expect(g.yaw).toBe(yaw);
+    expect(events).toEqual(['wound', 'alert 1']);
+
+    // The stagger ends: he turns on the player and fires after the usual wind-up.
+    run(sys, p, 2);
+    expect(events.slice(2, 4)).toEqual(['windup', 'shot']);
+    expect(sys.stab(g, p.pos)).toBe('kill');
+    expect(g.dead).toBe(true);
+  });
+
+  it('a guard already Alert shouts again when wounded', () => {
+    const { sys, g, p } = alerted();
+    let shouts = 0;
+    sys.events.on('alert', () => shouts++);
+    g.hp = 2;
+    expect(sys.stab(g, p.pos)).toBe('wound');
+    expect(shouts).toBe(1);
+    expect(g.gun.phase).toBe('idle');
+  });
+
+  it('one stab kills on every other difficulty', () => {
+    const sys = new GuardSystem(grid, [posted(4, 2, 90)], new Rng(1));
+    expect(sys.stab(sys.guards[0]!, { x: c(3), z: c(2) })).toBe('kill');
+    expect(sys.stab(sys.guards[0]!, { x: c(3), z: c(2) })).toBeNull();
   });
 
   it('a shot alerts guards within its wider radius', () => {

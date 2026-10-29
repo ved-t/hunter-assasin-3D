@@ -466,6 +466,10 @@ export const GUARD_AIM = {
   leanDeg: 6,
   /** The arm points this far below level (deg): shoulder to the player's eye line. */
   pitchDeg: 0,
+  /** Wounded (Hardcore): the chest snaps back this far (deg) over the first part of the stagger, then
+   * recovers over the rest. */
+  flinchDeg: 16,
+  flinchPeakFraction: 0.15,
 } as const;
 
 /** Guard look: the capsule fallback body, lens glow, state icons, and the gun tell and flash. */

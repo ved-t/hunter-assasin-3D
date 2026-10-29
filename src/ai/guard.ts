@@ -1,7 +1,7 @@
 // One guard: body on the grid, facing (= flashlight direction), awareness and per-state behaviour.
 // The state transitions themselves come from guard-fsm.ts; GuardSystem drives sensing and transitions.
 
-import { AWARENESS, BODIES, GUARD } from '../config/tunables';
+import { AWARENESS, BODIES, GUARD, KNIFE } from '../config/tunables';
 import { turnToward, wrapAngle, yawFromCompassDeg, yawFromDir } from '../core/angles';
 import type { Rng } from '../core/rng';
 import { moveCircle, type Vec2 } from '../level/collision';
@@ -70,6 +70,10 @@ export class Guard {
   readonly path: Vec2[] = [];
   /** Search cells for the current search (debug overlay). */
   searchCells: Vec2[] = [];
+  /** Knife stabs it takes to kill him (2 on Hardcore); each one short of that wounds. */
+  hp = 1;
+  /** Seconds left of the stagger after a wound: he can't move, turn or shoot. */
+  stagger = 0;
   /** Killed: no senses, no behaviour, just a body and a flashlight left on the floor. */
   dead = false;
   /** Seconds since death. */
@@ -118,10 +122,19 @@ export class Guard {
     return this.state === 'alert' && !this.dead ? 'alertJitter' : 'steady';
   }
 
+  /** A stab that doesn't kill: one hit point less, and he staggers on the spot. */
+  wound(): void {
+    this.hp--;
+    this.stagger = KNIFE.woundStaggerS;
+    this.clearPath();
+    this.gun.reset();
+  }
+
   /** Drop dead where he stands; the flashlight falls ahead of him, still on, turned by `yawJitter`. */
   die(yawJitter: number): void {
     this.dead = true;
     this.deadFor = 0;
+    this.stagger = 0;
     this.seesPlayer = false;
     this.speed = 0;
     this.footstep = null;
@@ -191,6 +204,12 @@ export class Guard {
     this.prevYaw = this.yaw;
     if (this.dead) {
       this.deadFor += dt;
+      return;
+    }
+    if (this.stagger > 0) {
+      this.stagger = Math.max(0, this.stagger - dt);
+      this.speed = 0;
+      this.stepFootsteps(dt);
       return;
     }
     this.stateTime += dt;

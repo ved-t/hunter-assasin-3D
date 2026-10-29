@@ -10,6 +10,8 @@ export interface MissionModifiers {
   visionMult: number;
   hearingMult: number;
   decayMult: number;
+  /** Knife stabs per guard (difficulty: 2 on Hardcore). */
+  knifeHits: number;
   /** Multiplies the player's footstep noise radius. */
   noiseScale: number;
   /** Seconds of calm before a hit point comes back. */
@@ -24,6 +26,7 @@ export const NO_MODIFIERS: Readonly<MissionModifiers> = {
   visionMult: 1,
   hearingMult: 1,
   decayMult: 1,
+  knifeHits: 1,
   noiseScale: 1,
   regenDelayS: HEALTH.regenDelayS,
   bonusBottles: 0,

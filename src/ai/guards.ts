@@ -40,6 +40,8 @@ export interface GuardEvents {
   /** One of a guard's feet landed (audio only; the player's perception reads guard speed). */
   footstep: { guard: Guard; gait: GuardGait };
   death: { guard: Guard };
+  /** A stab that didn't kill (Hardcore): he staggers, goes Alert at the player and shouts. */
+  wound: { guard: Guard };
   /** An Alert guard started his 0.6 s aim at the player (the muzzle tell). */
   windup: { guard: Guard };
   /** He fired; `hit` says whether it struck the player. */
@@ -48,14 +50,26 @@ export interface GuardEvents {
   bodyFound: { guard: Guard; body: Guard };
 }
 
-/** How sharp the guards are (difficulty): multipliers on sight, hearing and how fast awareness drains. */
-export interface GuardSenses {
+/**
+ * What the difficulty changes about the guards: multipliers on sight, hearing and how fast awareness
+ * drains, and how many knife stabs each one takes.
+ */
+export interface GuardRules {
   visionMult: number;
   hearingMult: number;
   decayMult: number;
+  knifeHits: number;
 }
 
-export const NORMAL_SENSES: Readonly<GuardSenses> = { visionMult: 1, hearingMult: 1, decayMult: 1 };
+export const NORMAL_GUARDS: Readonly<GuardRules> = {
+  visionMult: 1,
+  hearingMult: 1,
+  decayMult: 1,
+  knifeHits: 1,
+};
+
+/** What a knife stab did. */
+export type StabResult = 'wound' | 'kill';
 
 /** Sim steps between two body/stray-light checks of the same guard. */
 const BODY_BUCKETS = Math.max(1, Math.round(SIM.hz / BODIES.checkHz));
@@ -100,7 +114,7 @@ export class GuardSystem {
     grid: Grid,
     defs: readonly GuardDef[],
     rng: Rng,
-    private readonly senses: Readonly<GuardSenses> = NORMAL_SENSES,
+    private readonly rules: Readonly<GuardRules> = NORMAL_GUARDS,
   ) {
     this.ctx = {
       grid,
@@ -113,7 +127,8 @@ export class GuardSystem {
     this.dropRays = this.guards.map(() => null);
     this.found = new Uint8Array(this.guards.length * this.guards.length);
     for (const g of this.guards) {
-      g.awareness.decayScale = senses.decayMult;
+      g.awareness.decayScale = rules.decayMult;
+      g.hp = Math.max(1, rules.knifeHits);
       g.enter('patrol', this.ctx);
     }
   }
@@ -137,6 +152,22 @@ export class GuardSystem {
       drawn.push(g);
     }
     return drawn;
+  }
+
+  /**
+   * A knife stab from a player standing at `from`. A guard with stabs to spare is wounded: he staggers,
+   * knows exactly where the player is, and calls for help. Otherwise he dies. Null if already dead.
+   */
+  stab(g: Guard, from: Vec2): StabResult | null {
+    if (g.dead) return null;
+    if (g.hp <= 1) return this.kill(g) ? 'kill' : null;
+    g.wound();
+    g.awareness.raiseTo(AWARENESS.alert, from.x, from.z);
+    // Already Alert, he shouts now; otherwise his own turn to Alert next step does it.
+    if (g.state === 'alert') this.shout(g);
+    else g.alertedByOther = false;
+    this.events.emit('wound', { guard: g });
+    return 'wound';
   }
 
   /** Kill a guard. Returns false if he was already dead. */
@@ -186,7 +217,7 @@ export class GuardSystem {
       const seen = visionFill(grid, this.viewer, t, this.vision);
       g.seesPlayer = seen.fillPerS > 0;
       if (g.seesPlayer) {
-        const fill = seen.fillPerS * this.senses.visionMult * dt;
+        const fill = seen.fillPerS * this.rules.visionMult * dt;
         g.awareness.stimulus(fill, t.x, t.z, player.vel.x, player.vel.z);
       }
     }
@@ -196,7 +227,7 @@ export class GuardSystem {
       for (const g of this.guards) {
         if (g.dead) continue;
         const gain = hearingGain(this.sound.at(g.pos.x, g.pos.z), n.radius);
-        g.awareness.stimulus(gain * this.senses.hearingMult, n.x, n.z);
+        g.awareness.stimulus(gain * this.rules.hearingMult, n.x, n.z);
       }
     }
     this.noises.length = 0;
@@ -269,7 +300,7 @@ export class GuardSystem {
 
   private stepGun(g: Guard, dt: number, player: PlayerView): void {
     const d = Math.hypot(player.pos.x - g.pos.x, player.pos.z - g.pos.z);
-    const canShoot = g.state === 'alert' && g.seesPlayer && d <= WEAPON.rangeM;
+    const canShoot = g.state === 'alert' && g.seesPlayer && g.stagger <= 0 && d <= WEAPON.rangeM;
     const e = g.gun.step(dt, canShoot);
     if (e === 'windup') {
       this.events.emit('windup', { guard: g });

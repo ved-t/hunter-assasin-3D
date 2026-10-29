@@ -168,6 +168,7 @@ export class GameAudio {
     });
     mission.on('hit', () => this.flat('hurt'));
     mission.on('kill', () => this.flat('knife'));
+    mission.on('wound', () => this.flat('knife'));
     mission.on('throw', () => this.flat('throw'));
     mission.on('shatter', (e) => at('shatter', e.at));
     mission.on('pickup', () => this.flat('pickup'));
