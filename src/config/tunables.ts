@@ -509,6 +509,54 @@ export const HEALTH = {
   regenDelayS: 8,
 } as const;
 
+/**
+ * What each difficulty changes (config/difficulty.ts names them). Medium is the game as designed; the
+ * multipliers scale guard senses, and guardFactor is the guard count relative to Medium that hand-made
+ * levels aim for with their minDifficulty tags (and that a level generator would use directly).
+ */
+export const DIFFICULTY = {
+  easy: {
+    maxHp: 5,
+    visionMult: 0.6,
+    hearingMult: 0.6,
+    decayMult: 1.5,
+    knifeHits: 1,
+    guardFactor: 0.75,
+  },
+  medium: {
+    maxHp: HEALTH.maxHp,
+    visionMult: 1,
+    hearingMult: 1,
+    decayMult: 1,
+    knifeHits: 1,
+    guardFactor: 1,
+  },
+  hard: {
+    maxHp: 2,
+    visionMult: 1.3,
+    hearingMult: 1.25,
+    decayMult: 0.8,
+    knifeHits: 1,
+    guardFactor: 1.2,
+  },
+  hardcore: {
+    maxHp: 1,
+    visionMult: 1.6,
+    hearingMult: 1.5,
+    decayMult: 0.6,
+    knifeHits: 2,
+    guardFactor: 1.4,
+  },
+} as const;
+
+/** Par time grows (or shrinks) with the guards a difficulty adds (or removes), like the 5b formula. */
+export const DIFFICULTY_PAR = {
+  /** Seconds per guard above or below the level's Medium count. */
+  secondsPerGuard: { eliminateAll: 8, reachExit: 5 },
+  /** Adjusted par times are rounded up to a multiple of this (s). */
+  roundToS: 15,
+} as const;
+
 /** Guard sidearm. Alert guards only, with a readable wind-up so every hit is avoidable. */
 export const WEAPON = {
   /** Shoots only within this distance (m) of a player in sight. */
@@ -537,6 +585,8 @@ export const KNIFE = {
   lockS: 0.4,
   /** The kill itself makes this much noise (m of radius). */
   noiseRadiusM: 3,
+  /** A stab that only wounds (Hardcore) leaves the guard staggering this long (s): no moving, no shooting. */
+  woundStaggerS: 0.8,
 } as const;
 
 /** Mission flow: objectives and the end of a run. */
