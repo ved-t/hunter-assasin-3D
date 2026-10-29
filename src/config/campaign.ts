@@ -1,6 +1,8 @@
 // The campaign: level order, names and themes, so the menus can list every level without fetching it.
 // Each id is a file in public/levels/ (a test checks they exist and validate). Levels not listed here,
 // such as the Phase 1 greybox pair, stay reachable with ?level=<id> for development.
+// Ids are file names and save keys, not positions: new levels slot in between the old ones, so mansion-4
+// (Clean Sweep) still closes the campaign.
 
 import type { Theme } from '../level/types';
 

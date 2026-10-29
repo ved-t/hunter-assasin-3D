@@ -18,6 +18,7 @@ const FILES = import.meta.glob<unknown>('../../public/levels/*.json', {
   import: 'default',
 });
 
+const LEVELS_PER_THEME = 10;
 /** Standing still at the spawn must stay unnoticed this long (s): no level opens on a detection. */
 const SAFE_SPAWN_S = 20;
 const DT = 1 / 60;
@@ -72,10 +73,10 @@ describe('campaign', () => {
     expect(new Set(CAMPAIGN.map((l) => l.id)).size).toBe(CAMPAIGN.length);
   });
 
-  it('runs the themes in order, each in one block', () => {
-    const order = CAMPAIGN.map((l) => THEMES.indexOf(l.theme));
-    expect(new Set(order).size).toBe(THEMES.length);
-    for (let i = 1; i < order.length; i++) expect(order[i]).toBeGreaterThanOrEqual(order[i - 1]!);
+  it(`runs ${LEVELS_PER_THEME} levels per theme, in theme order`, () => {
+    expect(CAMPAIGN.map((l) => l.theme)).toEqual(
+      THEMES.flatMap((t) => Array<string>(LEVELS_PER_THEME).fill(t)),
+    );
   });
 
   for (const entry of CAMPAIGN) {
