@@ -103,6 +103,10 @@ describe('validateLevel', () => {
           { spawn: { x: 5.5, y: 1.5 }, yawDeg: 0, waypoints: [{ x: 5.5, y: 1.5, waitS: -1 }] },
         ]),
     ],
+    [
+      'unknown difficulty tag',
+      (l) => ((l.guards as Record<string, unknown>[])[0]!.minDifficulty = 'nightmare'),
+    ],
     ['bad objective type', (l) => (l.objective = { type: 'win' })],
     ['negative bottles', (l) => (l.bottles = -1)],
     ['fractional bottles', (l) => (l.bottles = 1.5)],
@@ -142,6 +146,20 @@ describe('validateLevel', () => {
       (l) => (l.guards = Array.from({ length: LEVEL_LIMITS.maxGuards + 1 }, () => l.guards[0]!)),
       /at most/,
     ],
+    [
+      'eliminateAll with no guards on Easy',
+      (l) => ((l.objective = { type: 'eliminateAll' }), (l.guards[0]!.minDifficulty = 'medium')),
+      /easy has none/,
+    ],
+    [
+      'a difficulty with more guards than one scene can host',
+      (l) =>
+        (l.guards = Array.from({ length: LEVEL_LIMITS.maxGuards + 1 }, (_, i) => ({
+          ...l.guards[0]!,
+          ...(i === 0 ? { minDifficulty: 'hardcore' as const } : {}),
+        }))),
+      /hardcore has/,
+    ],
     ['door not between walls', (l) => (l.tiles[1] = '#..D..#'), /door/],
     [
       'item in cover',
@@ -149,6 +167,12 @@ describe('validateLevel', () => {
       /solid/,
     ],
   ];
+  it('accepts difficulty tags', () => {
+    const l = base();
+    l.guards.push({ ...l.guards[0]!, minDifficulty: 'hard' });
+    expectBoth(l, true, true);
+  });
+
   for (const [name, mutate, message] of semantic) {
     it(`rejects ${name}`, () => {
       const l = base();

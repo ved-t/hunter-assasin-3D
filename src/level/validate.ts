@@ -2,7 +2,9 @@
 // semantic checks cover what a schema can't express: closed borders (exit doors aside), walkable spawns,
 // reachability.
 
+import { DIFFICULTIES, isDifficulty } from '../config/difficulty';
 import { LEVEL_LIMITS } from '../config/tunables';
+import { guardsFor } from './difficulty-variant';
 import { Grid } from './grid';
 import { THEMES, Tile, isTileChar, type GridPoint, type LevelData } from './types';
 import { exitOutward } from './wall-faces';
@@ -143,9 +145,12 @@ function checkStructure(c: Checker, json: unknown): json is LevelData {
         c.fail(p, 'must be an object');
         return;
       }
-      c.noExtra(g, ['spawn', 'yawDeg', 'waypoints'], p);
+      c.noExtra(g, ['spawn', 'yawDeg', 'waypoints', 'minDifficulty'], p);
       c.point(g.spawn, `${p}.spawn`);
       if (!isNum(g.yawDeg)) c.fail(`${p}.yawDeg`, 'must be a number');
+      if ('minDifficulty' in g && !isDifficulty(g.minDifficulty)) {
+        c.fail(`${p}.minDifficulty`, `must be one of ${DIFFICULTIES.join(', ')}`);
+      }
       if (!Array.isArray(g.waypoints)) {
         c.fail(`${p}.waypoints`, 'must be an array');
       } else {
@@ -316,11 +321,15 @@ function checkSemantics(c: Checker, level: LevelData): void {
   if (level.objective.type === 'reachExit' && exits === 0) {
     c.fail('objective', 'reachExit needs at least one E tile');
   }
-  if (level.objective.type === 'eliminateAll' && level.guards.length === 0) {
-    c.fail('objective', 'eliminateAll needs at least one guard');
-  }
-  if (level.guards.length > LEVEL_LIMITS.maxGuards) {
-    c.fail('guards', `at most ${LEVEL_LIMITS.maxGuards} guards per level`);
+  // Every difficulty must make a playable level of its own.
+  for (const d of DIFFICULTIES) {
+    const n = guardsFor(level.guards, d).length;
+    if (level.objective.type === 'eliminateAll' && n === 0) {
+      c.fail('objective', `eliminateAll needs at least one guard (${d} has none)`);
+    }
+    if (n > LEVEL_LIMITS.maxGuards) {
+      c.fail('guards', `at most ${LEVEL_LIMITS.maxGuards} guards per level (${d} has ${n})`);
+    }
   }
 }
 

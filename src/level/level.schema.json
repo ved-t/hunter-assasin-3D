@@ -49,6 +49,10 @@
         "properties": {
           "spawn": { "$ref": "#/definitions/point" },
           "yawDeg": { "type": "number" },
+          "minDifficulty": {
+            "description": "Easiest difficulty this guard is on; untagged guards are on every difficulty.",
+            "enum": ["easy", "medium", "hard", "hardcore"]
+          },
           "waypoints": {
             "type": "array",
             "items": {

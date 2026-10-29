@@ -1,6 +1,8 @@
 // Level data as authored in public/levels/*.json. Mirrors level.schema.json.
 // Positions are in grid cell units (floats): {x: 3.5, y: 2.5} is the centre of column 3, row 2.
 
+import type { Difficulty } from '../config/difficulty';
+
 export const TILE_CHARS = {
   '#': 'wall',
   '.': 'floor',
@@ -58,6 +60,8 @@ export interface GuardDef {
   spawn: GridPoint;
   yawDeg: number;
   waypoints: Waypoint[];
+  /** Easiest difficulty this guard is on (default: every difficulty). See level/difficulty-variant.ts. */
+  minDifficulty?: Difficulty;
 }
 
 export interface LampDef extends GridPoint {
