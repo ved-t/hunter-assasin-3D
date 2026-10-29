@@ -2,12 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { Rng } from '../core/rng';
 import { InputState } from '../input/input-state';
 import type { Vec2 } from '../level/collision';
+import { guardsFor, levelForDifficulty } from '../level/difficulty-variant';
 import { levelFromJson, type LoadedLevel } from '../level/loader';
 import { Tile, THEMES, type LevelData } from '../level/types';
 import { validateLevel } from '../level/validate';
 import { Mission } from '../mission/mission';
 import { Pathfinder } from '../nav/astar';
+import { modifiersFor, newProgress } from '../save/progress';
 import { CAMPAIGN, campaignIndex, nextLevelId } from './campaign';
+import { DIFFICULTIES, profileFor } from './difficulty';
 import { AWARENESS, GUARD, LEVEL_LIMITS, PLAYER } from './tunables';
 
 const FILES = import.meta.glob<unknown>('../../public/levels/*.json', {
@@ -103,15 +106,35 @@ describe('campaign', () => {
       expect(r.level.theme).toBe(entry.theme);
       expect(r.level.tip, 'intro tip').toBeTruthy();
       expect(r.level.parTimeS, 'par time').toBeGreaterThan(0);
-      expect(r.level.guards.length).toBeLessThanOrEqual(LEVEL_LIMITS.maxGuards);
+      for (const d of DIFFICULTIES)
+        expect(guardsFor(r.level.guards, d).length, d).toBeLessThanOrEqual(LEVEL_LIMITS.maxGuards);
+    });
+
+    it(`${entry.id}: each difficulty has about guardFactor × the Medium guards`, () => {
+      const guards = (load(entry.id).data as LevelData).guards;
+      const medium = guardsFor(guards, 'medium').length;
+      const counts = DIFFICULTIES.map((d) => guardsFor(guards, d).length);
+      for (const [i, d] of DIFFICULTIES.entries()) {
+        const target = Math.round(medium * profileFor(d).guardFactor);
+        expect(
+          Math.abs(counts[i]! - target),
+          `${d}: ${counts[i]} vs ${target}`,
+        ).toBeLessThanOrEqual(1);
+      }
+      for (let i = 1; i < counts.length; i++)
+        expect(counts[i]).toBeGreaterThanOrEqual(counts[i - 1]!);
     });
   }
 
-  it('never gets easier: guard counts rise or hold through the campaign', () => {
-    const counts = CAMPAIGN.map((l) => (load(l.id).data as LevelData).guards.length);
-    for (let i = 1; i < counts.length; i++)
-      expect(counts[i]).toBeGreaterThanOrEqual(counts[i - 1]!);
-  });
+  for (const d of DIFFICULTIES) {
+    it(`never gets easier on ${d}: guard counts rise or hold through the campaign`, () => {
+      const counts = CAMPAIGN.map(
+        (l) => guardsFor((load(l.id).data as LevelData).guards, d).length,
+      );
+      for (let i = 1; i < counts.length; i++)
+        expect(counts[i]).toBeGreaterThanOrEqual(counts[i - 1]!);
+    });
+  }
 
   it('walks the order and stops at the end', () => {
     const first = CAMPAIGN[0]!.id;
@@ -139,21 +162,24 @@ describe('campaign levels are playable', () => {
       }
     });
 
-    it(`${id}: the player can walk the whole route, and sneaking it beats par`, () => {
-      const level = load(id);
-      const route = routeLength(level);
-      expect(level.data.parTimeS!).toBeGreaterThan(route / PLAYER.sneakSpeed);
-    });
+    for (const d of DIFFICULTIES) {
+      it(`${id} on ${d}: the player can walk the whole route, and sneaking it beats par`, () => {
+        const level = levelForDifficulty(load(id), d);
+        const route = routeLength(level);
+        expect(level.data.parTimeS!).toBeGreaterThan(route / PLAYER.sneakSpeed);
+      });
 
-    it(`${id}: standing still at the spawn goes unnoticed for ${SAFE_SPAWN_S} s`, () => {
-      const m = new Mission(load(id), new Rng(1));
-      const input = new InputState();
-      let worst = 0;
-      for (let t = 0; t < SAFE_SPAWN_S; t += DT) {
-        m.step(DT, input, LENS);
-        for (const g of m.guards.guards) worst = Math.max(worst, g.awareness.value);
-      }
-      expect(worst).toBeLessThan(AWARENESS.suspicious);
-    });
+      it(`${id} on ${d}: standing still at the spawn goes unnoticed for ${SAFE_SPAWN_S} s`, () => {
+        const level = levelForDifficulty(load(id), d);
+        const m = new Mission(level, new Rng(1), modifiersFor(newProgress(), d));
+        const input = new InputState();
+        let worst = 0;
+        for (let t = 0; t < SAFE_SPAWN_S; t += DT) {
+          m.step(DT, input, LENS);
+          for (const g of m.guards.guards) worst = Math.max(worst, g.awareness.value);
+        }
+        expect(worst).toBeLessThan(AWARENESS.suspicious);
+      });
+    }
   }
 });

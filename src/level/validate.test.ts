@@ -7,8 +7,9 @@ import { Pathfinder } from '../nav/astar';
 import type { Vec2 } from './collision';
 import { Grid } from './grid';
 import schema from './level.schema.json';
+import { guardsFor } from './difficulty-variant';
 import { validateLevel } from './validate';
-import type { LevelData } from './types';
+import type { GuardDef, LevelData } from './types';
 
 const ajv = new Ajv({ allErrors: true });
 const schemaValidate = ajv.compile(schema);
@@ -62,7 +63,7 @@ describe('shipped level patrols', () => {
   }
 
   it('medium has the eight guards the Phase 2 perf check needs', () => {
-    expect(medium.guards).toHaveLength(8);
+    expect(guardsFor(medium.guards as GuardDef[], 'medium')).toHaveLength(8);
   });
 });
 

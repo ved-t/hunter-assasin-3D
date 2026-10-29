@@ -4,9 +4,13 @@ import small from '../../public/levels/small.json';
 import { AWARENESS, HEALTH, KNIFE, REVIVE } from '../config/tunables';
 import { Rng } from '../core/rng';
 import { InputState } from '../input/input-state';
-import { levelFromJson as loadJson } from '../level/loader';
+import { levelForDifficulty } from '../level/difficulty-variant';
+import { levelFromJson } from '../level/loader';
 import { Mission, type ViewLens } from './mission';
 import { NO_MODIFIERS } from './modifiers';
+
+/** A level file as Medium plays it (the tests below were written for the authored guards). */
+const loadJson = (json: unknown) => levelForDifficulty(levelFromJson(json), 'medium');
 
 const DT = 1 / 60;
 const LENS: ViewLens = { vFov: (70 * Math.PI) / 180, aspect: 16 / 9 };
