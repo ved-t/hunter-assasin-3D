@@ -24,6 +24,7 @@ export const CAMPAIGN: readonly CampaignLevel[] = [
   { id: 'warehouse-5', name: 'Loading Bay', theme: 'warehouse' },
   { id: 'warehouse-6', name: 'Cold Storage', theme: 'warehouse' },
   { id: 'warehouse-7', name: 'Pallet Rows', theme: 'warehouse' },
+  { id: 'warehouse-8', name: 'Dead Drop', theme: 'warehouse' },
   { id: 'office-1', name: 'After Hours', theme: 'office' },
   { id: 'office-2', name: 'Corner Offices', theme: 'office' },
   { id: 'office-3', name: 'Cross Traffic', theme: 'office' },
