@@ -1,4 +1,4 @@
-// Crosshair dot and light gem: how lit the player is right now, from darkness to inside a beam.
+// Crosshair dot and light gem (drawn as a fill bar): how lit the player is right now, from darkness to inside a beam.
 // Driven through one CSS custom property, so an update never triggers layout.
 
 import { HUD, LIGHT_EXPOSURE } from '../config/tunables';
@@ -24,6 +24,10 @@ export class VisibilityMeter {
     this.gem = document.createElement('div');
     this.gem.className = 'light-gem';
     this.gem.setAttribute('aria-hidden', 'true');
+    // A horizontal bar: empty in darkness, full inside a beam (fill width scales with --lit).
+    const fill = document.createElement('div');
+    fill.className = 'fill';
+    this.gem.append(fill);
     root.append(crosshair, this.gem);
     this.elements = [crosshair, this.gem];
   }

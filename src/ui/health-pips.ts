@@ -1,4 +1,4 @@
-// Health: one pip per hit point under the light gem. Lost pips stay as dim outlines so the player can
+// Health: one pip per hit point above the visibility bar. Lost pips stay as dim outlines so the player can
 // count what is left at a glance. Writes the DOM only when the value changes.
 
 import { HEALTH } from '../config/tunables';
